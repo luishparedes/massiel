@@ -1,55 +1,54 @@
-// Datos persistentes
+// ===== SISTEMA DE PROTECCIÓN CONTRA COMPARTIR LINKS =====
+// Verificación periódica del token
+function verificarTokenPeriodicamente() {
+    const storedToken = JSON.parse(localStorage.getItem('calc_token'));
+    
+    // Verificar cada minuto si el token sigue siendo válido
+    const intervalo = setInterval(function() {
+        const token = JSON.parse(localStorage.getItem('calc_token'));
+        if (!token || Date.now() > token.expira) {
+            clearInterval(intervalo);
+            localStorage.removeItem('calc_token');
+            window.location.href = 'https://luishparedes.github.io/apptiktok2025/';
+        }
+    }, 60000); // Verificar cada minuto
+}
+
+// Función para verificar el token al cargar
+function verificarTokenInicial() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlToken = urlParams.get('token');
+    const storedToken = JSON.parse(localStorage.getItem('calc_token'));
+    
+    // Verificar si el token es válido
+    if (!urlToken || !storedToken || urlToken !== storedToken.valor || Date.now() > storedToken.expira) {
+        // Redirigir al portal de acceso después de 5 segundos
+        setTimeout(function() {
+            window.location.href = 'https://luishparedes.github.io/apptiktok2025/';
+        }, 5000);
+        
+        // Mostrar mensaje de advertencia
+        document.body.innerHTML = `
+            <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+                <h2 style="color: #d32f2f;">Acceso no autorizado</h2>
+                <p>Debes acceder a esta calculadora a través del portal oficial.</p>
+                <p>Serás redirigido automáticamente en 5 segundos...</p>
+                <a href="https://luishparedes.github.io/apptiktok2025/" style="color: #1976d2;">Haz clic aquí si no eres redirigido</a>
+            </div>
+        `;
+        return false;
+    }
+    
+    return true;
+}
+// ===== FIN DEL SISTEMA DE PROTECCIÓN =====
+
+// ===== DATOS PERSISTENTES Y SISTEMA DE ACTUALIZACIÓN =====
 let productos = JSON.parse(localStorage.getItem('productos')) || [];
 let nombreEstablecimiento = localStorage.getItem('nombreEstablecimiento') || '';
 let tasaBCVGuardada = parseFloat(localStorage.getItem('tasaBCV')) || 0;
 let ventasDiarias = JSON.parse(localStorage.getItem('ventasDiarias')) || [];
-
-// Control de acceso directo
-const ACCESS_PORTAL = "https://luishparedes.github.io/apptiktok2025/";
-const ALLOWED_REFERRERS = [
-    "luishparedes.github.io/apptiktok2025",
-    "localhost" // Para desarrollo
-];
-
-// Verificar si el acceso es directo
-function esAccesoDirecto() {
-    // Verificar si viene del portal de acceso
-    const referrer = document.referrer.toLowerCase();
-    const vieneDelPortal = ALLOWED_REFERRERS.some(url => referrer.includes(url));
-    
-    // Verificar parámetro de acceso válido en la URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const tieneTokenValido = urlParams.has('access_token');
-    
-    return !vieneDelPortal && !tieneTokenValido;
-}
-
-// Configurar temporizador de redirección
-function configurarRedireccion() {
-    if (esAccesoDirecto()) {
-        // Mostrar advertencia
-        mostrarToast("⚠ ACCESO NO AUTORIZADO: Serás redirigido al portal de acceso en 6 minutos", "error", 10000);
-        
-        // Configurar temporizador de 6 minutos (360,000 ms)
-        setTimeout(() => {
-            window.location.href = ACCESS_PORTAL;
-        }, 360000);
-        
-        // También configurar meta refresh como respaldo
-        document.getElementById('metaRefresh').content = `360; url=${ACCESS_PORTAL}`;
-    } else {
-        // Si el acceso es válido, desactivar meta refresh
-        document.getElementById('metaRefresh').content = '3600; url=about:blank';
-    }
-}
-
-// Sistema de actualización
 const APP_VERSION = "1.2.0";
-
-function toggleCopyrightNotice() {
-    const notice = document.getElementById('copyrightNotice');
-    notice.classList.toggle('show');
-}
 
 function checkAppVersion() {
     const savedVersion = localStorage.getItem('appVersion');
@@ -66,10 +65,38 @@ function checkAppVersion() {
         localStorage.setItem('appVersion', APP_VERSION);
     }
 }
+// ===== FIN DE DATOS PERSISTENTES =====
 
-// Inicialización
+// ===== FUNCIONES DE INTERFAZ =====
+function toggleCopyrightNotice() {
+    const notice = document.getElementById('copyrightNotice');
+    notice.classList.toggle('show');
+}
+
+function mostrarToast(mensaje, tipo = 'success', duracion = 3000) {
+    const toast = document.createElement('div');
+    toast.className = `toast ${tipo}`;
+    toast.textContent = mensaje;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), duracion);
+}
+
+function esDispositivoMovil() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+// ===== FIN DE FUNCIONES DE INTERFAZ =====
+
+// ===== INICIALIZACIÓN =====
 document.addEventListener('DOMContentLoaded', function() {
-    configurarRedireccion();
+    // Primero verificar el token
+    if (!verificarTokenInicial()) {
+        return; // Detener ejecución si el token no es válido
+    }
+    
+    // Configurar verificación periódica
+    verificarTokenPeriodicamente();
+    
+    // Resto de inicialización
     checkAppVersion();
     
     setTimeout(() => {
@@ -85,9 +112,9 @@ document.addEventListener('DOMContentLoaded', function() {
     cargarDatosIniciales();
     actualizarLista();
 });
+// ===== FIN DE INICIALIZACIÓN =====
 
-// ================= FUNCIONES PRINCIPALES =================
-
+// ===== FUNCIONES PRINCIPALES =====
 function cargarDatosIniciales() {
     document.getElementById('nombreEstablecimiento').value = nombreEstablecimiento;
     document.getElementById('tasaBCV').value = tasaBCVGuardada || '';
