@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Meta tags para control de caché -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <!-- Redirección después de inactividad -->
+    <meta http-equiv="refresh" content="3600; url=about:blank" id="metaRefresh">
+    
+    <title>Calculadora Mágica</title>
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Librerías JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <style>
+        /* Estilos originales preservados */
+        .copyright-notice {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #f8f9fa;
+            border-left: 5px solid #dc3545;
+            padding: 15px;
+            max-width: 300px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 1000;
+            animation: slideIn 0.5s ease-out;
+            display: none;
+        }
+        
+        .copyright-notice.show {
+            display: block;
+        }
+        
+        .copyright-notice .close-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            color: #6c757d;
+        }
+        
+        .copyright-notice strong {
+            color: #dc3545;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .copyright-icon {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #dc3545;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 999;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .inventario-bajo {
+            color: red;
+            font-weight: bold;
+        }
+
+        #listaCostosContainer {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        #listaCostos {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        #listaCostos li {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .costos-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        /* Botones flotantes de navegación mejorados */
+        .floating-nav {
+            position: fixed;
+            right: 20px;
+            bottom: 80px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 998;
+        }
+
+        .floating-nav button {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(to bottom, #26c6da, #00acc1);
+            color: white;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .floating-nav button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+
+        .floating-nav button:active {
+            transform: scale(0.95);
+        }
+
+        /* Botón para ir arriba */
+        .go-top {
+            background: linear-gradient(to bottom, #4CAF50, #66BB6A) !important;
+        }
+
+        /* Botón para ir abajo */
+        .go-bottom {
+            background: linear-gradient(to bottom, #607d8b, #78909c) !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="copyright-icon" onclick="toggleCopyrightNotice()">©</div>
+    
+    <div class="copyright-notice" id="copyrightNotice">
+        <button class="close-btn" onclick="toggleCopyrightNotice()">×</button>
+        <strong>ADVERTENCIA:</strong> Este sistema está protegido por derechos de autor. 
+        <strong>No revendas tu código de acceso</strong> o será bloqueado y perderás tu dinero. 
+        Cualquier uso no autorizado será penalizado según las leyes aplicables.
+    </div>
+
+    <div class="calculator">
+        <h2>Calculadora Mágica</h2>
+        
+        <section>
+            <h3>Nombre del Establecimiento</h3>
+            <input type="text" id="nombreEstablecimiento" placeholder="Ej: Tienda La Bendición">
+            <button onclick="guardarNombreEstablecimiento()">Guardar Nombre</button>
+        </section>
+
+        <section>
+            <h3>Tasa BCV</h3>
+            <input type="number" id="tasaBCV" placeholder="Tasa BCV" required="true">
+            <button onclick="actualizarTasaBCV()">Actualizar Tasa BCV</button>
+        </section>
+
+        <section>
+            <h3>Datos del Producto</h3>
+            <input type="text" id="producto" placeholder="Nombre del producto" required="true">
+            <input type="number" id="costo" placeholder="Costo del producto" required="true">
+            <select id="descripcion" required="true">
+                <option value="">Selecciona una descripción</option>
+                <option value="viveres">Víveres</option>
+                <option value="gaseosas">Gaseosas</option>
+                <option value="licores">Licores</option>
+                <option value="enlatados">Enlatados</option>
+                <option value="plasticos">Plásticos</option>
+                <option value="papeleria">Papelería</option>
+                <option value="lacteos">Lácteos</option>
+                <option value="ferreteria">Ferretería</option>
+                <option value="agropecuaria">Agropecuaria</option>
+                <option value="frigorifico">Frigorífico</option>
+                <option value="pescaderia">Pescadería</option>
+                <option value="repuesto">Repuesto</option>
+                <option value="confiteria">Confitería</option>
+                <option value="ropa">Ropa</option>
+                <option value="calzados">Calzados</option>
+                <option value="otros">Otros</option>
+            </select>
+        </section>
+
+        <section>
+            <h3>Precio de Venta</h3>
+            <input type="number" id="ganancia" placeholder="Porcentaje de ganancia" required="true">
+            <input type="number" id="unidadesPorCaja" placeholder="Unidades que trae la caja" required="true">
+            <input type="number" id="unidadesExistentes" placeholder="Unidades existentes" required="true">
+            <button onclick="calcularPrecioVenta()">Calcular Precio de Venta</button>
+            <p id="precioUnitario">Precio unitario: </p>
+        </section>
+
+        <button onclick="guardarProducto()">Guardar Producto</button>
+    </div>
+
+    <div id="listaProductos">
+        <input type="text" id="buscar" placeholder="Buscar producto">
+        <button onclick="buscarProducto()">Buscar</button>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Descripción</th>
+                    <th>Existencias</th>
+                    <th>Ajustar Inventario</th>
+                    <th>Precio Unitario ($)</th>
+                    <th>Precio Unitario (Bs)</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <div class="action-buttons">
+            <button onclick="generarReporteDiario()" class="generar-pdf">Generar Reporte Diario</button>
+            <button onclick="mostrarListaCostos()" class="lista-costos">Mostrar Lista de Costos</button>
+            <button onclick="generarRespaldoCompleto()" class="generar-respaldo">Generar Respaldo Completo</button>
+           <button onclick="limpiarLista()" class="limpiar-lista">Limpiar Lista</button>
+        </div>
+
+        <div id="listaCostosContainer" style="display: none;">
+            <div class="costos-header">
+                <h3>Lista de Costos de Productos</h3>
+                <button onclick="generarPDFCostos()" class="generar-pdf-costos">Convertir a PDF</button>
+            </div>
+            <ul id="listaCostos"></ul>
+        </div>
+    </div>
+
+    <!-- Botones flotantes de navegación mejorados -->
+    <div class="floating-nav">
+        <button class="go-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">↑</button>
+        <button class="go-bottom" onclick="window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'})">↓</button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
