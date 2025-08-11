@@ -7,41 +7,8 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    
-    <!-- ===== NUEVO: Verificación de Token ===== -->
-    <script>
-    // Verificación de token al cargar
-    window.addEventListener('DOMContentLoaded', function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlToken = urlParams.get('token');
-        const storedToken = JSON.parse(localStorage.getItem('calc_token'));
-        
-        // Verificar si el token es válido
-        if (!urlToken || !storedToken || urlToken !== storedToken.valor || Date.now() > storedToken.expira) {
-            // Redirigir al portal de acceso después de 5 segundos
-            setTimeout(function() {
-                window.location.href = 'https://luishparedes.github.io/apptiktok2025/';
-            }, 5000);
-            
-            // Mostrar mensaje de advertencia
-            document.body.innerHTML = `
-                <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
-                    <h2 style="color: #d32f2f;">Acceso no autorizado</h2>
-                    <p>Debes acceder a esta calculadora a través del portal oficial.</p>
-                    <p>Serás redirigido automáticamente en 5 segundos...</p>
-                    <a href="https://luishparedes.github.io/apptiktok2025/" style="color: #1976d2;">Haz clic aquí si no eres redirigido</a>
-                </div>
-            `;
-            return;
-        }
-        
-        // Configurar temporizador de expiración (6 minutos)
-        setTimeout(function() {
-            localStorage.removeItem('calc_token');
-            window.location.href = 'https://luishparedes.github.io/apptiktok2025/';
-        }, 360000);
-    });
-    </script>
+    <!-- Redirección después de inactividad -->
+    <meta http-equiv="refresh" content="3600; url=about:blank" id="metaRefresh">
     
     <title>Calculadora Mágica</title>
     <link rel="stylesheet" href="styles.css">
