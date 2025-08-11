@@ -1,0 +1,416 @@
+/* Estilos generales */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+    margin: 0;
+    padding: 20px;
+    min-height: 100vh;
+}
+
+.calculator {
+    border: 2px solid #ccc;
+    padding: 25px;
+    border-radius: 15px;
+    background-color: #fff;
+    width: 100%;
+    max-width: 420px;
+    margin-bottom: 25px;
+    text-align: center;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.calculator:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+}
+
+h2, h3 {
+    margin-bottom: 15px;
+    color: #00796b;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+h2 {
+    font-size: 1.8rem;
+}
+
+h3 {
+    font-size: 1.4rem;
+}
+
+input[type="number"], input[type="text"], select {
+    margin: 12px 0;
+    padding: 12px;
+    width: 90%;
+    box-sizing: border-box;
+    border-radius: 8px;
+    border: 1px solid #b2dfdb;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+}
+
+input[type="number"]:focus, 
+input[type="text"]:focus, 
+select:focus {
+    outline: none;
+    border-color: #26c6da;
+    box-shadow: 0 0 0 3px rgba(38, 198, 218, 0.2);
+}
+
+button {
+    margin: 12px 0;
+    padding: 12px;
+    width: 90%;
+    box-sizing: border-box;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+.main-button {
+    background: linear-gradient(to right, #29b6f6, #26c6da);
+    color: white;
+}
+
+.main-button:hover {
+    background: linear-gradient(to right, #0288d1, #00acc1);
+}
+
+p {
+    margin: 12px 0;
+    color: #333;
+    line-height: 1.5;
+}
+
+/* Lista de productos */
+#listaProductos {
+    width: 100%;
+    max-width: 840px;
+    background-color: white;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+#listaProductos table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 25px;
+    overflow: hidden;
+    border-radius: 10px;
+}
+
+#listaProductos th, #listaProductos td {
+    padding: 12px;
+    border: 1px solid #e0e0e0;
+    text-align: left;
+}
+
+#listaProductos th {
+    background: linear-gradient(to right, #26c6da, #00acc1);
+    color: white;
+    font-weight: 600;
+}
+
+#listaProductos tr:nth-child(even) {
+    background-color: #f5f5f5;
+}
+
+#listaProductos tr:hover {
+    background-color: #e0f7fa;
+}
+
+/* Botones especiales */
+#listaProductos button {
+    padding: 8px 12px;
+    width: auto;
+    margin: 0 5px;
+    font-size: 0.9rem;
+}
+
+#listaProductos button.editar {
+    background: linear-gradient(to right, #4CAF50, #66BB6A);
+}
+
+#listaProductos button.editar:hover {
+    background: linear-gradient(to right, #43A047, #5CB85C);
+}
+
+#listaProductos button.eliminar {
+    background: linear-gradient(to right, #f44336, #ef5350);
+}
+
+#listaProductos button.eliminar:hover {
+    background: linear-gradient(to right, #d32f2f, #e53935);
+}
+
+#listaProductos button.imprimir {
+    background: linear-gradient(to right, #FF9800, #FFA726);
+}
+
+#listaProductos button.imprimir:hover {
+    background: linear-gradient(to right, #F57C00, #FB8C00);
+}
+
+#listaProductos button.limpiar-lista {
+    background: linear-gradient(to right, #f44336, #ef5350);
+    margin-top: 15px;
+}
+
+#listaProductos button.limpiar-lista:hover {
+    background: linear-gradient(to right, #d32f2f, #e53935);
+}
+
+#listaProductos button.generar-pdf {
+    background: linear-gradient(to right, #008CBA, #00bcd4);
+    margin-top: 15px;
+}
+
+#listaProductos button.generar-pdf:hover {
+    background: linear-gradient(to right, #007bb5, #00acc1);
+}
+
+#listaProductos button.lista-costos {
+    background: linear-gradient(to right, #9c27b0, #ab47bc);
+    margin-top: 15px;
+}
+
+#listaProductos button.lista-costos:hover {
+    background: linear-gradient(to right, #7b1fa2, #8e24aa);
+}
+
+#listaProductos button.generar-respaldo {
+    background: linear-gradient(to right, #607d8b, #78909c);
+    margin-top: 15px;
+}
+
+#listaProductos button.generar-respaldo:hover {
+    background: linear-gradient(to right, #455a64, #546e7a);
+}
+
+#listaProductos button.btn-cerrar-sesion:hover {
+    background: linear-gradient(to right, #455a64, #546e7a);
+}
+
+/* Lista de costos */
+#listaCostosContainer {
+    width: 100%;
+    background-color: #f9f9f9;
+    padding: 25px;
+    border-radius: 15px;
+    margin-top: 25px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+#listaCostos {
+    list-style-type: none;
+    padding: 0;
+}
+
+#listaCostos li {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    transition: background-color 0.3s;
+}
+
+#listaCostos li:hover {
+    background-color: #e0f7fa;
+}
+
+#listaCostos li span:first-child {
+    flex: 2;
+    font-weight: 500;
+}
+
+#listaCostos li span:last-child {
+    flex: 1;
+    text-align: right;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    color: #00796b;
+}
+
+.generar-pdf-costos {
+    background: linear-gradient(to right, #2ecc71, #4CAF50);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-bottom: 20px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: auto;
+}
+
+.generar-pdf-costos:hover {
+    background: linear-gradient(to right, #27ae60, #43A047);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Toast de notificaciones */
+.toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 16px 32px;
+    border-radius: 8px;
+    z-index: 1000;
+    animation: fadeIn 0.3s;
+    color: white;
+    font-weight: bold;
+    background: linear-gradient(to right, #4CAF50, #66BB6A);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.toast.error {
+    background: linear-gradient(to right, #f44336, #ef5350);
+}
+
+.toast.warning {
+    background: linear-gradient(to right, #FF9800, #FFA726);
+}
+
+@keyframes fadeIn {
+    from { 
+        opacity: 0;
+        bottom: 0;
+    }
+    to { 
+        opacity: 1;
+        bottom: 30px;
+    }
+}
+
+/* Estilos para el inventario */
+.inventario-bajo {
+    color: #f44336;
+    font-weight: bold;
+    background-color: #ffebee;
+    padding: 2px 5px;
+    border-radius: 4px;
+}
+
+.ajuste-inventario {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.ajuste-inventario button {
+    padding: 5px 10px;
+    min-width: 30px;
+    margin: 0;
+    font-size: 0.8rem;
+}
+
+.ajuste-inventario input {
+    width: 50px;
+    padding: 5px;
+    text-align: center;
+    margin: 0;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    body {
+        padding: 15px;
+    }
+    
+    .calculator {
+        max-width: 100%;
+        padding: 20px;
+    }
+    
+    input[type="number"], input[type="text"], select, button {
+        width: 100%;
+    }
+    
+    #listaProductos {
+        padding: 15px;
+    }
+    
+    #listaProductos table {
+        font-size: 14px;
+    }
+    
+    #listaProductos th, #listaProductos td {
+        padding: 8px;
+    }
+    
+    #listaProductos button {
+        padding: 6px 10px;
+        font-size: 12px;
+        margin: 2px;
+    }
+    
+    #listaCostosContainer {
+        padding: 15px;
+    }
+
+    .ajuste-inventario {
+        flex-direction: column;
+        gap: 3px;
+    }
+
+    .ajuste-inventario input {
+        width: 40px;
+    }
+}
+
+/* Efectos adicionales */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.pulse-effect {
+    animation: pulse 1.5s infinite;
+}
+
+/* Scroll personalizado */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #b2dfdb;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #80cbc4;
+}
