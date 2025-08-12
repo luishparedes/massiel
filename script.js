@@ -4,88 +4,11 @@ let nombreEstablecimiento = localStorage.getItem('nombreEstablecimiento') || '';
 let tasaBCVGuardada = parseFloat(localStorage.getItem('tasaBCV')) || 0;
 let ventasDiarias = JSON.parse(localStorage.getItem('ventasDiarias')) || [];
 
-// Control de acceso directo
-const ACCESS_PORTAL = "https://luishparedes.github.io/apptiktok2025/";
-const ALLOWED_REFERRERS = [
-    "luishparedes.github.io/apptiktok2025",
-    "localhost" // Para desarrollo
-];
-
-// Verificar si el acceso es directo
-function esAccesoDirecto() {
-    // Verificar si viene del portal de acceso
-    const referrer = document.referrer.toLowerCase();
-    const vieneDelPortal = ALLOWED_REFERRERS.some(url => referrer.includes(url));
-    
-    // Verificar parámetro de acceso válido en la URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const tieneTokenValido = urlParams.has('access_token');
-    
-    return !vieneDelPortal && !tieneTokenValido;
-}
-
-// Configurar temporizador de redirección
-function configurarRedireccion() {
-    if (esAccesoDirecto()) {
-        // Mostrar advertencia
-        mostrarToast("⚠ ACCESO NO AUTORIZADO: Serás redirigido al portal de acceso en 6 minutos", "error", 10000);
-        
-        // Configurar temporizador de 6 minutos (360,000 ms)
-        setTimeout(() => {
-            window.location.href = ACCESS_PORTAL;
-        }, 360000);
-        
-        // También configurar meta refresh como respaldo
-        document.getElementById('metaRefresh').content = `360; url=${ACCESS_PORTAL}`;
-    } else {
-        // Si el acceso es válido, desactivar meta refresh
-        document.getElementById('metaRefresh').content = '3600; url=about:blank';
-    }
-}
-
-// Sistema de actualización
-const APP_VERSION = "1.2.0";
-
-function toggleCopyrightNotice() {
-    const notice = document.getElementById('copyrightNotice');
-    notice.classList.toggle('show');
-}
-
-function checkAppVersion() {
-    const savedVersion = localStorage.getItem('appVersion');
-    
-    if (!savedVersion) {
-        localStorage.setItem('appVersion', APP_VERSION);
-        return;
-    }
-    
-    if (savedVersion !== APP_VERSION) {
-        setTimeout(() => {
-            mostrarToast(`Versión ${APP_VERSION} cargada`, "success", 3000);
-        }, 2000);
-        localStorage.setItem('appVersion', APP_VERSION);
-    }
-}
-
-// Inicialización
+// Cargar datos al iniciar
 document.addEventListener('DOMContentLoaded', function() {
-    configurarRedireccion();
-    checkAppVersion();
-    
-    setTimeout(() => {
-        toggleCopyrightNotice();
-        setTimeout(() => {
-            const notice = document.getElementById('copyrightNotice');
-            if (notice.classList.contains('show')) {
-                notice.classList.remove('show');
-            }
-        }, 15000);
-    }, 5000);
-    
     cargarDatosIniciales();
     actualizarLista();
 });
-
 // ================= FUNCIONES PRINCIPALES =================
 
 function cargarDatosIniciales() {
@@ -285,26 +208,24 @@ function generarRespaldoCompleto() {
         doc.text(`Tasa BCV: ${tasaBCVGuardada} | Productos: ${productos.length}`, 105, 28, { align: 'center' });
 
         // Tabla principal optimizada para móviles
-        const columns = [
-            { header: 'Producto', dataKey: 'nombre' },
-            { header: 'Unid/Caja', dataKey: 'unidades' },
-            { header: 'Costo$', dataKey: 'costo' },
-            { header: 'Gan%', dataKey: 'ganancia' },
-            { header: 'P.Venta$', dataKey: 'pVentaDolar' },
-            { header: 'P.VentaBs', dataKey: 'pVentaBs' }
-        ];
-        
-        // ORDENAR PRODUCTOS ALFABÉTICAMENTE ANTES DE GENERAR EL PDF
-        const productosOrdenados = [...productos].sort((a, b) => a.nombre.localeCompare(b.nombre));
-        
-        const rows = productosOrdenados.map(producto => ({
-            nombre: producto.nombre,
-            unidades: producto.unidadesPorCaja,
-            costo: `$${producto.costo.toFixed(2)}`,
-            ganancia: `${(producto.ganancia * 100).toFixed(0)}%`,
-            pVentaDolar: `$${producto.precioUnitarioDolar.toFixed(2)}`,
-            pVentaBs: `Bs${producto.precioUnitarioBolivar.toFixed(2)}`
-        }));
+      
+         const columns = [
+        { header: 'Producto', dataKey: 'nombre' },
+        { header: 'Unid/Caja', dataKey: 'unidades' },
+        { header: 'Costo$', dataKey: 'costo' },
+        { header: 'Gan%', dataKey: 'ganancia' },
+        { header: 'P.Venta$', dataKey: 'pVentaDolar' },
+        { header: 'P.VentaBs', dataKey: 'pVentaBs' }
+    ];
+    
+    const rows = productos.map(producto => ({
+        nombre: producto.nombre,
+        unidades: producto.unidadesPorCaja,
+        costo: `$${producto.costo.toFixed(2)}`,
+        ganancia: `${(producto.ganancia * 100).toFixed(0)}%`,
+        pVentaDolar: `$${producto.precioUnitarioDolar.toFixed(2)}`,
+        pVentaBs: `Bs${producto.precioUnitarioBolivar.toFixed(2)}`
+    }));
 
         doc.autoTable({
             startY: 35,
@@ -680,16 +601,25 @@ function productoExiste(nombre) {
 
 // ================= FUNCIONES DE NOTIFICACIÓN =================
 
-function mostrarToast(mensaje, tipo = 'success', duracion = 3000) {
+function mostrarToast(mensaje, tipo = 'success') {
     const toast = document.createElement('div');
     toast.className = `toast ${tipo}`;
     toast.textContent = mensaje;
     document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), duracion);
+    setTimeout(() => toast.remove(), 3000);
 }
 
 function esDispositivoMovil() {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+function limpiarLista() {
+    if (confirm("?? ¿Estás seguro de limpiar toda la lista de productos? Esta acción no se puede deshacer.")) {
+        productos = [];
+        localStorage.setItem('productos', JSON.stringify(productos));
+        actualizarLista();
+        mostrarToast("??? Todos los productos han sido eliminados");
+    }
 }
 
 function buscarProducto() {
