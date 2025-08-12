@@ -7,8 +7,6 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <!-- Redirección después de inactividad -->
-    <meta http-equiv="refresh" content="3600; url=about:blank" id="metaRefresh">
     
     <title>Calculadora Mágica</title>
     <link rel="stylesheet" href="styles.css">
@@ -261,6 +259,47 @@
         <button class="go-bottom" onclick="window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'})">↓</button>
     </div>
 
+    <script>
+        // Sistema de actualización
+        const APP_VERSION = "1.2.0";
+        
+        function toggleCopyrightNotice() {
+            const notice = document.getElementById('copyrightNotice');
+            notice.classList.toggle('show');
+        }
+        
+        function checkAppVersion() {
+            const savedVersion = localStorage.getItem('appVersion');
+            
+            if (!savedVersion) {
+                localStorage.setItem('appVersion', APP_VERSION);
+                return;
+            }
+            
+            if (savedVersion !== APP_VERSION) {
+                setTimeout(() => {
+                    mostrarToast(`Versión ${APP_VERSION} cargada`, "success", 3000);
+                }, 2000);
+                localStorage.setItem('appVersion', APP_VERSION);
+            }
+        }
+        
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAppVersion();
+            
+            setTimeout(() => {
+                toggleCopyrightNotice();
+                setTimeout(() => {
+                    const notice = document.getElementById('copyrightNotice');
+                    if (notice.classList.contains('show')) {
+                        notice.classList.remove('show');
+                    }
+                }, 15000);
+            }, 5000);
+        });
+    </script>
+    
     <script src="script.js"></script>
 </body>
 </html>
