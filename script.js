@@ -162,7 +162,7 @@ function generarPDFCostos() {
 
 // ================= FUNCIONES DE RESPALDO =================
 
-function productosenlista() {
+function PDFListaProductos() {
     if (productos.length === 0 && ventasDiarias.length === 0) {
         mostrarToast("?? No hay datos para respaldar", "warning");
         return;
@@ -202,7 +202,7 @@ function productosenlista() {
 
         // Página 1 - Encabezado simplificado
         doc.setFontSize(14);
-        doc.text(`Respaldo - ${nombreEstablecimiento || 'Mi Negocio'}`, 105, 15, { align: 'center' });
+        doc.text(`PDF Lista Productos - ${nombreEstablecimiento || 'Mi Negocio'}`, 105, 15, { align: 'center' });
         doc.setFontSize(10);
         doc.text(`Generado: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 105, 22, { align: 'center' });
         doc.text(`Tasa BCV: ${tasaBCVGuardada} | Productos: ${productos.length}`, 105, 28, { align: 'center' });
@@ -218,7 +218,10 @@ function productosenlista() {
         { header: 'P.VentaBs', dataKey: 'pVentaBs' }
     ];
     
-    const rows = productos.map(producto => ({
+    // Ordenar productos alfabéticamente
+    const productosOrdenados = [...productos].sort((a, b) => a.nombre.localeCompare(b.nombre));
+    
+    const rows = productosOrdenados.map(producto => ({
         nombre: producto.nombre,
         unidades: producto.unidadesPorCaja,
         costo: `$${producto.costo.toFixed(2)}`,
@@ -251,7 +254,7 @@ function productosenlista() {
             // Opción 1: Usar FileSaver.js si está disponible
             if (window.saveAs) {
                 const pdfBlob = doc.output('blob');
-                saveAs(pdfBlob, `respaldo_${new Date().toISOString().slice(0,10)}.pdf`);
+                saveAs(pdfBlob, `lista_productos_${new Date().toISOString().slice(0,10)}.pdf`);
                 mostrarToast("? PDF guardado en Descargas");
             } 
             // Opción 2: Abrir en nueva pestaña
@@ -262,7 +265,7 @@ function productosenlista() {
             // Opción 3: Descarga tradicional con fallback
             else {
                 try {
-                    doc.save(`respaldo_${new Date().toISOString().slice(0,10)}.pdf`);
+                    doc.save(`lista_productos_${new Date().toISOString().slice(0,10)}.pdf`);
                 } catch (e) {
                     const pdfData = doc.output('datauristring');
                     const ventana = window.open();
@@ -272,7 +275,7 @@ function productosenlista() {
             }
         } else {
             // Descarga normal para escritorio
-            doc.save(`respaldo_${new Date().toISOString().slice(0,10)}.pdf`);
+            doc.save(`lista_productos_${new Date().toISOString().slice(0,10)}.pdf`);
         }
     } catch (error) {
         console.error("Error generando PDF:", error);
@@ -521,6 +524,7 @@ function actualizarLista() {
     const tbody = document.querySelector('#listaProductos tbody');
     tbody.innerHTML = '';
 
+    // Ordenar productos alfabéticamente
     const productosOrdenados = [...productos].sort((a, b) => a.nombre.localeCompare(b.nombre));
     
     productosOrdenados.forEach((producto, index) => {
