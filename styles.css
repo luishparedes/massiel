@@ -101,7 +101,7 @@ p {
 }
 
 /* Lista de productos */
-#listaProductos {
+.panel-productos {
     width: 100%;
     max-width: 840px;
     background-color: white;
@@ -110,7 +110,7 @@ p {
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
 }
 
-#listaProductos table {
+.panel-productos table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 25px;
@@ -118,95 +118,95 @@ p {
     border-radius: 10px;
 }
 
-#listaProductos th, #listaProductos td {
+.panel-productos th, .panel-productos td {
     padding: 12px;
     border: 1px solid #e0e0e0;
     text-align: left;
 }
 
-#listaProductos th {
+.panel-productos th {
     background: linear-gradient(to right, #26c6da, #00acc1);
     color: white;
     font-weight: 600;
 }
 
-#listaProductos tr:nth-child(even) {
+.panel-productos tr:nth-child(even) {
     background-color: #f5f5f5;
 }
 
-#listaProductos tr:hover {
+.panel-productos tr:hover {
     background-color: #e0f7fa;
 }
 
 /* Botones especiales */
-#listaProductos button {
+.panel-productos button {
     padding: 8px 12px;
     width: auto;
     margin: 0 5px;
     font-size: 0.9rem;
 }
 
-#listaProductos button.editar {
+.panel-productos button.editar {
     background: linear-gradient(to right, #4CAF50, #66BB6A);
 }
 
-#listaProductos button.editar:hover {
+.panel-productos button.editar:hover {
     background: linear-gradient(to right, #43A047, #5CB85C);
 }
 
-#listaProductos button.eliminar {
+.panel-productos button.eliminar {
     background: linear-gradient(to right, #f44336, #ef5350);
 }
 
-#listaProductos button.eliminar:hover {
+.panel-productos button.eliminar:hover {
     background: linear-gradient(to right, #d32f2f, #e53935);
 }
 
-#listaProductos button.imprimir {
+.panel-productos button.imprimir {
     background: linear-gradient(to right, #FF9800, #FFA726);
 }
 
-#listaProductos button.imprimir:hover {
+.panel-productos button.imprimir:hover {
     background: linear-gradient(to right, #F57C00, #FB8C00);
 }
 
-#listaProductos button.limpiar-lista {
+.panel-productos button.limpiar-lista {
     background: linear-gradient(to right, #f44336, #ef5350);
     margin-top: 15px;
 }
 
-#listaProductos button.limpiar-lista:hover {
+.panel-productos button.limpiar-lista:hover {
     background: linear-gradient(to right, #d32f2f, #e53935);
 }
 
-#listaProductos button.generar-pdf {
+.panel-productos button.generar-pdf {
     background: linear-gradient(to right, #008CBA, #00bcd4);
     margin-top: 15px;
 }
 
-#listaProductos button.generar-pdf:hover {
+.panel-productos button.generar-pdf:hover {
     background: linear-gradient(to right, #007bb5, #00acc1);
 }
 
-#listaProductos button.lista-costos {
+.panel-productos button.lista-costos {
     background: linear-gradient(to right, #9c27b0, #ab47bc);
     margin-top: 15px;
 }
 
-#listaProductos button.lista-costos:hover {
+.panel-productos button.lista-costos:hover {
     background: linear-gradient(to right, #7b1fa2, #8e24aa);
 }
 
-#listaProductos button.generar-respaldo {
+.panel-productos button.generar-respaldo {
     background: linear-gradient(to right, #607d8b, #78909c);
     margin-top: 15px;
 }
 
-#listaProductos button.generar-respaldo:hover {
+.panel-productos button.generar-respaldo:hover {
     background: linear-gradient(to right, #455a64, #546e7a);
 }
 
-#listaProductos button.btn-cerrar-sesion:hover {
+.panel-productos button.btn-cerrar-sesion:hover {
     background: linear-gradient(to right, #455a64, #546e7a);
 }
 
@@ -352,19 +352,19 @@ p {
         width: 100%;
     }
     
-    #listaProductos {
+    .panel-productos {
         padding: 15px;
     }
     
-    #listaProductos table {
+    .panel-productos table {
         font-size: 14px;
     }
     
-    #listaProductos th, #listaProductos td {
+    .panel-productos th, .panel-productos td {
         padding: 8px;
     }
     
-    #listaProductos button {
+    .panel-productos button {
         padding: 6px 10px;
         font-size: 12px;
         margin: 2px;
