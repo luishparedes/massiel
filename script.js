@@ -50,12 +50,11 @@ let ventasDiarias = JSON.parse(localStorage.getItem('ventasDiarias')) || [];
 
 // Cargar datos al iniciar
 document.addEventListener('DOMContentLoaded', function() {
-    reiniciarTemporizador();
+    reiniciarTemporizador(); // <-- Esta es la nueva línea añadida
     cargarDatosIniciales();
     actualizarLista();
-    verificarActualizacion();
+    verificarActualizacion(); // Esta línea ya estaba pero puede estar en otro lugar
 });
-
 // ================= FUNCIONES PRINCIPALES =================
 
 function cargarDatosIniciales() {
@@ -565,7 +564,7 @@ function guardarProductoEnLista(producto) {
 // ================= FUNCIONES DE INTERFAZ =================
 
 function actualizarLista() {
-    const tbody = document.querySelector('.panel-productos tbody');
+    const tbody = document.querySelector('#listaProductos tbody');
     tbody.innerHTML = '';
 
     const productosOrdenados = [...productos].sort((a, b) => a.nombre.localeCompare(b.nombre));
@@ -660,6 +659,15 @@ function esDispositivoMovil() {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 }
 
+function limpiarLista() {
+    if (confirm("?? ¿Estás seguro de limpiar toda la lista de productos? Esta acción no se puede deshacer.")) {
+        productos = [];
+        localStorage.setItem('productos', JSON.stringify(productos));
+        actualizarLista();
+        mostrarToast("??? Todos los productos han sido eliminados");
+    }
+}
+
 function buscarProducto() {
     const termino = document.getElementById('buscar').value.trim().toLowerCase();
     if (!termino) {
@@ -672,7 +680,7 @@ function buscarProducto() {
         p.descripcion.toLowerCase().includes(termino)
     );
 
-    const tbody = document.querySelector('.panel-productos tbody');
+    const tbody = document.querySelector('#listaProductos tbody');
     tbody.innerHTML = '';
 
     resultados.forEach((producto, index) => {
