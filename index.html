@@ -154,6 +154,48 @@
         .go-bottom {
             background: linear-gradient(to bottom, #607d8b, #78909c) !important;
         }
+        
+        /* Nuevos estilos para la división en dos secciones */
+        .app-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+        
+        .panel-principal {
+            flex: 1;
+            min-width: 400px;
+        }
+        
+        .panel-productos {
+            flex: 2;
+            min-width: 600px;
+            background-color: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .search-container {
+            display: flex;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+        
+        .search-container input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #b2dfdb;
+        }
+        
+        .search-container button {
+            width: auto;
+            padding: 12px 20px;
+        }
     </style>
 </head>
 <body>
@@ -166,90 +208,100 @@
         Cualquier uso no autorizado será penalizado según las leyes aplicables.
     </div>
 
-    <div class="calculator">
-        <h2>Calculadora Mágica</h2>
-        
-        <section>
-            <h3>Nombre del Establecimiento</h3>
-            <input type="text" id="nombreEstablecimiento" placeholder="Ej: Tienda La Bendición">
-            <button onclick="guardarNombreEstablecimiento()">Guardar Nombre</button>
-        </section>
+    <div class="app-container">
+        <div class="panel-principal">
+            <div class="calculator">
+                <h2>Calculadora Mágica</h2>
+                
+                <section>
+                    <h3>Nombre del Establecimiento</h3>
+                    <input type="text" id="nombreEstablecimiento" placeholder="Ej: Tienda La Bendición">
+                    <button onclick="guardarNombreEstablecimiento()">Guardar Nombre</button>
+                </section>
 
-        <section>
-            <h3>Tasa BCV</h3>
-            <input type="number" id="tasaBCV" placeholder="Tasa BCV" required="true">
-            <button onclick="actualizarTasaBCV()">Actualizar Tasa BCV</button>
-        </section>
+                <section>
+                    <h3>Tasa BCV</h3>
+                    <input type="number" id="tasaBCV" placeholder="Tasa BCV" required="true">
+                    <button onclick="actualizarTasaBCV()">Actualizar Tasa BCV</button>
+                </section>
 
-        <section>
-            <h3>Datos del Producto</h3>
-            <input type="text" id="producto" placeholder="Nombre del producto" required="true">
-            <input type="number" id="costo" placeholder="Costo del producto" required="true">
-            <select id="descripcion" required="true">
-                <option value="">Selecciona una descripción</option>
-                <option value="viveres">Víveres</option>
-                <option value="gaseosas">Gaseosas</option>
-                <option value="licores">Licores</option>
-                <option value="enlatados">Enlatados</option>
-                <option value="plasticos">Plásticos</option>
-                <option value="papeleria">Papelería</option>
-                <option value="lacteos">Lácteos</option>
-                <option value="ferreteria">Ferretería</option>
-                <option value="agropecuaria">Agropecuaria</option>
-                <option value="frigorifico">Frigorífico</option>
-                <option value="pescaderia">Pescadería</option>
-                <option value="repuesto">Repuesto</option>
-                <option value="confiteria">Confitería</option>
-                <option value="ropa">Ropa</option>
-                <option value="calzados">Calzados</option>
-                <option value="otros">Otros</option>
-            </select>
-        </section>
+                <section>
+                    <h3>Datos del Producto</h3>
+                    <input type="text" id="producto" placeholder="Nombre del producto" required="true">
+                    <input type="number" id="costo" placeholder="Costo del producto" required="true">
+                    <select id="descripcion" required="true">
+                        <option value="">Selecciona una descripción</option>
+                        <option value="viveres">Víveres</option>
+                        <option value="gaseosas">Gaseosas</option>
+                        <option value="licores">Licores</option>
+                        <option value="enlatados">Enlatados</option>
+                        <option value="plasticos">Plásticos</option>
+                        <option value="papeleria">Papelería</option>
+                        <option value="lacteos">Lácteos</option>
+                        <option value="ferreteria">Ferretería</option>
+                        <option value="agropecuaria">Agropecuaria</option>
+                        <option value="frigorifico">Frigorífico</option>
+                        <option value="pescaderia">Pescadería</option>
+                        <option value="repuesto">Repuesto</option>
+                        <option value="confiteria">Confitería</option>
+                        <option value="ropa">Ropa</option>
+                        <option value="calzados">Calzados</option>
+                        <option value="otros">Otros</option>
+                    </select>
+                </section>
 
-        <section>
-            <h3>Precio de Venta</h3>
-            <input type="number" id="ganancia" placeholder="Porcentaje de ganancia" required="true">
-            <input type="number" id="unidadesPorCaja" placeholder="Unidades que trae la caja" required="true">
-            <input type="number" id="unidadesExistentes" placeholder="Unidades existentes" required="true">
-            <button onclick="calcularPrecioVenta()">Calcular Precio de Venta</button>
-            <p id="precioUnitario">Precio unitario: </p>
-        </section>
+                <section>
+                    <h3>Precio de Venta</h3>
+                    <input type="number" id="ganancia" placeholder="Porcentaje de ganancia" required="true">
+                    <input type="number" id="unidadesPorCaja" placeholder="Unidades que trae la caja" required="true">
+                    <input type="number" id="unidadesExistentes" placeholder="Unidades existentes" required="true">
+                    <button onclick="calcularPrecioVenta()">Calcular Precio de Venta</button>
+                    <p id="precioUnitario">Precio unitario: </p>
+                </section>
 
-        <button onclick="guardarProducto()">Guardar Producto</button>
-    </div>
-
-    <div id="listaProductos">
-        <input type="text" id="buscar" placeholder="Buscar producto">
-        <button onclick="buscarProducto()">Buscar</button>
-        
-        <table>
-            <thead>
-                <tr>
-                    <th>Producto</th>
-                    <th>Descripción</th>
-                    <th>Existencias</th>
-                    <th>Ajustar Inventario</th>
-                    <th>Precio Unitario ($)</th>
-                    <th>Precio Unitario (Bs)</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-
-        <div class="action-buttons">
-            <button onclick="generarReporteDiario()" class="generar-pdf">Generar Reporte Diario</button>
-            <button onclick="mostrarListaCostos()" class="lista-costos">Mostrar Lista de Costos</button>
-            <button onclick="PDFListaProductos()" class="productosenlista">PDF Lista Productos</button>
-           <button onclick="limpiarLista()" class="limpiar-lista">Limpiar Lista</button>
-        </div>
-
-        <div id="listaCostosContainer" style="display: none;">
-            <div class="costos-header">
-                <h3>Lista de Costos de Productos</h3>
-                <button onclick="generarPDFCostos()" class="generar-pdf-costos">Convertir a PDF</button>
+                <button onclick="guardarProducto()">Guardar Producto</button>
             </div>
-            <ul id="listaCostos"></ul>
+        </div>
+        
+        <div class="panel-productos">
+            <h2>Lista de Productos</h2>
+            
+            <div class="search-container">
+                <input type="text" id="buscar" placeholder="Buscar producto por nombre o descripción...">
+                <button onclick="buscarProducto()">Buscar</button>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Descripción</th>
+                            <th>Existencias</th>
+                            <th>Ajustar Inventario</th>
+                            <th>Precio Unitario ($)</th>
+                            <th>Precio Unitario (Bs)</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="action-buttons">
+                <button onclick="generarReporteDiario()" class="generar-pdf">Generar Reporte Diario</button>
+                <button onclick="mostrarListaCostos()" class="lista-costos">Mostrar Lista de Costos</button>
+                <button onclick="generarRespaldoCompleto()" class="generar-respaldo">PDF Lista Productos</button>
+                <button onclick="limpiarLista()" class="limpiar-lista">Limpiar Lista</button>
+            </div>
+
+            <div id="listaCostosContainer" style="display: none;">
+                <div class="costos-header">
+                    <h3>Lista de Costos de Productos</h3>
+                    <button onclick="generarPDFCostos()" class="generar-pdf-costos">Convertir a PDF</button>
+                </div>
+                <ul id="listaCostos"></ul>
+            </div>
         </div>
     </div>
 
@@ -261,7 +313,7 @@
 
     <script>
         // Sistema de actualización
-        const APP_VERSION = "1.2.0";
+        const APP_VERSION = "1.0.2";
         
         function toggleCopyrightNotice() {
             const notice = document.getElementById('copyrightNotice');
