@@ -162,7 +162,7 @@ function generarPDFCostos() {
 
 // ================= FUNCIONES DE RESPALDO =================
 
-function generarRespaldoCompleto() {
+function prodcutosenlista() {
     if (productos.length === 0 && ventasDiarias.length === 0) {
         mostrarToast("?? No hay datos para respaldar", "warning");
         return;
