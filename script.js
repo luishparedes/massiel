@@ -1,3 +1,47 @@
+// ===== SISTEMA DE ACTUALIZACIÓN AUTOMÁTICA ===== //
+const VERSION_ACTUAL = "1.0.2"; // CAMBIA ESTE NÚMERO CON CADA ACTUALIZACIÓN
+
+// ===== SISTEMA DE REDIRECCIÓN POR INACTIVIDAD ===== //
+const TIEMPO_INACTIVIDAD = 10 * 60 * 1000; // 10 minutos en milisegundos
+const URL_REDIRECCION = "https://luishparedes.github.io/apptiktok2025/";
+
+let temporizadorInactividad;
+
+function reiniciarTemporizador() {
+    // Limpiar el temporizador existente
+    clearTimeout(temporizadorInactividad);
+    
+    // Iniciar nuevo temporizador
+    temporizadorInactividad = setTimeout(() => {
+        // Redirigir después del tiempo de inactividad
+        window.location.href = URL_REDIRECCION;
+    }, TIEMPO_INACTIVIDAD);
+}
+
+// Eventos que indican actividad del usuario
+['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evento => {
+    document.addEventListener(evento, reiniciarTemporizador);
+});
+
+// Verificar si hay una nueva versión
+function verificarActualizacion() {
+    const versionGuardada = localStorage.getItem('appVersion');
+    
+    if (versionGuardada !== VERSION_ACTUAL) {
+        localStorage.setItem('appVersion', VERSION_ACTUAL);
+        
+        if (versionGuardada !== null) {
+            // Mostrar notificación amigable
+            mostrarToast("¡Nueva actualización disponible! La app se recargará automáticamente.", "info");
+            
+            // Recargar después de 3 segundos (da tiempo a ver el mensaje)
+            setTimeout(() => {
+                window.location.reload(true); // Recarga forzada sin caché
+            }, 3000);
+        }
+    }
+}
+
 // Datos persistentes
 let productos = JSON.parse(localStorage.getItem('productos')) || [];
 let nombreEstablecimiento = localStorage.getItem('nombreEstablecimiento') || '';
@@ -6,9 +50,12 @@ let ventasDiarias = JSON.parse(localStorage.getItem('ventasDiarias')) || [];
 
 // Cargar datos al iniciar
 document.addEventListener('DOMContentLoaded', function() {
+    reiniciarTemporizador();
     cargarDatosIniciales();
     actualizarLista();
+    verificarActualizacion();
 });
+
 // ================= FUNCIONES PRINCIPALES =================
 
 function cargarDatosIniciales() {
@@ -162,7 +209,7 @@ function generarPDFCostos() {
 
 // ================= FUNCIONES DE RESPALDO =================
 
-function PDFListaProductos() {
+function generarRespaldoCompleto() {
     if (productos.length === 0 && ventasDiarias.length === 0) {
         mostrarToast("?? No hay datos para respaldar", "warning");
         return;
@@ -202,7 +249,7 @@ function PDFListaProductos() {
 
         // Página 1 - Encabezado simplificado
         doc.setFontSize(14);
-        doc.text(`PDF Lista Productos - ${nombreEstablecimiento || 'Mi Negocio'}`, 105, 15, { align: 'center' });
+        doc.text(`Respaldo - ${nombreEstablecimiento || 'Mi Negocio'}`, 105, 15, { align: 'center' });
         doc.setFontSize(10);
         doc.text(`Generado: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 105, 22, { align: 'center' });
         doc.text(`Tasa BCV: ${tasaBCVGuardada} | Productos: ${productos.length}`, 105, 28, { align: 'center' });
@@ -218,10 +265,7 @@ function PDFListaProductos() {
         { header: 'P.VentaBs', dataKey: 'pVentaBs' }
     ];
     
-    // Ordenar productos alfabéticamente
-    const productosOrdenados = [...productos].sort((a, b) => a.nombre.localeCompare(b.nombre));
-    
-    const rows = productosOrdenados.map(producto => ({
+    const rows = productos.map(producto => ({
         nombre: producto.nombre,
         unidades: producto.unidadesPorCaja,
         costo: `$${producto.costo.toFixed(2)}`,
@@ -254,7 +298,7 @@ function PDFListaProductos() {
             // Opción 1: Usar FileSaver.js si está disponible
             if (window.saveAs) {
                 const pdfBlob = doc.output('blob');
-                saveAs(pdfBlob, `lista_productos_${new Date().toISOString().slice(0,10)}.pdf`);
+                saveAs(pdfBlob, `respaldo_${new Date().toISOString().slice(0,10)}.pdf`);
                 mostrarToast("? PDF guardado en Descargas");
             } 
             // Opción 2: Abrir en nueva pestaña
@@ -265,7 +309,7 @@ function PDFListaProductos() {
             // Opción 3: Descarga tradicional con fallback
             else {
                 try {
-                    doc.save(`lista_productos_${new Date().toISOString().slice(0,10)}.pdf`);
+                    doc.save(`respaldo_${new Date().toISOString().slice(0,10)}.pdf`);
                 } catch (e) {
                     const pdfData = doc.output('datauristring');
                     const ventana = window.open();
@@ -275,7 +319,7 @@ function PDFListaProductos() {
             }
         } else {
             // Descarga normal para escritorio
-            doc.save(`lista_productos_${new Date().toISOString().slice(0,10)}.pdf`);
+            doc.save(`respaldo_${new Date().toISOString().slice(0,10)}.pdf`);
         }
     } catch (error) {
         console.error("Error generando PDF:", error);
@@ -521,10 +565,9 @@ function guardarProductoEnLista(producto) {
 // ================= FUNCIONES DE INTERFAZ =================
 
 function actualizarLista() {
-    const tbody = document.querySelector('#listaProductos tbody');
+    const tbody = document.querySelector('.panel-productos tbody');
     tbody.innerHTML = '';
 
-    // Ordenar productos alfabéticamente
     const productosOrdenados = [...productos].sort((a, b) => a.nombre.localeCompare(b.nombre));
     
     productosOrdenados.forEach((producto, index) => {
@@ -617,15 +660,6 @@ function esDispositivoMovil() {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 }
 
-function limpiarLista() {
-    if (confirm("?? ¿Estás seguro de limpiar toda la lista de productos? Esta acción no se puede deshacer.")) {
-        productos = [];
-        localStorage.setItem('productos', JSON.stringify(productos));
-        actualizarLista();
-        mostrarToast("??? Todos los productos han sido eliminados");
-    }
-}
-
 function buscarProducto() {
     const termino = document.getElementById('buscar').value.trim().toLowerCase();
     if (!termino) {
@@ -638,7 +672,7 @@ function buscarProducto() {
         p.descripcion.toLowerCase().includes(termino)
     );
 
-    const tbody = document.querySelector('#listaProductos tbody');
+    const tbody = document.querySelector('.panel-productos tbody');
     tbody.innerHTML = '';
 
     resultados.forEach((producto, index) => {
