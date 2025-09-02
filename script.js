@@ -1,5 +1,5 @@
 // ===== SISTEMA DE ACTUALIZACIÓN AUTOMÁTICA ===== //
-const VERSION_ACTUAL = "1.0.2"; // CAMBIA ESTE NÚMERO CON CADA ACTUALIZACIÓN
+const VERSION_ACTUAL = "1.2.0"; // Versión actualizada con código de barras
 
 // ===== SISTEMA DE REDIRECCIÓN POR INACTIVIDAD ===== //
 const TIEMPO_INACTIVIDAD = 10 * 60 * 1000; // 10 minutos en milisegundos
@@ -47,15 +47,293 @@ let productos = JSON.parse(localStorage.getItem('productos')) || [];
 let nombreEstablecimiento = localStorage.getItem('nombreEstablecimiento') || '';
 let tasaBCVGuardada = parseFloat(localStorage.getItem('tasaBCV')) || 0;
 let ventasDiarias = JSON.parse(localStorage.getItem('ventasDiarias')) || [];
+let carrito = JSON.parse(localStorage.getItem('carrito')) || [];
 
 // Cargar datos al iniciar
 document.addEventListener('DOMContentLoaded', function() {
-    reiniciarTemporizador(); // <-- Esta es la nueva línea añadida
+    reiniciarTemporizador();
     cargarDatosIniciales();
     actualizarLista();
-    verificarActualizacion(); // Esta línea ya estaba pero puede estar en otro lugar
+    actualizarCarrito();
+    verificarActualizacion();
+    configurarScanner();
 });
-// ================= FUNCIONES PRINCIPALES =================
+
+// ================= NUEVAS FUNCIONES DEL CARRITO =================
+
+function configurarScanner() {
+    const inputScanner = document.getElementById('codigoBarrasInput');
+    
+    // Enfocar el input al cargar la página
+    inputScanner.focus();
+    
+    // Detectar cuando se ingresa un código (simula escaneo)
+    inputScanner.addEventListener('input', function(e) {
+        // Si el valor cambió rápidamente, probablemente fue un escaneo
+        document.getElementById('scannerStatus').textContent = 'Código detectado: ' + this.value;
+        
+        // Si presiona Enter o el valor tiene una longitud típica de código de barras
+        if (this.value.length >= 8) {
+            setTimeout(() => {
+                agregarPorCodigoBarras();
+            }, 300);
+        }
+    });
+    
+    // También detectar la tecla Enter
+    inputScanner.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            agregarPorCodigoBarras();
+        }
+    });
+}
+
+function agregarPorCodigoBarras() {
+    const codigo = document.getElementById('codigoBarrasInput').value.trim();
+    
+    if (!codigo) {
+        mostrarToast("?? Ingrese o escanee un código de barras", "error");
+        return;
+    }
+    
+    // Buscar producto por código de barras
+    const productoEncontrado = productos.find(p => 
+        p.codigoBarras && p.codigoBarras.toLowerCase() === codigo.toLowerCase()
+    );
+    
+    // Si no se encuentra por código, buscar por nombre
+    if (!productoEncontrado) {
+        mostrarToast("?? Producto no encontrado por código. Buscando por nombre...", "warning");
+        
+        const productoPorNombre = productos.find(p => 
+            p.nombre.toLowerCase().includes(codigo.toLowerCase()) || 
+            p.descripcion.toLowerCase().includes(codigo.toLowerCase())
+        );
+        
+        if (productoPorNombre) {
+            productoEncontrado = productoPorNombre;
+        } else {
+            mostrarToast("?? Producto no encontrado. ¿Desea agregarlo manualmente?", "warning");
+            
+            // Preguntar si quiere agregar manualmente
+            if (confirm("Producto no encontrado. ¿Desea agregarlo manualmente?")) {
+                document.getElementById('producto').value = codigo;
+                document.getElementById('producto').focus();
+                window.scrollTo(0, 0);
+            }
+            
+            return;
+        }
+    }
+    
+    // Verificar si ya está en el carrito
+    const enCarrito = carrito.find(item => item.nombre === productoEncontrado.nombre);
+    
+    if (enCarrito) {
+        // Incrementar cantidad
+        enCarrito.cantidad += 1;
+        enCarrito.subtotal = enCarrito.cantidad * enCarrito.precioUnitarioBolivar;
+        mostrarToast(`+1 ${productoEncontrado.nombre} en carrito`);
+    } else {
+        // Agregar nuevo producto al carrito
+        carrito.push({
+            nombre: productoEncontrado.nombre,
+            descripcion: productoEncontrado.descripcion,
+            precioUnitarioBolivar: productoEncontrado.precioUnitarioBolivar,
+            cantidad: 1,
+            subtotal: productoEncontrado.precioUnitarioBolivar,
+            indexProducto: productos.findIndex(p => p.nombre === productoEncontrado.nombre)
+        });
+        mostrarToast(`✓ ${productoEncontrado.nombre} agregado al carrito`);
+    }
+    
+    // Limpiar input y actualizar carrito
+    document.getElementById('codigoBarrasInput').value = '';
+    document.getElementById('codigoBarrasInput').focus();
+    document.getElementById('scannerStatus').textContent = 'Producto agregado. Esperando nuevo escaneo...';
+    
+    // Guardar y actualizar
+    guardarCarrito();
+    actualizarCarrito();
+}
+
+function eliminarDelCarrito(index) {
+    const producto = carrito[index].nombre;
+    carrito.splice(index, 1);
+    guardarCarrito();
+    actualizarCarrito();
+    mostrarToast(`✗ ${producto} eliminado del carrito`);
+}
+
+function actualizarCantidadCarrito(index, cambio) {
+    const item = carrito[index];
+    item.cantidad += cambio;
+    
+    if (item.cantidad < 1) {
+        eliminarDelCarrito(index);
+        return;
+    }
+    
+    item.subtotal = item.cantidad * item.precioUnitarioBolivar;
+    guardarCarrito();
+    actualizarCarrito();
+}
+
+function actualizarCarrito() {
+    const carritoBody = document.getElementById('carritoBody');
+    const totalCarrito = document.getElementById('totalCarrito');
+    
+    carritoBody.innerHTML = '';
+    
+    if (carrito.length === 0) {
+        carritoBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">El carrito está vacío</td></tr>';
+        totalCarrito.textContent = 'Total: Bs 0,00';
+        return;
+    }
+    
+    let total = 0;
+    
+    carrito.forEach((item, index) => {
+        total += item.subtotal;
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${item.nombre} (${item.descripcion})</td>
+            <td>Bs ${item.precioUnitarioBolivar.toFixed(2)}</td>
+            <td>
+                <button onclick="actualizarCantidadCarrito(${index}, -1)">-</button>
+                ${item.cantidad}
+                <button onclick="actualizarCantidadCarrito(${index}, 1)">+</button>
+            </td>
+            <td>Bs ${item.subtotal.toFixed(2)}</td>
+            <td>
+                <button class="btn-eliminar-carrito" onclick="eliminarDelCarrito(${index})">Eliminar</button>
+            </td>
+        `;
+        carritoBody.appendChild(row);
+    });
+    
+    totalCarrito.textContent = `Total: Bs ${total.toFixed(2)}`;
+}
+
+function guardarCarrito() {
+    localStorage.setItem('carrito', JSON.stringify(carrito));
+}
+
+function finalizarVenta() {
+    if (carrito.length === 0) {
+        mostrarToast("?? El carrito está vacío", "error");
+        return;
+    }
+    
+    // Confirmar venta
+    const total = carrito.reduce((sum, item) => sum + item.subtotal, 0);
+    if (!confirm(`¿Finalizar venta por Bs ${total.toFixed(2)}?`)) return;
+    
+    // Procesar cada item del carrito
+    carrito.forEach(item => {
+        // Descontar del inventario
+        const productoIndex = item.indexProducto;
+        if (productoIndex !== -1 && productos[productoIndex]) {
+            const producto = productos[productoIndex];
+            
+            if (producto.unidadesExistentes < item.cantidad) {
+                mostrarToast(`?? No hay suficientes existencias de ${producto.nombre}`, "error");
+                return;
+            }
+            
+            producto.unidadesExistentes -= item.cantidad;
+            
+            // Registrar la venta
+            const hoy = new Date();
+            const venta = {
+                fecha: hoy.toLocaleDateString(),
+                hora: hoy.toLocaleTimeString(),
+                producto: producto.nombre,
+                descripcion: producto.descripcion,
+                cantidad: item.cantidad,
+                precioUnitarioDolar: producto.precioUnitarioDolar,
+                precioUnitarioBolivar: producto.precioUnitarioBolivar,
+                totalDolar: item.cantidad * producto.precioUnitarioDolar,
+                totalBolivar: item.subtotal
+            };
+            
+            ventasDiarias.push(venta);
+        }
+    });
+    
+    // Guardar cambios
+    localStorage.setItem('productos', JSON.stringify(productos));
+    localStorage.setItem('ventasDiarias', JSON.stringify(ventasDiarias));
+    
+    // Mostrar resumen
+    mostrarToast(`✓ Venta completada por Bs ${total.toFixed(2)}`);
+    
+    // Limpiar carrito
+    carrito = [];
+    guardarCarrito();
+    actualizarCarrito();
+    actualizarLista();
+    
+    // Imprimir ticket (opcional)
+    if (confirm("¿Desea imprimir ticket de la venta?")) {
+        imprimirTicketVenta();
+    }
+}
+
+function imprimirTicketVenta() {
+    const ventana = window.open('', '_blank');
+    const fecha = new Date();
+    const total = carrito.reduce((sum, item) => sum + item.subtotal, 0);
+    
+    let contenido = `
+        <html>
+            <head>
+                <title>Ticket de Venta</title>
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 20px; }
+                    .ticket { max-width: 300px; margin: 0 auto; }
+                    .header { text-align: center; margin-bottom: 10px; }
+                    .item { display: flex; justify-content: space-between; margin-bottom: 5px; }
+                    .total { font-weight: bold; margin-top: 10px; border-top: 1px dashed #000; padding-top: 5px; }
+                    .fecha { font-size: 12px; text-align: center; margin-top: 15px; }
+                </style>
+            </head>
+            <body>
+                <div class="ticket">
+                    <div class="header">
+                        <h3>${nombreEstablecimiento || 'Mi Negocio'}</h3>
+                    </div>
+                    <div>${fecha.toLocaleDateString()} ${fecha.toLocaleTimeString()}</div>
+                    <hr>
+    `;
+    
+    carrito.forEach(item => {
+        contenido += `
+            <div class="item">
+                <div>${item.nombre} x${item.cantidad}</div>
+                <div>Bs ${item.subtotal.toFixed(2)}</div>
+            </div>
+        `;
+    });
+    
+    contenido += `
+                    <div class="total">
+                        <div>Total:</div>
+                        <div>Bs ${total.toFixed(2)}</div>
+                    </div>
+                    <div class="fecha">¡Gracias por su compra!</div>
+                </div>
+                <script>window.print();</script>
+            </body>
+        </html>
+    `;
+    
+    ventana.document.write(contenido);
+    ventana.document.close();
+}
+
+// ================= FUNCIONES PRINCIPALES (ORIGINALES) =================
 
 function cargarDatosIniciales() {
     document.getElementById('nombreEstablecimiento').value = nombreEstablecimiento;
@@ -83,6 +361,7 @@ function calcularPrecioVenta() {
 
 function guardarProducto() {
     const nombre = document.getElementById('producto').value.trim();
+    const codigoBarras = document.getElementById('codigoBarras').value.trim();
     const descripcion = document.getElementById('descripcion').value;
     const costo = parseFloat(document.getElementById('costo').value);
     const ganancia = parseFloat(document.getElementById('ganancia').value);
@@ -100,7 +379,7 @@ function guardarProducto() {
         productos.splice(index, 1);
     }
 
-    const producto = calcularProducto(nombre, descripcion, costo, ganancia, unidadesPorCaja, tasaBCV, unidadesExistentes);
+    const producto = calcularProducto(nombre, codigoBarras, descripcion, costo, ganancia, unidadesPorCaja, tasaBCV, unidadesExistentes);
     guardarProductoEnLista(producto);
 }
 
@@ -168,6 +447,7 @@ function generarPDFCostos() {
         const columns = [
             { header: 'Producto', dataKey: 'nombre' },
             { header: 'Descripción', dataKey: 'descripcion' },
+            { header: 'Código Barras', dataKey: 'codigoBarras' },
             { header: 'Costo ($)', dataKey: 'costoDolar' },
             { header: 'Costo (Bs)', dataKey: 'costoBolivar' }
         ];
@@ -175,6 +455,7 @@ function generarPDFCostos() {
         const rows = productos.map(producto => ({
             nombre: producto.nombre,
             descripcion: producto.descripcion,
+            codigoBarras: producto.codigoBarras || 'N/A',
             costoDolar: `$${producto.costo.toFixed(2)}`,
             costoBolivar: `Bs${(producto.costo * tasaBCVGuardada).toFixed(2)}`
         }));
@@ -254,24 +535,25 @@ function generarRespaldoCompleto() {
         doc.text(`Tasa BCV: ${tasaBCVGuardada} | Productos: ${productos.length}`, 105, 28, { align: 'center' });
 
         // Tabla principal optimizada para móviles
-      
-         const columns = [
-        { header: 'Producto', dataKey: 'nombre' },
-        { header: 'Unid/Caja', dataKey: 'unidades' },
-        { header: 'Costo$', dataKey: 'costo' },
-        { header: 'Gan%', dataKey: 'ganancia' },
-        { header: 'P.Venta$', dataKey: 'pVentaDolar' },
-        { header: 'P.VentaBs', dataKey: 'pVentaBs' }
-    ];
-    
-    const rows = productos.map(producto => ({
-        nombre: producto.nombre,
-        unidades: producto.unidadesPorCaja,
-        costo: `$${producto.costo.toFixed(2)}`,
-        ganancia: `${(producto.ganancia * 100).toFixed(0)}%`,
-        pVentaDolar: `$${producto.precioUnitarioDolar.toFixed(2)}`,
-        pVentaBs: `Bs${producto.precioUnitarioBolivar.toFixed(2)}`
-    }));
+        const columns = [
+            { header: 'Producto', dataKey: 'nombre' },
+            { header: 'Código', dataKey: 'codigo' },
+            { header: 'Unid/Caja', dataKey: 'unidades' },
+            { header: 'Costo$', dataKey: 'costo' },
+            { header: 'Gan%', dataKey: 'ganancia' },
+            { header: 'P.Venta$', dataKey: 'pVentaDolar' },
+            { header: 'P.VentaBs', dataKey: 'pVentaBs' }
+        ];
+        
+        const rows = productos.map(producto => ({
+            nombre: producto.nombre,
+            codigo: producto.codigoBarras || 'N/A',
+            unidades: producto.unidadesPorCaja,
+            costo: `$${producto.costo.toFixed(2)}`,
+            ganancia: `${(producto.ganancia * 100).toFixed(0)}%`,
+            pVentaDolar: `$${producto.precioUnitarioDolar.toFixed(2)}`,
+            pVentaBs: `Bs${producto.precioUnitarioBolivar.toFixed(2)}`
+        }));
 
         doc.autoTable({
             startY: 35,
@@ -284,11 +566,13 @@ function generarRespaldoCompleto() {
                 fontSize: 7
             },
             columnStyles: {
-                0: { cellWidth: 30 },
+                0: { cellWidth: 25 },
                 1: { cellWidth: 20 },
                 2: { cellWidth: 15 },
-                3: { cellWidth: 20 },
-                4: { cellWidth: 25 }
+                3: { cellWidth: 15 },
+                4: { cellWidth: 15 },
+                5: { cellWidth: 20 },
+                6: { cellWidth: 25 }
             }
         });
 
@@ -533,13 +817,14 @@ function generarReporteDiario() {
 
 // ================= FUNCIONES DE CÁLCULO =================
 
-function calcularProducto(nombre, descripcion, costo, ganancia, unidadesPorCaja, tasaBCV, unidadesExistentes = 0) {
+function calcularProducto(nombre, codigoBarras, descripcion, costo, ganancia, unidadesPorCaja, tasaBCV, unidadesExistentes = 0) {
     const gananciaDecimal = ganancia / 100;
     const precioDolar = costo / (1 - gananciaDecimal);
     const precioBolivares = precioDolar * tasaBCV;
 
     return {
         nombre,
+        codigoBarras,
         descripcion,
         costo,
         ganancia: gananciaDecimal,
@@ -577,6 +862,7 @@ function actualizarLista() {
         row.innerHTML = `
             <td>${producto.nombre}</td>
             <td>${producto.descripcion}</td>
+            <td>${producto.codigoBarras || 'N/A'}</td>
             <td class="${inventarioBajo ? 'inventario-bajo' : ''}">${producto.unidadesExistentes}</td>
             <td>
                 <div class="ajuste-inventario">
@@ -590,6 +876,7 @@ function actualizarLista() {
                 <button class="editar" onclick="editarProducto(${originalIndex})">Editar</button>
                 <button class="imprimir" onclick="imprimirTicket(${originalIndex})">Imprimir</button>
                 <button class="eliminar" onclick="eliminarProducto(${originalIndex})">Eliminar</button>
+                <button class="cb-button" onclick="agregarCodigoBarras(${originalIndex})">CB</button>
             </td>
         `;
         tbody.appendChild(row);
@@ -608,6 +895,7 @@ function mostrarResultados(precioUnitarioDolar, precioUnitarioBolivar) {
 
 function reiniciarCalculadora() {
     document.getElementById('producto').value = '';
+    document.getElementById('codigoBarras').value = '';
     document.getElementById('costo').value = '';
     document.getElementById('ganancia').value = '';
     document.getElementById('unidadesPorCaja').value = '';
@@ -659,15 +947,6 @@ function esDispositivoMovil() {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 }
 
-function limpiarLista() {
-    if (confirm("?? ¿Estás seguro de limpiar toda la lista de productos? Esta acción no se puede deshacer.")) {
-        productos = [];
-        localStorage.setItem('productos', JSON.stringify(productos));
-        actualizarLista();
-        mostrarToast("??? Todos los productos han sido eliminados");
-    }
-}
-
 function buscarProducto() {
     const termino = document.getElementById('buscar').value.trim().toLowerCase();
     if (!termino) {
@@ -677,7 +956,8 @@ function buscarProducto() {
 
     const resultados = productos.filter(p => 
         p.nombre.toLowerCase().includes(termino) || 
-        p.descripcion.toLowerCase().includes(termino)
+        p.descripcion.toLowerCase().includes(termino) ||
+        (p.codigoBarras && p.codigoBarras.toLowerCase().includes(termino))
     );
 
     const tbody = document.querySelector('#listaProductos tbody');
@@ -691,6 +971,7 @@ function buscarProducto() {
         row.innerHTML = `
             <td>${producto.nombre}</td>
             <td>${producto.descripcion}</td>
+            <td>${producto.codigoBarras || 'N/A'}</td>
             <td class="${inventarioBajo ? 'inventario-bajo' : ''}">${producto.unidadesExistentes}</td>
             <td>
                 <div class="ajuste-inventario">
@@ -704,6 +985,7 @@ function buscarProducto() {
                 <button class="editar" onclick="editarProducto(${originalIndex})">Editar</button>
                 <button class="imprimir" onclick="imprimirTicket(${originalIndex})">Imprimir</button>
                 <button class="eliminar" onclick="eliminarProducto(${originalIndex})">Eliminar</button>
+                <button class="cb-button" onclick="agregarCodigoBarras(${originalIndex})">CB</button>
             </td>
         `;
         tbody.appendChild(row);
@@ -716,6 +998,7 @@ function editarProducto(index) {
     const producto = productos[index];
     
     document.getElementById('producto').value = producto.nombre;
+    document.getElementById('codigoBarras').value = producto.codigoBarras || '';
     document.getElementById('descripcion').value = producto.descripcion;
     document.getElementById('costo').value = producto.costo;
     document.getElementById('ganancia').value = producto.ganancia * 100;
@@ -732,6 +1015,19 @@ function editarProducto(index) {
     localStorage.setItem('productos', JSON.stringify(productos));
     
     mostrarToast(`?? Editando producto: ${producto.nombre}`);
+}
+
+function agregarCodigoBarras(index) {
+    const producto = productos[index];
+    const codigoBarras = prompt(`Ingrese el código de barras para ${producto.nombre}:`, producto.codigoBarras || '');
+    
+    if (codigoBarras === null) return; // Usuario canceló
+    
+    producto.codigoBarras = codigoBarras.trim();
+    localStorage.setItem('productos', JSON.stringify(productos));
+    actualizarLista();
+    
+    mostrarToast(`✓ Código de barras actualizado para ${producto.nombre}`);
 }
 
 function eliminarProducto(index) {
@@ -758,6 +1054,7 @@ function imprimirTicket(index) {
                     .producto { font-weight: bold; font-size: 18px; }
                     .precios { margin-top: 10px; }
                     .fecha { font-size: 12px; text-align: right; margin-top: 15px; }
+                    .codigo-barras { text-align: center; margin: 10px 0; font-family: monospace; }
                 </style>
             </head>
             <body>
@@ -767,6 +1064,7 @@ function imprimirTicket(index) {
                     </div>
                     <div class="producto">${producto.nombre}</div>
                     <div>${producto.descripcion}</div>
+                    ${producto.codigoBarras ? `<div class="codigo-barras">Código: ${producto.codigoBarras}</div>` : ''}
                     <div class="precios">
                         <div>Precio: $${producto.precioUnitarioDolar.toFixed(2)}</div>
                         <div>Precio: Bs${producto.precioUnitarioBolivar.toFixed(2)}</div>
@@ -779,3 +1077,42 @@ function imprimirTicket(index) {
     `);
     ventana.document.close();
 }
+
+// Sistema de actualización
+const APP_VERSION = "1.2.0"; // Versión actualizada con código de barras
+
+function toggleCopyrightNotice() {
+    const notice = document.getElementById('copyrightNotice');
+    notice.classList.toggle('show');
+}
+
+function checkAppVersion() {
+    const savedVersion = localStorage.getItem('appVersion');
+    
+    if (!savedVersion) {
+        localStorage.setItem('appVersion', APP_VERSION);
+        return;
+    }
+    
+    if (savedVersion !== APP_VERSION) {
+        setTimeout(() => {
+            mostrarToast(`Versión ${APP_VERSION} cargada`, "success", 3000);
+        }, 2000);
+        localStorage.setItem('appVersion', APP_VERSION);
+    }
+}
+
+// Inicialización
+document.addEventListener('DOMContentLoaded', function() {
+    checkAppVersion();
+    
+    setTimeout(() => {
+        toggleCopyrightNotice();
+        setTimeout(() => {
+            const notice = document.getElementById('copyrightNotice');
+            if (notice.classList.contains('show')) {
+                notice.classList.remove('show');
+            }
+        }, 15000);
+    }, 5000);
+});
