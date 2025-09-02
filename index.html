@@ -9,152 +9,14 @@
     <meta http-equiv="Expires" content="0">
     
     <title>Calculadora Mágica</title>
-    <link rel="stylesheet" href="styles.css">
     
     <!-- Librerías JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     
-    <style>
-        /* Estilos originales preservados */
-        .copyright-notice {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background-color: #f8f9fa;
-            border-left: 5px solid #dc3545;
-            padding: 15px;
-            max-width: 300px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            border-radius: 5px;
-            font-size: 14px;
-            z-index: 1000;
-            animation: slideIn 0.5s ease-out;
-            display: none;
-        }
-        
-        .copyright-notice.show {
-            display: block;
-        }
-        
-        .copyright-notice .close-btn {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            background: none;
-            border: none;
-            font-size: 16px;
-            cursor: pointer;
-            color: #6c757d;
-        }
-        
-        .copyright-notice strong {
-            color: #dc3545;
-        }
-        
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        
-        .copyright-icon {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background-color: #dc3545;
-            color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            z-index: 999;
-            font-weight: bold;
-            font-size: 18px;
-        }
-
-        .inventario-bajo {
-            color: red;
-            font-weight: bold;
-        }
-
-        #listaCostosContainer {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        #listaCostos {
-            list-style-type: none;
-            padding: 0;
-        }
-
-        #listaCostos li {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .costos-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        
-        /* Botones flotantes de navegación mejorados */
-        .floating-nav {
-            position: fixed;
-            right: 20px;
-            bottom: 80px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            z-index: 998;
-        }
-
-        .floating-nav button {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(to bottom, #26c6da, #00acc1);
-            color: white;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            transition: all 0.3s ease;
-        }
-
-        .floating-nav button:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
-        }
-
-        .floating-nav button:active {
-            transform: scale(0.95);
-        }
-
-        /* Botón para ir arriba */
-        .go-top {
-            background: linear-gradient(to bottom, #4CAF50, #66BB6A) !important;
-        }
-
-        /* Botón para ir abajo */
-        .go-bottom {
-            background: linear-gradient(to bottom, #607d8b, #78909c) !important;
-        }
-    </style>
+    <!-- Hoja de estilos -->
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="copyright-icon" onclick="toggleCopyrightNotice()">©</div>
@@ -184,6 +46,7 @@
         <section>
             <h3>Datos del Producto</h3>
             <input type="text" id="producto" placeholder="Nombre del producto" required="true">
+            <input type="text" id="codigoBarras" placeholder="Código de barras (opcional)">
             <input type="number" id="costo" placeholder="Costo del producto" required="true">
             <select id="descripcion" required="true">
                 <option value="">Selecciona una descripción</option>
@@ -227,6 +90,7 @@
                 <tr>
                     <th>Producto</th>
                     <th>Descripción</th>
+                    <th>Código Barras</th>
                     <th>Existencias</th>
                     <th>Ajustar Inventario</th>
                     <th>Precio Unitario ($)</th>
@@ -252,6 +116,41 @@
             <ul id="listaCostos"></ul>
         </div>
     </div>
+    
+    <!-- Nueva sección: Carrito de Ventas -->
+    <div class="carrito-ventas">
+        <h2>Carrito de Ventas</h2>
+        
+        <div class="carrito-header">
+            <div class="scanner-input">
+                <input type="text" id="codigoBarrasInput" placeholder="Escanea o ingresa código de barras">
+                <button onclick="agregarPorCodigoBarras()">Agregar Producto</button>
+            </div>
+            <div class="scanner-status" id="scannerStatus">
+                Esperando escaneo de código de barras...
+            </div>
+            <div class="carrito-total" id="totalCarrito">
+                Total: Bs 0,00
+            </div>
+        </div>
+        
+        <table class="carrito-table">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Precio Unitario (Bs)</th>
+                    <th>Cantidad</th>
+                    <th>Subtotal (Bs)</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="carritoBody"></tbody>
+        </table>
+        
+        <div class="finalizar-venta">
+            <button class="btn-finalizar" onclick="finalizarVenta()">Finalizar Venta</button>
+        </div>
+    </div>
 
     <!-- Botones flotantes de navegación mejorados -->
     <div class="floating-nav">
@@ -259,47 +158,7 @@
         <button class="go-bottom" onclick="window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'})">↓</button>
     </div>
 
-    <script>
-        // Sistema de actualización
-        const APP_VERSION = "1.0.2";
-        
-        function toggleCopyrightNotice() {
-            const notice = document.getElementById('copyrightNotice');
-            notice.classList.toggle('show');
-        }
-        
-        function checkAppVersion() {
-            const savedVersion = localStorage.getItem('appVersion');
-            
-            if (!savedVersion) {
-                localStorage.setItem('appVersion', APP_VERSION);
-                return;
-            }
-            
-            if (savedVersion !== APP_VERSION) {
-                setTimeout(() => {
-                    mostrarToast(`Versión ${APP_VERSION} cargada`, "success", 3000);
-                }, 2000);
-                localStorage.setItem('appVersion', APP_VERSION);
-            }
-        }
-        
-        // Inicialización
-        document.addEventListener('DOMContentLoaded', function() {
-            checkAppVersion();
-            
-            setTimeout(() => {
-                toggleCopyrightNotice();
-                setTimeout(() => {
-                    const notice = document.getElementById('copyrightNotice');
-                    if (notice.classList.contains('show')) {
-                        notice.classList.remove('show');
-                    }
-                }, 15000);
-            }, 5000);
-        });
-    </script>
-    
+    <!-- Scripts JavaScript -->
     <script src="script.js"></script>
 </body>
 </html>
