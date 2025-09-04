@@ -1,5 +1,5 @@
 // ===== SISTEMA DE ACTUALIZACIÓN AUTOMÁTICA ===== //
-const VERSION_ACTUAL = "1.2.0"; // Versión actualizada con código de barras
+const VERSION_ACTUAL = "1.2.0"; // Versión optimizada
 
 // ===== SISTEMA DE REDIRECCIÓN POR INACTIVIDAD ===== //
 const TIEMPO_INACTIVIDAD = 10 * 60 * 1000; // 10 minutos en milisegundos
@@ -8,12 +8,9 @@ const URL_REDIRECCION = "http://portal.calculadoramagica.lat/";
 let temporizadorInactividad;
 
 function reiniciarTemporizador() {
-    // Limpiar el temporizador existente
     clearTimeout(temporizadorInactividad);
     
-    // Iniciar nuevo temporizador
     temporizadorInactividad = setTimeout(() => {
-        // Redirigir después del tiempo de inactividad
         window.location.href = URL_REDIRECCION;
     }, TIEMPO_INACTIVIDAD);
 }
@@ -31,12 +28,10 @@ function verificarActualizacion() {
         localStorage.setItem('appVersion', VERSION_ACTUAL);
         
         if (versionGuardada !== null) {
-            // Mostrar notificación amigable
             mostrarToast("¡Nueva actualización disponible! La app se recargará automáticamente.", "info");
             
-            // Recargar después de 3 segundos (da tiempo a ver el mensaje)
             setTimeout(() => {
-                window.location.reload(true); // Recarga forzada sin caché
+                window.location.reload(true);
             }, 3000);
         }
     }
@@ -57,22 +52,121 @@ document.addEventListener('DOMContentLoaded', function() {
     actualizarCarrito();
     verificarActualizacion();
     configurarScanner();
+    configurarBusquedaProductos();
 });
 
-// ================= NUEVAS FUNCIONES DEL CARRITO =================
+// ================= MEJORAS EN EL GUARDADO LOCAL =================
+
+// Función mejorada para guardar datos con verificación de errores
+function guardarEnLocalStorage(clave, datos) {
+    try {
+        localStorage.setItem(clave, JSON.stringify(datos));
+        return true;
+    } catch (e) {
+        console.error("Error al guardar en localStorage:", e);
+        mostrarToast("Error al guardar datos. Espacio insuficiente.", "error");
+        return false;
+    }
+}
+
+// Función para limpiar datos antiguos si hay problemas de espacio
+function limpiarDatosAntiguosSiEsNecesario() {
+    try {
+        // Intento de guardar un pequeño dato de prueba
+        localStorage.setItem('test', 'test');
+        localStorage.removeItem('test');
+        return true;
+    } catch (e) {
+        // Si hay error, limpiar ventas antiguas
+        if (ventasDiarias.length > 50) {
+            ventasDiarias = ventasDiarias.slice(-50);
+            localStorage.setItem('ventasDiarias', JSON.stringify(ventasDiarias));
+            mostrarToast("Se limpiaron ventas antiguas por espacio insuficiente", "warning");
+        }
+        return false;
+    }
+}
+
+// ================= MEJORAS EN LA BÚSQUEDA DE PRODUCTOS =================
+
+function configurarBusquedaProductos() {
+    const inputBusqueda = document.getElementById('codigoBarrasInput');
+    const sugerenciasContainer = document.createElement('div');
+    sugerenciasContainer.id = 'sugerenciasProductos';
+    sugerenciasContainer.style.cssText = `
+        position: absolute;
+        background: white;
+        border: 1px solid #ccc;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1000;
+        width: 100%;
+        display: none;
+    `;
+    inputBusqueda.parentNode.appendChild(sugerenciasContainer);
+    
+    // Evento para mostrar sugerencias
+    inputBusqueda.addEventListener('input', function() {
+        const valor = this.value.trim();
+        if (valor.length > 2) {
+            mostrarSugerencias(valor, inputBusqueda, sugerenciasContainer);
+        } else {
+            sugerenciasContainer.style.display = 'none';
+        }
+    });
+    
+    // Ocultar sugerencias al hacer clic fuera
+    document.addEventListener('click', function(e) {
+        if (e.target !== inputBusqueda && !sugerenciasContainer.contains(e.target)) {
+            sugerenciasContainer.style.display = 'none';
+        }
+    });
+}
+
+function mostrarSugerencias(termino, input, container) {
+    const terminoLower = termino.toLowerCase();
+    const sugerencias = productos.filter(p => 
+        p.nombre.toLowerCase().includes(terminoLower) || 
+        (p.codigoBarras && p.codigoBarras.toLowerCase().includes(terminoLower)) ||
+        p.descripcion.toLowerCase().includes(terminoLower)
+    );
+    
+    if (sugerencias.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+    
+    container.innerHTML = '';
+    sugerencias.forEach(producto => {
+        const div = document.createElement('div');
+        div.textContent = `${producto.nombre} (${producto.descripcion})`;
+        div.style.cssText = 'padding: 8px; cursor: pointer; border-bottom: 1px solid #eee;';
+        div.addEventListener('click', function() {
+            input.value = producto.codigoBarras || producto.nombre;
+            container.style.display = 'none';
+            agregarPorCodigoBarras();
+        });
+        container.appendChild(div);
+    });
+    
+    // Posicionar el contenedor de sugerencias
+    const rect = input.getBoundingClientRect();
+    container.style.width = rect.width + 'px';
+    container.style.top = (rect.bottom + window.scrollY) + 'px';
+    container.style.left = rect.left + 'px';
+    container.style.display = 'block';
+}
+
+// ================= MEJORAS EN EL CARRITO =================
 
 function configurarScanner() {
     const inputScanner = document.getElementById('codigoBarrasInput');
     
-    // Enfocar el input al cargar la página
     inputScanner.focus();
     
-    // Detectar cuando se ingresa un código (simula escaneo)
     inputScanner.addEventListener('input', function(e) {
-        // Si el valor cambió rápidamente, probablemente fue un escaneo
         document.getElementById('scannerStatus').textContent = 'Código detectado: ' + this.value;
         
-        // Si presiona Enter o el valor tiene una longitud típica de código de barras
         if (this.value.length >= 8) {
             setTimeout(() => {
                 agregarPorCodigoBarras();
@@ -80,7 +174,6 @@ function configurarScanner() {
         }
     });
     
-    // También detectar la tecla Enter
     inputScanner.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             agregarPorCodigoBarras();
@@ -97,25 +190,20 @@ function agregarPorCodigoBarras() {
     }
     
     // Buscar producto por código de barras
-    const productoEncontrado = productos.find(p => 
+    let productoEncontrado = productos.find(p => 
         p.codigoBarras && p.codigoBarras.toLowerCase() === codigo.toLowerCase()
     );
     
     // Si no se encuentra por código, buscar por nombre
     if (!productoEncontrado) {
-        mostrarToast("?? Producto no encontrado por código. Buscando por nombre...", "warning");
-        
-        const productoPorNombre = productos.find(p => 
+        productoEncontrado = productos.find(p => 
             p.nombre.toLowerCase().includes(codigo.toLowerCase()) || 
             p.descripcion.toLowerCase().includes(codigo.toLowerCase())
         );
         
-        if (productoPorNombre) {
-            productoEncontrado = productoPorNombre;
-        } else {
+        if (!productoEncontrado) {
             mostrarToast("?? Producto no encontrado. ¿Desea agregarlo manualmente?", "warning");
             
-            // Preguntar si quiere agregar manualmente
             if (confirm("Producto no encontrado. ¿Desea agregarlo manualmente?")) {
                 document.getElementById('producto').value = codigo;
                 document.getElementById('producto').focus();
@@ -130,12 +218,10 @@ function agregarPorCodigoBarras() {
     const enCarrito = carrito.find(item => item.nombre === productoEncontrado.nombre);
     
     if (enCarrito) {
-        // Incrementar cantidad
         enCarrito.cantidad += 1;
         enCarrito.subtotal = enCarrito.cantidad * enCarrito.precioUnitarioBolivar;
         mostrarToast(`+1 ${productoEncontrado.nombre} en carrito`);
     } else {
-        // Agregar nuevo producto al carrito
         carrito.push({
             nombre: productoEncontrado.nombre,
             descripcion: productoEncontrado.descripcion,
@@ -147,12 +233,10 @@ function agregarPorCodigoBarras() {
         mostrarToast(`✓ ${productoEncontrado.nombre} agregado al carrito`);
     }
     
-    // Limpiar input y actualizar carrito
     document.getElementById('codigoBarrasInput').value = '';
     document.getElementById('codigoBarrasInput').focus();
     document.getElementById('scannerStatus').textContent = 'Producto agregado. Esperando nuevo escaneo...';
     
-    // Guardar y actualizar
     guardarCarrito();
     actualizarCarrito();
 }
@@ -217,7 +301,7 @@ function actualizarCarrito() {
 }
 
 function guardarCarrito() {
-    localStorage.setItem('carrito', JSON.stringify(carrito));
+    guardarEnLocalStorage('carrito', carrito);
 }
 
 function finalizarVenta() {
@@ -226,13 +310,10 @@ function finalizarVenta() {
         return;
     }
     
-    // Confirmar venta
     const total = carrito.reduce((sum, item) => sum + item.subtotal, 0);
     if (!confirm(`¿Finalizar venta por Bs ${total.toFixed(2)}?`)) return;
     
-    // Procesar cada item del carrito
     carrito.forEach(item => {
-        // Descontar del inventario
         const productoIndex = item.indexProducto;
         if (productoIndex !== -1 && productos[productoIndex]) {
             const producto = productos[productoIndex];
@@ -244,7 +325,6 @@ function finalizarVenta() {
             
             producto.unidadesExistentes -= item.cantidad;
             
-            // Registrar la venta
             const hoy = new Date();
             const venta = {
                 fecha: hoy.toLocaleDateString(),
@@ -262,73 +342,150 @@ function finalizarVenta() {
         }
     });
     
-    // Guardar cambios
-    localStorage.setItem('productos', JSON.stringify(productos));
-    localStorage.setItem('ventasDiarias', JSON.stringify(ventasDiarias));
+    guardarEnLocalStorage('productos', productos);
+    guardarEnLocalStorage('ventasDiarias', ventasDiarias);
     
-    // Mostrar resumen
     mostrarToast(`✓ Venta completada por Bs ${total.toFixed(2)}`);
     
-    // Limpiar carrito
     carrito = [];
     guardarCarrito();
     actualizarCarrito();
     actualizarLista();
     
-    // Imprimir ticket (opcional)
     if (confirm("¿Desea imprimir ticket de la venta?")) {
         imprimirTicketVenta();
     }
 }
 
+// ================= MEJORAS EN LA IMPRESIÓN DE TICKETS =================
+
 function imprimirTicketVenta() {
-    const ventana = window.open('', '_blank');
     const fecha = new Date();
     const total = carrito.reduce((sum, item) => sum + item.subtotal, 0);
     
+    // Crear contenido optimizado para impresión térmica
     let contenido = `
+        <!DOCTYPE html>
         <html>
-            <head>
-                <title>Ticket de Venta</title>
-                <style>
-                    body { font-family: Arial, sans-serif; padding: 20px; }
-                    .ticket { max-width: 300px; margin: 0 auto; }
-                    .header { text-align: center; margin-bottom: 10px; }
-                    .item { display: flex; justify-content: space-between; margin-bottom: 5px; }
-                    .total { font-weight: bold; margin-top: 10px; border-top: 1px dashed #000; padding-top: 5px; }
-                    .fecha { font-size: 12px; text-align: center; margin-top: 15px; }
-                </style>
-            </head>
-            <body>
-                <div class="ticket">
-                    <div class="header">
-                        <h3>${nombreEstablecimiento || 'Mi Negocio'}</h3>
-                    </div>
-                    <div>${fecha.toLocaleDateString()} ${fecha.toLocaleTimeString()}</div>
-                    <hr>
+        <head>
+            <title>Ticket de Venta</title>
+            <meta charset="UTF-8">
+            <style>
+                body { 
+                    font-family: 'Courier New', monospace; 
+                    font-size: 12px; 
+                    width: 70mm; 
+                    margin: 0; 
+                    padding: 5px; 
+                    box-sizing: border-box;
+                }
+                .ticket { 
+                    width: 100%; 
+                    max-width: 70mm; 
+                }
+                .header { 
+                    text-align: center; 
+                    margin-bottom: 5px; 
+                    border-bottom: 1px dashed #000;
+                    padding-bottom: 5px;
+                }
+                .header h3 {
+                    margin: 0;
+                    font-size: 14px;
+                    font-weight: bold;
+                }
+                .item { 
+                    display: flex; 
+                    justify-content: space-between; 
+                    margin-bottom: 3px; 
+                    border-bottom: 1px dotted #ccc;
+                    padding-bottom: 2px;
+                }
+                .item-name {
+                    flex: 2;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+                .item-price {
+                    flex: 1;
+                    text-align: right;
+                }
+                .total { 
+                    font-weight: bold; 
+                    margin-top: 8px; 
+                    border-top: 1px dashed #000; 
+                    padding-top: 5px; 
+                    text-align: center;
+                }
+                .fecha { 
+                    font-size: 10px; 
+                    text-align: center; 
+                    margin-top: 10px; 
+                }
+                .thank-you {
+                    text-align: center;
+                    margin-top: 10px;
+                    font-style: italic;
+                }
+                @media print {
+                    body { 
+                        margin: 0; 
+                        padding: 0; 
+                    }
+                    .ticket { 
+                        width: 70mm; 
+                    }
+                }
+            </style>
+        </head>
+        <body onload="window.print(); setTimeout(function() { window.close(); }, 100);">
+            <div class="ticket">
+                <div class="header">
+                    <h3>${nombreEstablecimiento || 'Mi Negocio'}</h3>
+                    <div>${fecha.toLocaleDateString()} ${fecha.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                </div>
+                <div class="items">
     `;
     
-    carrito.forEach(item => {
+    // Limitar la cantidad de productos mostrados en el ticket (máximo 10)
+    const productosMostrar = carrito.slice(0, 10);
+    
+    productosMostrar.forEach(item => {
+        // Acortar nombres largos para ahorrar espacio
+        const nombreCorto = item.nombre.length > 20 ? item.nombre.substring(0, 17) + '...' : item.nombre;
+        
         contenido += `
             <div class="item">
-                <div>${item.nombre} x${item.cantidad}</div>
-                <div>Bs ${item.subtotal.toFixed(2)}</div>
+                <div class="item-name">${nombreCorto} x${item.cantidad}</div>
+                <div class="item-price">Bs ${item.subtotal.toFixed(2)}</div>
             </div>
         `;
     });
     
+    // Si hay más de 10 productos, mostrar un resumen
+    if (carrito.length > 10) {
+        contenido += `
+            <div class="item">
+                <div class="item-name">... y ${carrito.length - 10} productos más</div>
+                <div class="item-price"></div>
+            </div>
+        `;
+    }
+    
     contenido += `
-                    <div class="total">
-                        <div>Total:</div>
-                        <div>Bs ${total.toFixed(2)}</div>
-                    </div>
-                    <div class="fecha">¡Gracias por su compra!</div>
                 </div>
-                <script>window.print();</script>
-            </body>
+                <div class="total">
+                    <div>Total: Bs ${total.toFixed(2)}</div>
+                </div>
+                <div class="fecha">Tasa BCV: ${tasaBCVGuardada}</div>
+                <div class="thank-you">¡Gracias por su compra!</div>
+            </div>
+        </body>
         </html>
     `;
     
+    const ventana = window.open('', '_blank', 'width=250,height=400');
     ventana.document.write(contenido);
     ventana.document.close();
 }
@@ -395,7 +552,6 @@ function mostrarListaCostos() {
         return;
     }
 
-    // Alternar la visibilidad
     if (container.style.display === 'none' || container.style.display === '') {
         container.style.display = 'block';
         actualizarListaCostos();
@@ -408,7 +564,6 @@ function actualizarListaCostos() {
     const lista = document.getElementById('listaCostos');
     lista.innerHTML = '';
 
-    // Ordenar por costo más alto
     const productosOrdenados = [...productos].sort((a, b) => b.costo - a.costo);
     
     productosOrdenados.forEach(producto => {
@@ -427,7 +582,6 @@ function generarPDFCostos() {
         return;
     }
 
-    // Verificar si estamos en móvil
     if (esDispositivoMovil()) {
         if (!confirm("?? Estás en un dispositivo móvil. La generación de PDF puede fallar. ¿Continuar?")) {
             return;
@@ -443,7 +597,6 @@ function generarPDFCostos() {
         doc.setFontSize(10);
         doc.text(`Fecha: ${new Date().toLocaleDateString()} | Tasa BCV: ${tasaBCVGuardada}`, 105, 22, { align: 'center' });
         
-        // Tabla de costos
         const columns = [
             { header: 'Producto', dataKey: 'nombre' },
             { header: 'Descripción', dataKey: 'descripcion' },
@@ -469,7 +622,6 @@ function generarPDFCostos() {
             headStyles: { fillColor: [41, 128, 185], textColor: 255 }
         });
         
-        // Método alternativo para móviles
         if (esDispositivoMovil()) {
             const pdfData = doc.output('datauristring');
             const nuevaVentana = window.open();
@@ -495,7 +647,6 @@ function generarRespaldoCompleto() {
         return;
     }
 
-    // Detección mejorada de Android
     const esAndroid = /Android/i.test(navigator.userAgent);
     const esChrome = /Chrome/i.test(navigator.userAgent);
     
@@ -518,7 +669,6 @@ function generarRespaldoCompleto() {
             format: "a4"
         });
 
-        // Configuración optimizada para móviles
         const configMovil = {
             fontSize: 7,
             cellPadding: 2,
@@ -527,14 +677,12 @@ function generarRespaldoCompleto() {
             rowPageBreak: 'avoid'
         };
 
-        // Página 1 - Encabezado simplificado
         doc.setFontSize(14);
         doc.text(`Respaldo - ${nombreEstablecimiento || 'Mi Negocio'}`, 105, 15, { align: 'center' });
         doc.setFontSize(10);
         doc.text(`Generado: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 105, 22, { align: 'center' });
         doc.text(`Tasa BCV: ${tasaBCVGuardada} | Productos: ${productos.length}`, 105, 28, { align: 'center' });
 
-        // Tabla principal optimizada para móviles
         const columns = [
             { header: 'Producto', dataKey: 'nombre' },
             { header: 'Código', dataKey: 'codigo' },
@@ -576,20 +724,16 @@ function generarRespaldoCompleto() {
             }
         });
 
-        // Métodos alternativos de descarga para Android
         if (esAndroid) {
-            // Opción 1: Usar FileSaver.js si está disponible
             if (window.saveAs) {
                 const pdfBlob = doc.output('blob');
                 saveAs(pdfBlob, `respaldo_${new Date().toISOString().slice(0,10)}.pdf`);
                 mostrarToast("? PDF guardado en Descargas");
             } 
-            // Opción 2: Abrir en nueva pestaña
             else if (esChrome) {
                 const pdfData = doc.output('dataurlnewwindow');
                 mostrarToast("? Abriendo PDF en Chrome...");
             } 
-            // Opción 3: Descarga tradicional con fallback
             else {
                 try {
                     doc.save(`respaldo_${new Date().toISOString().slice(0,10)}.pdf`);
@@ -601,7 +745,6 @@ function generarRespaldoCompleto() {
                 }
             }
         } else {
-            // Descarga normal para escritorio
             doc.save(`respaldo_${new Date().toISOString().slice(0,10)}.pdf`);
         }
     } catch (error) {
@@ -638,7 +781,7 @@ function actualizarPreciosConNuevaTasa(nuevaTasa) {
         producto.precioMayorBolivar = producto.precioMayorDolar * nuevaTasa;
         producto.precioUnitarioBolivar = producto.precioUnitarioDolar * nuevaTasa;
     });
-    localStorage.setItem('productos', JSON.stringify(productos));
+    guardarEnLocalStorage('productos', productos);
 }
 
 function guardarNombreEstablecimiento() {
@@ -660,14 +803,14 @@ function limpiarVentasAntiguas() {
     if (fechasUnicas.length > 4) {
         const fechasAEliminar = fechasUnicas.slice(4);
         ventasDiarias = ventasDiarias.filter(v => !fechasAEliminar.includes(v.fecha));
-        localStorage.setItem('ventasDiarias', JSON.stringify(ventasDiarias));
+        guardarEnLocalStorage('ventasDiarias', ventasDiarias);
     }
 }
 
 function limpiarLista() {
     if (confirm("?? ¿Estás seguro de limpiar toda la lista de productos? Esta acción no se puede deshacer.")) {
         productos = [];
-        localStorage.setItem('productos', JSON.stringify(productos));
+        guardarEnLocalStorage('productos', productos);
         actualizarLista();
         mostrarToast("??? Todos los productos han sido eliminados");
     }
