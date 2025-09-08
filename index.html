@@ -95,6 +95,7 @@
                     <th>Ajustar Inventario</th>
                     <th>Precio Unitario ($)</th>
                     <th>Precio Unitario (Bs)</th>
+                    <th>Ganancia (%)</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
@@ -129,8 +130,13 @@
             <div class="scanner-status" id="scannerStatus">
                 Esperando escaneo de código de barras...
             </div>
-            <div class="carrito-total" id="totalCarrito">
-                Total: Bs 0,00
+            <div class="carrito-totales">
+                <div class="carrito-total" id="totalCarritoBs">
+                    Total: Bs 0,00
+                </div>
+                <div class="carrito-total" id="totalCarritoDolares">
+                    Total: $ 0,00
+                </div>
             </div>
         </div>
         
@@ -149,6 +155,39 @@
         
         <div class="finalizar-venta">
             <button class="btn-finalizar" onclick="finalizarVenta()">Finalizar Venta</button>
+        </div>
+    </div>
+
+    <!-- Modal para métodos de pago -->
+    <div id="modalPago" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModalPago()">&times;</span>
+            <h3>Seleccionar Método de Pago</h3>
+            
+            <div class="resumen-venta">
+                <h4>Resumen de Venta</h4>
+                <p id="resumenTotalBs">Total: Bs 0,00</p>
+                <p id="resumenTotalDolares">Total: $ 0,00</p>
+            </div>
+            
+            <div class="metodos-pago">
+                <button onclick="seleccionarMetodoPago('efectivo_bs')">Efectivo Bs</button>
+                <button onclick="seleccionarMetodoPago('efectivo_dolares')">Efectivo $</button>
+                <button onclick="seleccionarMetodoPago('punto')">Punto</button>
+                <button onclick="seleccionarMetodoPago('pago_movil')">Pago Móvil</button>
+                <button onclick="seleccionarMetodoPago('transferencia')">Transferencia</button>
+                <button onclick="seleccionarMetodoPago('credito')">Crédito</button>
+                <button onclick="seleccionarMetodoPago('combinado')">Combinado</button>
+            </div>
+            
+            <div id="detallesPago" style="display: none; margin-top: 20px;">
+                <h4>Detalles del Pago</h4>
+                <div id="camposPago"></div>
+                <div class="modal-buttons">
+                    <button onclick="confirmarMetodoPago()">Confirmar Pago</button>
+                    <button onclick="cancelarPago()" class="btn-cancelar">Cancelar</button>
+                </div>
+            </div>
         </div>
     </div>
 
