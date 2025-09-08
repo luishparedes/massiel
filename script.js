@@ -1,5 +1,5 @@
 // ===== SISTEMA DE ACTUALIZACIÓN AUTOMÁTICA ===== //
-const VERSION_ACTUAL = "1.2.0"; // Versión optimizada
+const VERSION_ACTUAL = "1.4.0"; // Versión con mejoras en métodos de pago
 
 // ===== SISTEMA DE REDIRECCIÓN POR INACTIVIDAD ===== //
 const TIEMPO_INACTIVIDAD = 10 * 60 * 1000; // 10 minutos en milisegundos
@@ -43,6 +43,8 @@ let nombreEstablecimiento = localStorage.getItem('nombreEstablecimiento') || '';
 let tasaBCVGuardada = parseFloat(localStorage.getItem('tasaBCV')) || 0;
 let ventasDiarias = JSON.parse(localStorage.getItem('ventasDiarias')) || [];
 let carrito = JSON.parse(localStorage.getItem('carrito')) || [];
+let metodoPagoSeleccionado = null;
+let detallesPago = {};
 
 // Cargar datos al iniciar
 document.addEventListener('DOMContentLoaded', function() {
@@ -65,24 +67,6 @@ function guardarEnLocalStorage(clave, datos) {
     } catch (e) {
         console.error("Error al guardar en localStorage:", e);
         mostrarToast("Error al guardar datos. Espacio insuficiente.", "error");
-        return false;
-    }
-}
-
-// Función para limpiar datos antiguos si hay problemas de espacio
-function limpiarDatosAntiguosSiEsNecesario() {
-    try {
-        // Intento de guardar un pequeño dato de prueba
-        localStorage.setItem('test', 'test');
-        localStorage.removeItem('test');
-        return true;
-    } catch (e) {
-        // Si hay error, limpiar ventas antiguas
-        if (ventasDiarias.length > 50) {
-            ventasDiarias = ventasDiarias.slice(-50);
-            localStorage.setItem('ventasDiarias', JSON.stringify(ventasDiarias));
-            mostrarToast("Se limpiaron ventas antiguas por espacio insuficiente", "warning");
-        }
         return false;
     }
 }
@@ -205,7 +189,8 @@ function agregarPorCodigoBarras() {
             mostrarToast("?? Producto no encontrado. ¿Desea agregarlo manualmente?", "warning");
             
             if (confirm("Producto no encontrado. ¿Desea agregarlo manualmente?")) {
-                document.getElementById('producto').value = codigo;
+                // Colocar el código en el campo de código de barras, no en el nombre
+                document.getElementById('codigoBarras').value = codigo;
                 document.getElementById('producto').focus();
                 window.scrollTo(0, 0);
             }
@@ -226,9 +211,12 @@ function agregarPorCodigoBarras() {
             nombre: productoEncontrado.nombre,
             descripcion: productoEncontrado.descripcion,
             precioUnitarioBolivar: productoEncontrado.precioUnitarioBolivar,
+            precioUnitarioDolar: productoEncontrado.precioUnitarioDolar,
             cantidad: 1,
             subtotal: productoEncontrado.precioUnitarioBolivar,
-            indexProducto: productos.findIndex(p => p.nombre === productoEncontrado.nombre)
+            subtotalDolar: productoEncontrado.precioUnitarioDolar,
+            indexProducto: productos.findIndex(p => p.nombre === productoEncontrado.nombre),
+            gananciaPorcentaje: productoEncontrado.ganancia * 100
         });
         mostrarToast(`✓ ${productoEncontrado.nombre} agregado al carrito`);
     }
@@ -259,26 +247,31 @@ function actualizarCantidadCarrito(index, cambio) {
     }
     
     item.subtotal = item.cantidad * item.precioUnitarioBolivar;
+    item.subtotalDolar = item.cantidad * item.precioUnitarioDolar;
     guardarCarrito();
     actualizarCarrito();
 }
 
 function actualizarCarrito() {
     const carritoBody = document.getElementById('carritoBody');
-    const totalCarrito = document.getElementById('totalCarrito');
+    const totalCarritoBs = document.getElementById('totalCarritoBs');
+    const totalCarritoDolares = document.getElementById('totalCarritoDolares');
     
     carritoBody.innerHTML = '';
     
     if (carrito.length === 0) {
         carritoBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">El carrito está vacío</td></tr>';
-        totalCarrito.textContent = 'Total: Bs 0,00';
+        totalCarritoBs.textContent = 'Total: Bs 0,00';
+        totalCarritoDolares.textContent = 'Total: $ 0,00';
         return;
     }
     
-    let total = 0;
+    let totalBs = 0;
+    let totalDolares = 0;
     
     carrito.forEach((item, index) => {
-        total += item.subtotal;
+        totalBs += item.subtotal;
+        totalDolares += item.subtotalDolar;
         
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -297,21 +290,311 @@ function actualizarCarrito() {
         carritoBody.appendChild(row);
     });
     
-    totalCarrito.textContent = `Total: Bs ${total.toFixed(2)}`;
+    totalCarritoBs.textContent = `Total: Bs ${totalBs.toFixed(2)}`;
+    totalCarritoDolares.textContent = `Total: $ ${totalDolares.toFixed(2)}`;
 }
 
 function guardarCarrito() {
     guardarEnLocalStorage('carrito', carrito);
 }
 
-function finalizarVenta() {
-    if (carrito.length === 0) {
-        mostrarToast("?? El carrito está vacío", "error");
+// ================= SISTEMA DE MÉTODOS DE PAGO =================
+
+function mostrarModalPago() {
+    // Actualizar resumen de venta en el modal
+    const totalBs = carrito.reduce((sum, item) => sum + item.subtotal, 0);
+    const totalDolares = carrito.reduce((sum, item) => sum + item.subtotalDolar, 0);
+    
+    document.getElementById('resumenTotalBs').textContent = `Total: Bs ${totalBs.toFixed(2)}`;
+    document.getElementById('resumenTotalDolares').textContent = `Total: $ ${totalDolares.toFixed(2)}`;
+    
+    document.getElementById('modalPago').style.display = 'block';
+    document.getElementById('detallesPago').style.display = 'none';
+    metodoPagoSeleccionado = null;
+    detallesPago = {};
+}
+
+function cerrarModalPago() {
+    document.getElementById('modalPago').style.display = 'none';
+}
+
+function seleccionarMetodoPago(metodo) {
+    metodoPagoSeleccionado = metodo;
+    const detallesDiv = document.getElementById('camposPago');
+    detallesDiv.innerHTML = '';
+    
+    // Mostrar campos específicos según el método de pago
+    switch(metodo) {
+        case 'efectivo_bs':
+            detallesDiv.innerHTML = `
+                <div class="campo-pago">
+                    <label>Monto recibido (Bs):</label>
+                    <input type="number" id="montoRecibidoBs" placeholder="0.00" step="0.01" required>
+                </div>
+                <div class="campo-pago">
+                    <label>Cambio a devolver (Bs):</label>
+                    <input type="number" id="cambioBs" placeholder="0.00" step="0.01" readonly>
+                </div>
+            `;
+            
+            // Calcular cambio automáticamente
+            const montoRecibidoBsInput = document.getElementById('montoRecibidoBs');
+            const cambioBsInput = document.getElementById('cambioBs');
+            const totalBs = carrito.reduce((sum, item) => sum + item.subtotal, 0);
+            
+            montoRecibidoBsInput.addEventListener('input', function() {
+                const montoRecibido = parseFloat(this.value) || 0;
+                const cambio = montoRecibido - totalBs;
+                cambioBsInput.value = cambio > 0 ? cambio.toFixed(2) : '0.00';
+            });
+            break;
+            
+        case 'efectivo_dolares':
+            detallesDiv.innerHTML = `
+                <div class="campo-pago">
+                    <label>Monto recibido ($):</label>
+                    <input type="number" id="montoRecibidoDolares" placeholder="0.00" step="0.01" required>
+                </div>
+                <div class="campo-pago">
+                    <label>Cambio a devolver ($):</label>
+                    <input type="number" id="cambioDolares" placeholder="0.00" step="0.01" readonly>
+                </div>
+            `;
+            
+            // Calcular cambio automáticamente
+            const montoRecibidoDolaresInput = document.getElementById('montoRecibidoDolares');
+            const cambioDolaresInput = document.getElementById('cambioDolares');
+            const totalDolares = carrito.reduce((sum, item) => sum + item.subtotalDolar, 0);
+            
+            montoRecibidoDolaresInput.addEventListener('input', function() {
+                const montoRecibido = parseFloat(this.value) || 0;
+                const cambio = montoRecibido - totalDolares;
+                cambioDolaresInput.value = cambio > 0 ? cambio.toFixed(2) : '0.00';
+            });
+            break;
+            
+        case 'punto':
+            detallesDiv.innerHTML = `
+                <div class="campo-pago">
+                    <label>Número de referencia:</label>
+                    <input type="text" id="referenciaPunto" placeholder="Número de referencia" required>
+                </div>
+            `;
+            break;
+            
+        case 'pago_movil':
+            detallesDiv.innerHTML = `
+                <div class="campo-pago">
+                    <label>Número de teléfono:</label>
+                    <input type="text" id="telefonoPagoMovil" placeholder="0412XXXXXXX" required>
+                </div>
+                <div class="campo-pago">
+                    <label>Número de referencia:</label>
+                    <input type="text" id="referenciaPagoMovil" placeholder="Número de referencia" required>
+                </div>
+            `;
+            break;
+            
+        case 'transferencia':
+            detallesDiv.innerHTML = `
+                <div class="campo-pago">
+                    <label>Número de referencia:</label>
+                    <input type="text" id="referenciaTransferencia" placeholder="Número de referencia" required>
+                </div>
+                <div class="campo-pago">
+                    <label>Banco:</label>
+                    <input type="text" id="bancoTransferencia" placeholder="Nombre del banco" required>
+                </div>
+            `;
+            break;
+            
+        case 'credito':
+            detallesDiv.innerHTML = `
+                <div class="campo-pago">
+                    <label>Nombre del titular:</label>
+                    <input type="text" id="titularCredito" placeholder="Nombre completo" required>
+                </div>
+                <div class="campo-pago">
+                    <label>Últimos 4 dígitos:</label>
+                    <input type="text" id="digitosCredito" placeholder="XXXX" maxlength="4" required>
+                </div>
+            `;
+            break;
+            
+        case 'combinado':
+            const totalBsCombinado = carrito.reduce((sum, item) => sum + item.subtotal, 0);
+            detallesDiv.innerHTML = `
+                <div class="campo-pago">
+                    <label>Monto en efectivo (Bs):</label>
+                    <input type="number" id="montoEfectivoCombinado" placeholder="0.00" step="0.01" required>
+                </div>
+                <div class="campo-pago">
+                    <label>Monto transferencia (Bs):</label>
+                    <input type="number" id="montoTransferenciaCombinado" placeholder="0.00" step="0.01" required>
+                </div>
+                <div class="campo-pago">
+                    <label>Referencia transferencia:</label>
+                    <input type="text" id="referenciaCombinado" placeholder="Número de referencia" required>
+                </div>
+                <div class="campo-pago">
+                    <label>Total a pagar (Bs):</label>
+                    <input type="number" id="totalCombinado" value="${totalBsCombinado.toFixed(2)}" readonly>
+                </div>
+                <div class="campo-pago">
+                    <label>Saldo restante (Bs):</label>
+                    <input type="number" id="saldoCombinado" placeholder="0.00" step="0.01" readonly>
+                </div>
+            `;
+            
+            // Calcular saldo automáticamente
+            const montoEfectivoInput = document.getElementById('montoEfectivoCombinado');
+            const montoTransferenciaInput = document.getElementById('montoTransferenciaCombinado');
+            const saldoInput = document.getElementById('saldoCombinado');
+            
+            function calcularSaldoCombinado() {
+                const efectivo = parseFloat(montoEfectivoInput.value) || 0;
+                const transferencia = parseFloat(montoTransferenciaInput.value) || 0;
+                const totalPagado = efectivo + transferencia;
+                const saldo = totalBsCombinado - totalPagado;
+                saldoInput.value = saldo > 0 ? saldo.toFixed(2) : '0.00';
+            }
+            
+            montoEfectivoInput.addEventListener('input', calcularSaldoCombinado);
+            montoTransferenciaInput.addEventListener('input', calcularSaldoCombinado);
+            break;
+    }
+    
+    document.getElementById('detallesPago').style.display = 'block';
+}
+
+function cancelarPago() {
+    document.getElementById('detallesPago').style.display = 'none';
+    metodoPagoSeleccionado = null;
+    detallesPago = {};
+}
+
+function confirmarMetodoPago() {
+    if (!metodoPagoSeleccionado) {
+        mostrarToast("Seleccione un método de pago", "error");
         return;
     }
     
-    const total = carrito.reduce((sum, item) => sum + item.subtotal, 0);
-    if (!confirm(`¿Finalizar venta por Bs ${total.toFixed(2)}?`)) return;
+    // Validar campos según el método seleccionado
+    let camposValidos = true;
+    detallesPago = { metodo: metodoPagoSeleccionado };
+    
+    switch(metodoPagoSeleccionado) {
+        case 'efectivo_bs':
+            const montoRecibidoBs = parseFloat(document.getElementById('montoRecibidoBs').value) || 0;
+            const totalBs = carrito.reduce((sum, item) => sum + item.subtotal, 0);
+            
+            if (montoRecibidoBs < totalBs) {
+                mostrarToast("El monto recibido es menor al total", "error");
+                camposValidos = false;
+                break;
+            }
+            
+            detallesPago.montoRecibido = montoRecibidoBs;
+            detallesPago.cambio = montoRecibidoBs - totalBs;
+            break;
+            
+        case 'efectivo_dolares':
+            const montoRecibidoDolares = parseFloat(document.getElementById('montoRecibidoDolares').value) || 0;
+            const totalDolares = carrito.reduce((sum, item) => sum + item.subtotalDolar, 0);
+            
+            if (montoRecibidoDolares < totalDolares) {
+                mostrarToast("El monto recibido es menor al total", "error");
+                camposValidos = false;
+                break;
+            }
+            
+            detallesPago.montoRecibido = montoRecibidoDolares;
+            detallesPago.cambio = montoRecibidoDolares - totalDolares;
+            break;
+            
+        case 'punto':
+            const referenciaPunto = document.getElementById('referenciaPunto').value.trim();
+            if (!referenciaPunto) {
+                mostrarToast("Ingrese el número de referencia", "error");
+                camposValidos = false;
+                break;
+            }
+            detallesPago.referencia = referenciaPunto;
+            break;
+            
+        case 'pago_movil':
+            const telefonoPagoMovil = document.getElementById('telefonoPagoMovil').value.trim();
+            const referenciaPagoMovil = document.getElementById('referenciaPagoMovil').value.trim();
+            
+            if (!telefonoPagoMovil || !referenciaPagoMovil) {
+                mostrarToast("Complete todos los campos", "error");
+                camposValidos = false;
+                break;
+            }
+            
+            detallesPago.telefono = telefonoPagoMovil;
+            detallesPago.referencia = referenciaPagoMovil;
+            break;
+            
+        case 'transferencia':
+            const referenciaTransferencia = document.getElementById('referenciaTransferencia').value.trim();
+            const bancoTransferencia = document.getElementById('bancoTransferencia').value.trim();
+            
+            if (!referenciaTransferencia || !bancoTransferencia) {
+                mostrarToast("Complete todos los campos", "error");
+                camposValidos = false;
+                break;
+            }
+            
+            detallesPago.referencia = referenciaTransferencia;
+            detallesPago.banco = bancoTransferencia;
+            break;
+            
+        case 'credito':
+            const titularCredito = document.getElementById('titularCredito').value.trim();
+            const digitosCredito = document.getElementById('digitosCredito').value.trim();
+            
+            if (!titularCredito || !digitosCredito || digitosCredito.length !== 4) {
+                mostrarToast("Complete todos los campos correctamente", "error");
+                camposValidos = false;
+                break;
+            }
+            
+            detallesPago.titular = titularCredito;
+            detallesPago.digitos = digitosCredito;
+            break;
+            
+        case 'combinado':
+            const montoEfectivo = parseFloat(document.getElementById('montoEfectivoCombinado').value) || 0;
+            const montoTransferencia = parseFloat(document.getElementById('montoTransferenciaCombinado').value) || 0;
+            const referenciaCombinado = document.getElementById('referenciaCombinado').value.trim();
+            const totalBsCombinado = carrito.reduce((sum, item) => sum + item.subtotal, 0);
+            
+            if (!referenciaCombinado || (montoEfectivo + montoTransferencia) < totalBsCombinado) {
+                mostrarToast("Complete todos los campos o verifique los montos", "error");
+                camposValidos = false;
+                break;
+            }
+            
+            detallesPago.montoEfectivo = montoEfectivo;
+            detallesPago.montoTransferencia = montoTransferencia;
+            detallesPago.referencia = referenciaCombinado;
+            break;
+    }
+    
+    if (!camposValidos) return;
+    
+    // Si todo está validado, procesar la venta
+    procesarVenta();
+}
+
+function procesarVenta() {
+    const totalBs = carrito.reduce((sum, item) => sum + item.subtotal, 0);
+    const totalDolares = carrito.reduce((sum, item) => sum + item.subtotalDolar, 0);
+    
+    // Calcular ganancia total
+    let gananciaTotalDolares = 0;
+    let gananciaTotalBolivares = 0;
     
     carrito.forEach(item => {
         const productoIndex = item.indexProducto;
@@ -325,6 +608,15 @@ function finalizarVenta() {
             
             producto.unidadesExistentes -= item.cantidad;
             
+            // Calcular ganancia para este producto
+            const costoUnitarioDolar = producto.costo / producto.unidadesPorCaja;
+            const gananciaUnitariaDolar = producto.precioUnitarioDolar - costoUnitarioDolar;
+            const gananciaProductoDolar = gananciaUnitariaDolar * item.cantidad;
+            const gananciaProductoBolivar = gananciaProductoDolar * tasaBCVGuardada;
+            
+            gananciaTotalDolares += gananciaProductoDolar;
+            gananciaTotalBolivares += gananciaProductoBolivar;
+            
             const hoy = new Date();
             const venta = {
                 fecha: hoy.toLocaleDateString(),
@@ -335,7 +627,11 @@ function finalizarVenta() {
                 precioUnitarioDolar: producto.precioUnitarioDolar,
                 precioUnitarioBolivar: producto.precioUnitarioBolivar,
                 totalDolar: item.cantidad * producto.precioUnitarioDolar,
-                totalBolivar: item.subtotal
+                totalBolivar: item.subtotal,
+                gananciaDolar: gananciaProductoDolar,
+                gananciaBolivar: gananciaProductoBolivar,
+                metodoPago: metodoPagoSeleccionado,
+                detallesPago: detallesPago
             };
             
             ventasDiarias.push(venta);
@@ -345,23 +641,36 @@ function finalizarVenta() {
     guardarEnLocalStorage('productos', productos);
     guardarEnLocalStorage('ventasDiarias', ventasDiarias);
     
-    mostrarToast(`✓ Venta completada por Bs ${total.toFixed(2)}`);
+    mostrarToast(`✓ Venta completada por Bs ${totalBs.toFixed(2)}. Ganancia: $${gananciaTotalDolares.toFixed(2)} / Bs ${gananciaTotalBolivares.toFixed(2)}`);
     
     carrito = [];
+    metodoPagoSeleccionado = null;
+    detallesPago = {};
     guardarCarrito();
     actualizarCarrito();
     actualizarLista();
+    cerrarModalPago();
     
     if (confirm("¿Desea imprimir ticket de la venta?")) {
         imprimirTicketVenta();
     }
 }
 
+function finalizarVenta() {
+    if (carrito.length === 0) {
+        mostrarToast("?? El carrito está vacío", "error");
+        return;
+    }
+    
+    mostrarModalPago();
+}
+
 // ================= MEJORAS EN LA IMPRESIÓN DE TICKETS =================
 
 function imprimirTicketVenta() {
     const fecha = new Date();
-    const total = carrito.reduce((sum, item) => sum + item.subtotal, 0);
+    const totalBs = carrito.reduce((sum, item) => sum + item.subtotal, 0);
+    const totalDolares = carrito.reduce((sum, item) => sum + item.subtotalDolar, 0);
     
     // Crear contenido optimizado para impresión térmica
     let contenido = `
@@ -428,6 +737,15 @@ function imprimirTicketVenta() {
                     margin-top: 10px;
                     font-style: italic;
                 }
+                .metodo-pago {
+                    text-align: center;
+                    margin-top: 5px;
+                    font-weight: bold;
+                }
+                .detalles-pago {
+                    font-size: 10px;
+                    margin-top: 5px;
+                }
                 @media print {
                     body { 
                         margin: 0; 
@@ -476,8 +794,58 @@ function imprimirTicketVenta() {
     contenido += `
                 </div>
                 <div class="total">
-                    <div>Total: Bs ${total.toFixed(2)}</div>
+                    <div>Total: Bs ${totalBs.toFixed(2)} / $ ${totalDolares.toFixed(2)}</div>
                 </div>
+                <div class="metodo-pago">
+                    <div>Método: ${metodoPagoSeleccionado ? metodoPagoSeleccionado.replace(/_/g, ' ').toUpperCase() : 'NO ESPECIFICADO'}</div>
+                </div>
+    `;
+    
+    // Agregar detalles específicos del método de pago
+    if (detallesPago) {
+        contenido += `<div class="detalles-pago">`;
+        
+        switch(metodoPagoSeleccionado) {
+            case 'efectivo_bs':
+                contenido += `Monto recibido: Bs ${detallesPago.montoRecibido.toFixed(2)}<br>`;
+                contenido += `Cambio: Bs ${detallesPago.cambio.toFixed(2)}`;
+                break;
+                
+            case 'efectivo_dolares':
+                contenido += `Monto recibido: $ ${detallesPago.montoRecibido.toFixed(2)}<br>`;
+                contenido += `Cambio: $ ${detallesPago.cambio.toFixed(2)}`;
+                break;
+                
+            case 'punto':
+                contenido += `Referencia: ${detallesPago.referencia}`;
+                break;
+                
+            case 'pago_movil':
+                contenido += `Teléfono: ${detallesPago.telefono}<br>`;
+                contenido += `Referencia: ${detallesPago.referencia}`;
+                break;
+                
+            case 'transferencia':
+                contenido += `Banco: ${detallesPago.banco}<br>`;
+                contenido += `Referencia: ${detallesPago.referencia}`;
+                break;
+                
+            case 'credito':
+                contenido += `Titular: ${detallesPago.titular}<br>`;
+                contenido += `Tarjeta: ****${detallesPago.digitos}`;
+                break;
+                
+            case 'combinado':
+                contenido += `Efectivo: Bs ${detallesPago.montoEfectivo.toFixed(2)}<br>`;
+                contenido += `Transferencia: Bs ${detallesPago.montoTransferencia.toFixed(2)}<br>`;
+                contenido += `Referencia: ${detallesPago.referencia}`;
+                break;
+        }
+        
+        contenido += `</div>`;
+    }
+    
+    contenido += `
                 <div class="fecha">Tasa BCV: ${tasaBCVGuardada}</div>
                 <div class="thank-you">¡Gracias por su compra!</div>
             </div>
@@ -900,12 +1268,14 @@ function generarReporteDiario() {
         // Calcular totales
         const totalDolar = ventasDelDia.reduce((sum, venta) => sum + venta.totalDolar, 0);
         const totalBolivar = ventasDelDia.reduce((sum, venta) => sum + venta.totalBolivar, 0);
+        const gananciaTotalDolar = ventasDelDia.reduce((sum, venta) => sum + (venta.gananciaDolar || 0), 0);
+        const gananciaTotalBolivar = ventasDelDia.reduce((sum, venta) => sum + (venta.gananciaBolivar || 0), 0);
         
         // Tabla de ventas
         doc.autoTable({
             startY: 30,
             head: [
-                ['Producto', 'Descripción', 'Cantidad', 'P.Unit ($)', 'P.Unit (Bs)', 'Total ($)', 'Total (Bs)']
+                ['Producto', 'Descripción', 'Cantidad', 'P.Unit ($)', 'P.Unit (Bs)', 'Total ($)', 'Total (Bs)', 'Ganancia ($)', 'Ganancia (Bs)']
             ],
             body: ventasDelDia.map(venta => [
                 venta.producto,
@@ -914,7 +1284,9 @@ function generarReporteDiario() {
                 `$${venta.precioUnitarioDolar.toFixed(2)}`,
                 `Bs${venta.precioUnitarioBolivar.toFixed(2)}`,
                 `$${venta.totalDolar.toFixed(2)}`,
-                `Bs${venta.totalBolivar.toFixed(2)}`
+                `Bs${venta.totalBolivar.toFixed(2)}`,
+                `$${(venta.gananciaDolar || 0).toFixed(2)}`,
+                `Bs${(venta.gananciaBolivar || 0).toFixed(2)}`
             ]),
             margin: { horizontal: 10 },
             styles: { 
@@ -928,13 +1300,15 @@ function generarReporteDiario() {
                 fontSize: 9
             },
             columnStyles: {
-                0: { cellWidth: 30 }, // Producto
-                1: { cellWidth: 25 }, // Descripción
-                2: { cellWidth: 15 }, // Cantidad
-                3: { cellWidth: 20 }, // P.Unit ($)
-                4: { cellWidth: 20 }, // P.Unit (Bs)
-                5: { cellWidth: 20 }, // Total ($)
-                6: { cellWidth: 20 }  // Total (Bs)
+                0: { cellWidth: 25 }, // Producto
+                1: { cellWidth: 20 }, // Descripción
+                2: { cellWidth: 12 }, // Cantidad
+                3: { cellWidth: 15 }, // P.Unit ($)
+                4: { cellWidth: 15 }, // P.Unit (Bs)
+                5: { cellWidth: 15 }, // Total ($)
+                6: { cellWidth: 15 }, // Total (Bs)
+                7: { cellWidth: 15 }, // Ganancia ($)
+                8: { cellWidth: 15 }  // Ganancia (Bs)
             }
         });
         
@@ -945,7 +1319,29 @@ function generarReporteDiario() {
         doc.setFont(undefined, 'bold');
         doc.text(`Total General en Dólares: $${totalDolar.toFixed(2)}`, 14, finalY);
         doc.text(`Total General en Bolívares: Bs${totalBolivar.toFixed(2)}`, 14, finalY + 10);
-        doc.text(`Tasa BCV utilizada: ${tasaBCVGuardada}`, 14, finalY + 20);
+        doc.text(`Ganancia Total en Dólares: $${gananciaTotalDolar.toFixed(2)}`, 14, finalY + 20);
+        doc.text(`Ganancia Total en Bolívares: Bs${gananciaTotalBolivar.toFixed(2)}`, 14, finalY + 30);
+        doc.text(`Tasa BCV utilizada: ${tasaBCVGuardada}`, 14, finalY + 40);
+        
+        // Métodos de pago utilizados
+        const metodosPago = {};
+        ventasDelDia.forEach(venta => {
+            const metodo = venta.metodoPago || 'no_especificado';
+            metodosPago[metodo] = (metodosPago[metodo] || 0) + venta.totalBolivar;
+        });
+        
+        let yPos = finalY + 50;
+        doc.text("Métodos de Pago:", 14, yPos);
+        yPos += 10;
+        
+        for (const [metodo, monto] of Object.entries(metodosPago)) {
+            if (yPos > 270) {
+                doc.addPage();
+                yPos = 20;
+            }
+            doc.text(`${metodo.replace(/_/g, ' ').toUpperCase()}: Bs${monto.toFixed(2)}`, 20, yPos);
+            yPos += 7;
+        }
         
         // Guardar PDF
         const nombreArchivo = `ventas_${fechaReporte.replace(/\//g, '-')}.pdf`;
@@ -1015,6 +1411,7 @@ function actualizarLista() {
             </td>
             <td>$${producto.precioUnitarioDolar.toFixed(2)}</td>
             <td>Bs${producto.precioUnitarioBolivar.toFixed(2)}</td>
+            <td>${(producto.ganancia * 100).toFixed(0)}%</td>
             <td>
                 <button class="editar" onclick="editarProducto(${originalIndex})">Editar</button>
                 <button class="imprimir" onclick="imprimirTicket(${originalIndex})">Imprimir</button>
@@ -1124,6 +1521,7 @@ function buscarProducto() {
             </td>
             <td>$${producto.precioUnitarioDolar.toFixed(2)}</td>
             <td>Bs${producto.precioUnitarioBolivar.toFixed(2)}</td>
+            <td>${(producto.ganancia * 100).toFixed(0)}%</td>
             <td>
                 <button class="editar" onclick="editarProducto(${originalIndex})">Editar</button>
                 <button class="imprimir" onclick="imprimirTicket(${originalIndex})">Imprimir</button>
@@ -1222,7 +1620,7 @@ function imprimirTicket(index) {
 }
 
 // Sistema de actualización
-const APP_VERSION = "1.2.0"; // Versión actualizada con código de barras
+const APP_VERSION = "1.4.0"; // Versión con mejoras de pago y ganancias
 
 function toggleCopyrightNotice() {
     const notice = document.getElementById('copyrightNotice');
@@ -1259,3 +1657,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 15000);
     }, 5000);
 });
+
+// Cerrar modal si se hace clic fuera de él
+window.onclick = function(event) {
+    const modal = document.getElementById('modalPago');
+    if (event.target == modal) {
+        cerrarModalPago();
+    }
+};
