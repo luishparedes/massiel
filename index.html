@@ -3,19 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Meta tags para control de caché -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    
     <title>Calculadora Mágica</title>
-    
-    <!-- Librerías JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    
-    <!-- Hoja de estilos -->
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -39,16 +33,16 @@
 
         <section>
             <h3>Tasa BCV</h3>
-            <input type="number" id="tasaBCV" placeholder="Tasa BCV" required="true">
+            <input type="number" id="tasaBCV" placeholder="Tasa BCV" required>
             <button onclick="actualizarTasaBCV()">Actualizar Tasa BCV</button>
         </section>
 
         <section>
             <h3>Datos del Producto</h3>
-            <input type="text" id="producto" placeholder="Nombre del producto" required="true">
+            <input type="text" id="producto" placeholder="Nombre del producto" required>
             <input type="text" id="codigoBarras" placeholder="Código de barras (opcional)">
-            <input type="number" id="costo" placeholder="Costo del producto" required="true">
-            <select id="descripcion" required="true">
+            <input type="number" id="costo" placeholder="Costo del producto" required>
+            <select id="descripcion" required>
                 <option value="">Selecciona una descripción</option>
                 <option value="viveres">Víveres</option>
                 <option value="gaseosas">Gaseosas</option>
@@ -71,9 +65,9 @@
 
         <section>
             <h3>Precio de Venta</h3>
-            <input type="number" id="ganancia" placeholder="Porcentaje de ganancia" required="true">
-            <input type="number" id="unidadesPorCaja" placeholder="Unidades que trae la caja" required="true">
-            <input type="number" id="unidadesExistentes" placeholder="Unidades existentes" required="true">
+            <input type="number" id="ganancia" placeholder="Porcentaje de ganancia" required>
+            <input type="number" id="unidadesPorCaja" placeholder="Unidades que trae la caja" required>
+            <input type="number" id="unidadesExistentes" placeholder="Unidades existentes" required>
             <button onclick="calcularPrecioVenta()">Calcular Precio de Venta</button>
             <p id="precioUnitario">Precio unitario: </p>
         </section>
@@ -106,7 +100,7 @@
             <button onclick="generarReporteDiario()" class="generar-pdf">Generar Reporte Diario</button>
             <button onclick="mostrarListaCostos()" class="lista-costos">Mostrar Lista de Costos</button>
             <button onclick="generarRespaldoCompleto()" class="generar-respaldo">PDF LISTA PRODUCTOS</button>
-           <button onclick="limpiarLista()" class="limpiar-lista">Limpiar Lista</button>
+            <button onclick="limpiarLista()" class="limpiar-lista">Limpiar Lista</button>
         </div>
 
         <div id="listaCostosContainer" style="display: none;">
@@ -118,7 +112,6 @@
         </div>
     </div>
     
-    <!-- Nueva sección: Carrito de Ventas -->
     <div class="carrito-ventas">
         <h2>Carrito de Ventas</h2>
         
@@ -158,7 +151,6 @@
         </div>
     </div>
 
-    <!-- Modal para métodos de pago -->
     <div id="modalPago" class="modal">
         <div class="modal-content">
             <span class="close" onclick="cerrarModalPago()">&times;</span>
@@ -191,13 +183,11 @@
         </div>
     </div>
 
-    <!-- Botones flotantes de navegación mejorados -->
     <div class="floating-nav">
         <button class="go-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">↑</button>
         <button class="go-bottom" onclick="window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'})">↓</button>
     </div>
 
-    <!-- Scripts JavaScript -->
     <script src="script.js"></script>
 </body>
 </html>
