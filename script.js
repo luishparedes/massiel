@@ -1,5 +1,5 @@
 // ===== SISTEMA DE ACTUALIZACIÓN AUTOMÁTICA ===== //
-const VERSION_ACTUAL = "1.4.0";
+const VERSION_ACTUAL = "1.5.0";
 const TIEMPO_INACTIVIDAD = 10 * 60 * 1000;
 const URL_REDIRECCION = "http://portal.calculadoramagica.lat/";
 
@@ -165,6 +165,7 @@ function agregarPorCodigoBarras() {
     if (enCarrito) {
         enCarrito.cantidad += 1;
         enCarrito.subtotal = enCarrito.cantidad * enCarrito.precioUnitarioBolivar;
+        enCarrito.subtotalDolar = enCarrito.cantidad * enCarrito.precioUnitarioDolar;
         mostrarToast(`+1 ${productoEncontrado.nombre} en carrito`);
     } else {
         carrito.push({
@@ -217,7 +218,7 @@ function actualizarCarrito() {
     
     carritoBody.innerHTML = '';
     if (carrito.length === 0) {
-        carritoBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">El carrito está vacío</td></tr>';
+        carritoBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">El carrito está vacío</td></tr>';
         totalCarritoBs.textContent = 'Total: Bs 0,00';
         totalCarritoDolares.textContent = 'Total: $ 0,00';
         return;
@@ -238,6 +239,7 @@ function actualizarCarrito() {
                 <button onclick="actualizarCantidadCarrito(${index}, 1)">+</button>
             </td>
             <td>Bs ${item.subtotal.toFixed(2)}</td>
+            <td>$ ${item.subtotalDolar.toFixed(2)}</td>
             <td>
                 <button class="btn-eliminar-carrito" onclick="eliminarDelCarrito(${index})">Eliminar</button>
             </td>
@@ -326,8 +328,8 @@ function seleccionarMetodoPago(metodo) {
         case 'punto':
             detallesDiv.innerHTML = `
                 <div class="campo-pago">
-                    <label>Número de referencia:</label>
-                    <input type="text" id="referenciaPunto" placeholder="Número de referencia" required>
+                    <label>Monto recibido (Bs):</label>
+                    <input type="number" id="montoRecibidoPunto" placeholder="0.00" step="0.01" required>
                 </div>
             `;
             break;
@@ -358,58 +360,13 @@ function seleccionarMetodoPago(metodo) {
             `;
             break;
             
-        case 'credito':
+        case 'bio_pago':
             detallesDiv.innerHTML = `
                 <div class="campo-pago">
-                    <label>Nombre del titular:</label>
-                    <input type="text" id="titularCredito" placeholder="Nombre completo" required>
-                </div>
-                <div class="campo-pago">
-                    <label>Últimos 4 dígitos:</label>
-                    <input type="text" id="digitosCredito" placeholder="XXXX" maxlength="4" required>
+                    <label>Monto recibido (Bs):</label>
+                    <input type="number" id="montoRecibidoBioPago" placeholder="0.00" step="0.01" required>
                 </div>
             `;
-            break;
-            
-        case 'combinado':
-            const totalBsCombinado = carrito.reduce((sum, item) => sum + item.subtotal, 0);
-            detallesDiv.innerHTML = `
-                <div class="campo-pago">
-                    <label>Monto en efectivo (Bs):</label>
-                    <input type="number" id="montoEfectivoCombinado" placeholder="0.00" step="0.01" required>
-                </div>
-                <div class="campo-pago">
-                    <label>Monto transferencia (Bs):</label>
-                    <input type="number" id="montoTransferenciaCombinado" placeholder="0.00" step="0.01" required>
-                </div>
-                <div class="campo-pago">
-                    <label>Referencia transferencia:</label>
-                    <input type="text" id="referenciaCombinado" placeholder="Número de referencia" required>
-                </div>
-                <div class="campo-pago">
-                    <label>Total a pagar (Bs):</label>
-                    <input type="number" id="totalCombinado" value="${totalBsCombinado.toFixed(2)}" readonly>
-                </div>
-                <div class="campo-pago">
-                    <label>Saldo restante (Bs):</label>
-                    <input type="number" id="saldoCombinado" placeholder="0.00" step="0.01" readonly>
-                </div>
-            `;
-            
-            const montoEfectivoInput = document.getElementById('montoEfectivoCombinado');
-            const montoTransferenciaInput = document.getElementById('montoTransferenciaCombinado');
-            const saldoInput = document.getElementById('saldoCombinado');
-            
-            function calcularSaldoCombinado() {
-                const efectivo = parseFloat(montoEfectivoInput.value) || 0;
-                const transferencia = parseFloat(montoTransferenciaInput.value) || 0;
-                const totalPagado = efectivo + transferencia;
-                const saldo = totalBsCombinado - totalPagado;
-                saldoInput.value = saldo > 0 ? saldo.toFixed(2) : '0.00';
-            }
-            
-            montoEfectivoInput.addEventListener('input', calcularSaldoCombinado);
-            montoTransferenciaInput.addEventListener('input', calcularSaldoCombinado);
             break;
     }
     
@@ -461,13 +418,17 @@ function confirmarMetodoPago() {
             break;
             
         case 'punto':
-            const referenciaPunto = document.getElementById('referenciaPunto').value.trim();
-            if (!referenciaPunto) {
-                mostrarToast("Ingrese el número de referencia", "error");
+            const montoRecibidoPunto = parseFloat(document.getElementById('montoRecibidoPunto').value) || 0;
+            const totalBsPunto = carrito.reduce((sum, item) => sum + item.subtotal, 0);
+            
+            if (montoRecibidoPunto < totalBsPunto) {
+                mostrarToast("El monto recibido es menor al total", "error");
                 camposValidos = false;
                 break;
             }
-            detallesPago.referencia = referenciaPunto;
+            
+            detallesPago.montoRecibido = montoRecibidoPunto;
+            detallesPago.cambio = montoRecibidoPunto - totalBsPunto;
             break;
             
         case 'pago_movil':
@@ -498,35 +459,18 @@ function confirmarMetodoPago() {
             detallesPago.banco = bancoTransferencia;
             break;
             
-        case 'credito':
-            const titularCredito = document.getElementById('titularCredito').value.trim();
-            const digitosCredito = document.getElementById('digitosCredito').value.trim();
+        case 'bio_pago':
+            const montoRecibidoBioPago = parseFloat(document.getElementById('montoRecibidoBioPago').value) || 0;
+            const totalBsBioPago = carrito.reduce((sum, item) => sum + item.subtotal, 0);
             
-            if (!titularCredito || !digitosCredito || digitosCredito.length !== 4) {
-                mostrarToast("Complete todos los campos correctamente", "error");
+            if (montoRecibidoBioPago < totalBsBioPago) {
+                mostrarToast("El monto recibido es menor al total", "error");
                 camposValidos = false;
                 break;
             }
             
-            detallesPago.titular = titularCredito;
-            detallesPago.digitos = digitosCredito;
-            break;
-            
-        case 'combinado':
-            const montoEfectivo = parseFloat(document.getElementById('montoEfectivoCombinado').value) || 0;
-            const montoTransferencia = parseFloat(document.getElementById('montoTransferenciaCombinado').value) || 0;
-            const referenciaCombinado = document.getElementById('referenciaCombinado').value.trim();
-            const totalBsCombinado = carrito.reduce((sum, item) => sum + item.subtotal, 0);
-            
-            if (!referenciaCombinado || (montoEfectivo + montoTransferencia) < totalBsCombinado) {
-                mostrarToast("Complete todos los campos o verifique los montos", "error");
-                camposValidos = false;
-                break;
-            }
-            
-            detallesPago.montoEfectivo = montoEfectivo;
-            detallesPago.montoTransferencia = montoTransferencia;
-            detallesPago.referencia = referenciaCombinado;
+            detallesPago.montoRecibido = montoRecibidoBioPago;
+            detallesPago.cambio = montoRecibidoBioPago - totalBsBioPago;
             break;
     }
     
@@ -751,7 +695,8 @@ function imprimirTicketVenta() {
                 break;
                 
             case 'punto':
-                contenido += `Referencia: ${detallesPago.referencia}`;
+                contenido += `Monto recibido: Bs ${detallesPago.montoRecibido.toFixed(2)}<br>`;
+                contenido += `Cambio: Bs ${detallesPago.cambio.toFixed(2)}`;
                 break;
                 
             case 'pago_movil':
@@ -764,15 +709,9 @@ function imprimirTicketVenta() {
                 contenido += `Referencia: ${detallesPago.referencia}`;
                 break;
                 
-            case 'credito':
-                contenido += `Titular: ${detallesPago.titular}<br>`;
-                contenido += `Tarjeta: ****${detallesPago.digitos}`;
-                break;
-                
-            case 'combinado':
-                contenido += `Efectivo: Bs ${detallesPago.montoEfectivo.toFixed(2)}<br>`;
-                contenido += `Transferencia: Bs ${detallesPago.montoTransferencia.toFixed(2)}<br>`;
-                contenido += `Referencia: ${detallesPago.referencia}`;
+            case 'bio_pago':
+                contenido += `Monto recibido: Bs ${detallesPago.montoRecibido.toFixed(2)}<br>`;
+                contenido += `Cambio: Bs ${detallesPago.cambio.toFixed(2)}`;
                 break;
         }
         
@@ -1191,7 +1130,7 @@ function generarReporteDiario() {
         doc.autoTable({
             startY: 30,
             head: [
-                ['Producto', 'Descripción', 'Cantidad', 'P.Unit ($)', 'P.Unit (Bs)', 'Total ($)', 'Total (Bs)', 'Ganancia ($)', 'Ganancia (Bs)']
+                ['Producto', 'Descripción', 'Cantidad', 'P.Unit ($)', 'P.Unit (Bs)', 'Total ($)', 'Total (Bs)', 'Ganancia ($)', 'Ganancia (Bs)', 'Método Pago']
             ],
             body: ventasDelDia.map(venta => [
                 venta.producto,
@@ -1202,7 +1141,8 @@ function generarReporteDiario() {
                 `$${venta.totalDolar.toFixed(2)}`,
                 `Bs${venta.totalBolivar.toFixed(2)}`,
                 `$${(venta.gananciaDolar || 0).toFixed(2)}`,
-                `Bs${(venta.gananciaBolivar || 0).toFixed(2)}`
+                `Bs${(venta.gananciaBolivar || 0).toFixed(2)}`,
+                venta.metodoPago ? venta.metodoPago.replace(/_/g, ' ').toUpperCase() : 'NO ESPECIFICADO'
             ]),
             margin: { horizontal: 10 },
             styles: { 
@@ -1216,15 +1156,16 @@ function generarReporteDiario() {
                 fontSize: 9
             },
             columnStyles: {
-                0: { cellWidth: 25 },
-                1: { cellWidth: 20 },
-                2: { cellWidth: 12 },
-                3: { cellWidth: 15 },
-                4: { cellWidth: 15 },
-                5: { cellWidth: 15 },
-                6: { cellWidth: 15 },
-                7: { cellWidth: 15 },
-                8: { cellWidth: 15 }
+                0: { cellWidth: 20 },
+                1: { cellWidth: 15 },
+                2: { cellWidth: 10 },
+                3: { cellWidth: 12 },
+                4: { cellWidth: 12 },
+                5: { cellWidth: 12 },
+                6: { cellWidth: 12 },
+                7: { cellWidth: 12 },
+                8: { cellWidth: 12 },
+                9: { cellWidth: 15 }
             }
         });
         
@@ -1256,6 +1197,48 @@ function generarReporteDiario() {
             doc.text(`${metodo.replace(/_/g, ' ').toUpperCase()}: Bs${monto.toFixed(2)}`, 20, yPos);
             yPos += 7;
         }
+        
+        // Detalles de pago específicos
+        yPos += 10;
+        doc.text("Detalles de Pagos:", 14, yPos);
+        yPos += 10;
+        
+        ventasDelDia.filter(v => v.detallesPago).forEach(venta => {
+            if (yPos > 270) {
+                doc.addPage();
+                yPos = 20;
+            }
+            
+            doc.text(`${venta.producto} - ${venta.metodoPago.replace(/_/g, ' ').toUpperCase()}:`, 20, yPos);
+            yPos += 7;
+            
+            if (venta.detallesPago.montoRecibido) {
+                doc.text(`Monto recibido: ${venta.detallesPago.metodo.includes('dolares') ? '$' : 'Bs'} ${venta.detallesPago.montoRecibido.toFixed(2)}`, 25, yPos);
+                yPos += 7;
+            }
+            
+            if (venta.detallesPago.cambio) {
+                doc.text(`Cambio: ${venta.detallesPago.metodo.includes('dolares') ? '$' : 'Bs'} ${venta.detallesPago.cambio.toFixed(2)}`, 25, yPos);
+                yPos += 7;
+            }
+            
+            if (venta.detallesPago.referencia) {
+                doc.text(`Referencia: ${venta.detallesPago.referencia}`, 25, yPos);
+                yPos += 7;
+            }
+            
+            if (venta.detallesPago.banco) {
+                doc.text(`Banco: ${venta.detallesPago.banco}`, 25, yPos);
+                yPos += 7;
+            }
+            
+            if (venta.detallesPago.telefono) {
+                doc.text(`Teléfono: ${venta.detallesPago.telefono}`, 25, yPos);
+                yPos += 7;
+            }
+            
+            yPos += 5;
+        });
         
         const nombreArchivo = `ventas_${fechaReporte.replace(/\//g, '-')}.pdf`;
         doc.save(nombreArchivo);
@@ -1527,7 +1510,7 @@ function imprimirTicket(index) {
 }
 
 // Sistema de actualización
-const APP_VERSION = "1.4.0";
+const APP_VERSION = "1.5.0";
 
 function toggleCopyrightNotice() {
     const notice = document.getElementById('copyrightNotice');
