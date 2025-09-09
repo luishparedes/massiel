@@ -1,53 +1,22 @@
 // ===== SISTEMA DE ACTUALIZACIÓN AUTOMÁTICA ===== //
-const VERSION_ACTUAL = "1.4.0"; // Versión con mejoras en métodos de pago
-
-// ===== SISTEMA DE REDIRECCIÓN POR INACTIVIDAD ===== //
-const TIEMPO_INACTIVIDAD = 10 * 60 * 1000; // 10 minutos en milisegundos
+const VERSION_ACTUAL = "1.4.0";
+const TIEMPO_INACTIVIDAD = 10 * 60 * 1000;
 const URL_REDIRECCION = "http://portal.calculadoramagica.lat/";
 
-let temporizadorInactividad;
-
-function reiniciarTemporizador() {
-    clearTimeout(temporizadorInactividad);
-    
-    temporizadorInactividad = setTimeout(() => {
-        window.location.href = URL_REDIRECCION;
-    }, TIEMPO_INACTIVIDAD);
-}
-
-// Eventos que indican actividad del usuario
-['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evento => {
-    document.addEventListener(evento, reiniciarTemporizador);
-});
-
-// Verificar si hay una nueva versión
-function verificarActualizacion() {
-    const versionGuardada = localStorage.getItem('appVersion');
-    
-    if (versionGuardada !== VERSION_ACTUAL) {
-        localStorage.setItem('appVersion', VERSION_ACTUAL);
-        
-        if (versionGuardada !== null) {
-            mostrarToast("¡Nueva actualización disponible! La app se recargará automáticamente.", "info");
-            
-            setTimeout(() => {
-                window.location.reload(true);
-            }, 3000);
-        }
-    }
-}
+let temporizadorInactividad, productos = [], nombreEstablecimiento = '', tasaBCVGuardada = 0, ventasDiarias = [], carrito = [], metodoPagoSeleccionado = null, detallesPago = {};
 
 // Datos persistentes
-let productos = JSON.parse(localStorage.getItem('productos')) || [];
-let nombreEstablecimiento = localStorage.getItem('nombreEstablecimiento') || '';
-let tasaBCVGuardada = parseFloat(localStorage.getItem('tasaBCV')) || 0;
-let ventasDiarias = JSON.parse(localStorage.getItem('ventasDiarias')) || [];
-let carrito = JSON.parse(localStorage.getItem('carrito')) || [];
-let metodoPagoSeleccionado = null;
-let detallesPago = {};
+function inicializarDatos() {
+    productos = JSON.parse(localStorage.getItem('productos')) || [];
+    nombreEstablecimiento = localStorage.getItem('nombreEstablecimiento') || '';
+    tasaBCVGuardada = parseFloat(localStorage.getItem('tasaBCV')) || 0;
+    ventasDiarias = JSON.parse(localStorage.getItem('ventasDiarias')) || [];
+    carrito = JSON.parse(localStorage.getItem('carrito')) || [];
+}
 
 // Cargar datos al iniciar
 document.addEventListener('DOMContentLoaded', function() {
+    inicializarDatos();
     reiniciarTemporizador();
     cargarDatosIniciales();
     actualizarLista();
@@ -57,9 +26,31 @@ document.addEventListener('DOMContentLoaded', function() {
     configurarBusquedaProductos();
 });
 
-// ================= MEJORAS EN EL GUARDADO LOCAL =================
+// ===== SISTEMA DE REDIRECCIÓN POR INACTIVIDAD ===== //
+function reiniciarTemporizador() {
+    clearTimeout(temporizadorInactividad);
+    temporizadorInactividad = setTimeout(() => {
+        window.location.href = URL_REDIRECCION;
+    }, TIEMPO_INACTIVIDAD);
+}
 
-// Función mejorada para guardar datos con verificación de errores
+['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evento => {
+    document.addEventListener(evento, reiniciarTemporizador);
+});
+
+// Verificar si hay una nueva versión
+function verificarActualizacion() {
+    const versionGuardada = localStorage.getItem('appVersion');
+    if (versionGuardada !== VERSION_ACTUAL) {
+        localStorage.setItem('appVersion', VERSION_ACTUAL);
+        if (versionGuardada !== null) {
+            mostrarToast("¡Nueva actualización disponible! La app se recargará automáticamente.", "info");
+            setTimeout(() => window.location.reload(true), 3000);
+        }
+    }
+}
+
+// ================= MEJORAS EN EL GUARDADO LOCAL =================
 function guardarEnLocalStorage(clave, datos) {
     try {
         localStorage.setItem(clave, JSON.stringify(datos));
@@ -72,24 +63,13 @@ function guardarEnLocalStorage(clave, datos) {
 }
 
 // ================= MEJORAS EN LA BÚSQUEDA DE PRODUCTOS =================
-
 function configurarBusquedaProductos() {
     const inputBusqueda = document.getElementById('codigoBarrasInput');
     const sugerenciasContainer = document.createElement('div');
     sugerenciasContainer.id = 'sugerenciasProductos';
-    sugerenciasContainer.style.cssText = `
-        position: absolute;
-        background: white;
-        border: 1px solid #ccc;
-        max-height: 200px;
-        overflow-y: auto;
-        z-index: 1000;
-        width: 100%;
-        display: none;
-    `;
+    sugerenciasContainer.style.cssText = 'position: absolute; background: white; border: 1px solid #ccc; max-height: 200px; overflow-y: auto; z-index: 1000; width: 100%; display: none;';
     inputBusqueda.parentNode.appendChild(sugerenciasContainer);
     
-    // Evento para mostrar sugerencias
     inputBusqueda.addEventListener('input', function() {
         const valor = this.value.trim();
         if (valor.length > 2) {
@@ -99,7 +79,6 @@ function configurarBusquedaProductos() {
         }
     });
     
-    // Ocultar sugerencias al hacer clic fuera
     document.addEventListener('click', function(e) {
         if (e.target !== inputBusqueda && !sugerenciasContainer.contains(e.target)) {
             sugerenciasContainer.style.display = 'none';
@@ -133,7 +112,6 @@ function mostrarSugerencias(termino, input, container) {
         container.appendChild(div);
     });
     
-    // Posicionar el contenedor de sugerencias
     const rect = input.getBoundingClientRect();
     container.style.width = rect.width + 'px';
     container.style.top = (rect.bottom + window.scrollY) + 'px';
@@ -142,43 +120,30 @@ function mostrarSugerencias(termino, input, container) {
 }
 
 // ================= MEJORAS EN EL CARRITO =================
-
 function configurarScanner() {
     const inputScanner = document.getElementById('codigoBarrasInput');
-    
     inputScanner.focus();
     
     inputScanner.addEventListener('input', function(e) {
         document.getElementById('scannerStatus').textContent = 'Código detectado: ' + this.value;
-        
         if (this.value.length >= 8) {
-            setTimeout(() => {
-                agregarPorCodigoBarras();
-            }, 300);
+            setTimeout(() => agregarPorCodigoBarras(), 300);
         }
     });
     
     inputScanner.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            agregarPorCodigoBarras();
-        }
+        if (e.key === 'Enter') agregarPorCodigoBarras();
     });
 }
 
 function agregarPorCodigoBarras() {
     const codigo = document.getElementById('codigoBarrasInput').value.trim();
-    
     if (!codigo) {
         mostrarToast("?? Ingrese o escanee un código de barras", "error");
         return;
     }
     
-    // Buscar producto por código de barras
-    let productoEncontrado = productos.find(p => 
-        p.codigoBarras && p.codigoBarras.toLowerCase() === codigo.toLowerCase()
-    );
-    
-    // Si no se encuentra por código, buscar por nombre
+    let productoEncontrado = productos.find(p => p.codigoBarras && p.codigoBarras.toLowerCase() === codigo.toLowerCase());
     if (!productoEncontrado) {
         productoEncontrado = productos.find(p => 
             p.nombre.toLowerCase().includes(codigo.toLowerCase()) || 
@@ -187,21 +152,16 @@ function agregarPorCodigoBarras() {
         
         if (!productoEncontrado) {
             mostrarToast("?? Producto no encontrado. ¿Desea agregarlo manualmente?", "warning");
-            
             if (confirm("Producto no encontrado. ¿Desea agregarlo manualmente?")) {
-                // Colocar el código en el campo de código de barras, no en el nombre
                 document.getElementById('codigoBarras').value = codigo;
                 document.getElementById('producto').focus();
                 window.scrollTo(0, 0);
             }
-            
             return;
         }
     }
     
-    // Verificar si ya está en el carrito
     const enCarrito = carrito.find(item => item.nombre === productoEncontrado.nombre);
-    
     if (enCarrito) {
         enCarrito.cantidad += 1;
         enCarrito.subtotal = enCarrito.cantidad * enCarrito.precioUnitarioBolivar;
@@ -240,12 +200,10 @@ function eliminarDelCarrito(index) {
 function actualizarCantidadCarrito(index, cambio) {
     const item = carrito[index];
     item.cantidad += cambio;
-    
     if (item.cantidad < 1) {
         eliminarDelCarrito(index);
         return;
     }
-    
     item.subtotal = item.cantidad * item.precioUnitarioBolivar;
     item.subtotalDolar = item.cantidad * item.precioUnitarioDolar;
     guardarCarrito();
@@ -258,7 +216,6 @@ function actualizarCarrito() {
     const totalCarritoDolares = document.getElementById('totalCarritoDolares');
     
     carritoBody.innerHTML = '';
-    
     if (carrito.length === 0) {
         carritoBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">El carrito está vacío</td></tr>';
         totalCarritoBs.textContent = 'Total: Bs 0,00';
@@ -266,9 +223,7 @@ function actualizarCarrito() {
         return;
     }
     
-    let totalBs = 0;
-    let totalDolares = 0;
-    
+    let totalBs = 0, totalDolares = 0;
     carrito.forEach((item, index) => {
         totalBs += item.subtotal;
         totalDolares += item.subtotalDolar;
@@ -299,9 +254,7 @@ function guardarCarrito() {
 }
 
 // ================= SISTEMA DE MÉTODOS DE PAGO =================
-
 function mostrarModalPago() {
-    // Actualizar resumen de venta en el modal
     const totalBs = carrito.reduce((sum, item) => sum + item.subtotal, 0);
     const totalDolares = carrito.reduce((sum, item) => sum + item.subtotalDolar, 0);
     
@@ -323,7 +276,6 @@ function seleccionarMetodoPago(metodo) {
     const detallesDiv = document.getElementById('camposPago');
     detallesDiv.innerHTML = '';
     
-    // Mostrar campos específicos según el método de pago
     switch(metodo) {
         case 'efectivo_bs':
             detallesDiv.innerHTML = `
@@ -337,7 +289,6 @@ function seleccionarMetodoPago(metodo) {
                 </div>
             `;
             
-            // Calcular cambio automáticamente
             const montoRecibidoBsInput = document.getElementById('montoRecibidoBs');
             const cambioBsInput = document.getElementById('cambioBs');
             const totalBs = carrito.reduce((sum, item) => sum + item.subtotal, 0);
@@ -361,7 +312,6 @@ function seleccionarMetodoPago(metodo) {
                 </div>
             `;
             
-            // Calcular cambio automáticamente
             const montoRecibidoDolaresInput = document.getElementById('montoRecibidoDolares');
             const cambioDolaresInput = document.getElementById('cambioDolares');
             const totalDolares = carrito.reduce((sum, item) => sum + item.subtotalDolar, 0);
@@ -446,7 +396,6 @@ function seleccionarMetodoPago(metodo) {
                 </div>
             `;
             
-            // Calcular saldo automáticamente
             const montoEfectivoInput = document.getElementById('montoEfectivoCombinado');
             const montoTransferenciaInput = document.getElementById('montoTransferenciaCombinado');
             const saldoInput = document.getElementById('saldoCombinado');
@@ -479,7 +428,6 @@ function confirmarMetodoPago() {
         return;
     }
     
-    // Validar campos según el método seleccionado
     let camposValidos = true;
     detallesPago = { metodo: metodoPagoSeleccionado };
     
@@ -583,8 +531,6 @@ function confirmarMetodoPago() {
     }
     
     if (!camposValidos) return;
-    
-    // Si todo está validado, procesar la venta
     procesarVenta();
 }
 
@@ -592,9 +538,7 @@ function procesarVenta() {
     const totalBs = carrito.reduce((sum, item) => sum + item.subtotal, 0);
     const totalDolares = carrito.reduce((sum, item) => sum + item.subtotalDolar, 0);
     
-    // Calcular ganancia total
-    let gananciaTotalDolares = 0;
-    let gananciaTotalBolivares = 0;
+    let gananciaTotalDolares = 0, gananciaTotalBolivares = 0;
     
     carrito.forEach(item => {
         const productoIndex = item.indexProducto;
@@ -608,7 +552,6 @@ function procesarVenta() {
             
             producto.unidadesExistentes -= item.cantidad;
             
-            // Calcular ganancia para este producto
             const costoUnitarioDolar = producto.costo / producto.unidadesPorCaja;
             const gananciaUnitariaDolar = producto.precioUnitarioDolar - costoUnitarioDolar;
             const gananciaProductoDolar = gananciaUnitariaDolar * item.cantidad;
@@ -661,18 +604,15 @@ function finalizarVenta() {
         mostrarToast("?? El carrito está vacío", "error");
         return;
     }
-    
     mostrarModalPago();
 }
 
 // ================= MEJORAS EN LA IMPRESIÓN DE TICKETS =================
-
 function imprimirTicketVenta() {
     const fecha = new Date();
     const totalBs = carrito.reduce((sum, item) => sum + item.subtotal, 0);
     const totalDolares = carrito.reduce((sum, item) => sum + item.subtotalDolar, 0);
     
-    // Crear contenido optimizado para impresión térmica
     let contenido = `
         <!DOCTYPE html>
         <html>
@@ -766,13 +706,9 @@ function imprimirTicketVenta() {
                 <div class="items">
     `;
     
-    // Limitar la cantidad de productos mostrados en el ticket (máximo 10)
     const productosMostrar = carrito.slice(0, 10);
-    
     productosMostrar.forEach(item => {
-        // Acortar nombres largos para ahorrar espacio
         const nombreCorto = item.nombre.length > 20 ? item.nombre.substring(0, 17) + '...' : item.nombre;
-        
         contenido += `
             <div class="item">
                 <div class="item-name">${nombreCorto} x${item.cantidad}</div>
@@ -781,7 +717,6 @@ function imprimirTicketVenta() {
         `;
     });
     
-    // Si hay más de 10 productos, mostrar un resumen
     if (carrito.length > 10) {
         contenido += `
             <div class="item">
@@ -801,7 +736,6 @@ function imprimirTicketVenta() {
                 </div>
     `;
     
-    // Agregar detalles específicos del método de pago
     if (detallesPago) {
         contenido += `<div class="detalles-pago">`;
         
@@ -859,7 +793,6 @@ function imprimirTicketVenta() {
 }
 
 // ================= FUNCIONES PRINCIPALES (ORIGINALES) =================
-
 function cargarDatosIniciales() {
     document.getElementById('nombreEstablecimiento').value = nombreEstablecimiento;
     document.getElementById('tasaBCV').value = tasaBCVGuardada || '';
@@ -909,7 +842,6 @@ function guardarProducto() {
 }
 
 // ================= FUNCIONES DE LISTA DE COSTOS =================
-
 function mostrarListaCostos() {
     const container = document.getElementById('listaCostosContainer');
     const lista = document.getElementById('listaCostos');
@@ -1008,7 +940,6 @@ function generarPDFCostos() {
 }
 
 // ================= FUNCIONES DE RESPALDO =================
-
 function generarRespaldoCompleto() {
     if (productos.length === 0 && ventasDiarias.length === 0) {
         mostrarToast("?? No hay datos para respaldar", "warning");
@@ -1126,10 +1057,8 @@ function generarRespaldoCompleto() {
 }
 
 // ================= FUNCIONES DE GESTIÓN =================
-
 function actualizarTasaBCV() {
     const nuevaTasa = parseFloat(document.getElementById('tasaBCV').value);
-    
     if (!validarTasaBCV(nuevaTasa)) return;
 
     tasaBCVGuardada = nuevaTasa;
@@ -1185,10 +1114,8 @@ function limpiarLista() {
 }
 
 // ================= FUNCIONES DE INVENTARIO =================
-
 function ajustarInventario(index, operacion) {
     const producto = productos[index];
-    
     const cantidad = parseInt(prompt(`Ingrese la cantidad a ${operacion === 'sumar' ? 'sumar' : 'restar'}:`, "1")) || 0;
     
     if (cantidad <= 0) {
@@ -1202,12 +1129,10 @@ function ajustarInventario(index, operacion) {
             return;
         }
         
-        // Registrar la venta
         const hoy = new Date();
         const fechaKey = hoy.toLocaleDateString();
         const horaKey = hoy.toLocaleTimeString();
         
-        // Crear registro de venta
         const venta = {
             fecha: fechaKey,
             hora: horaKey,
@@ -1223,11 +1148,9 @@ function ajustarInventario(index, operacion) {
         ventasDiarias.push(venta);
         localStorage.setItem('ventasDiarias', JSON.stringify(ventasDiarias));
         
-        // Mostrar resumen de venta
         mostrarToast(`? Venta registrada: ${cantidad} ${producto.nombre} - Total: $${venta.totalDolar.toFixed(2)} / Bs${venta.totalBolivar.toFixed(2)}`);
     }
 
-    // Actualizar inventario
     producto.unidadesExistentes = operacion === 'sumar' ? 
         producto.unidadesExistentes + cantidad : 
         producto.unidadesExistentes - cantidad;
@@ -1242,14 +1165,10 @@ function generarReporteDiario() {
         return;
     }
 
-    // Pedir fecha específica para el reporte
     const fechaReporte = prompt("Ingrese la fecha del reporte (DD/MM/AAAA):", new Date().toLocaleDateString());
-    
     if (!fechaReporte) return;
 
-    // Filtrar ventas solo para la fecha especificada
     const ventasDelDia = ventasDiarias.filter(venta => venta.fecha === fechaReporte);
-    
     if (ventasDelDia.length === 0) {
         mostrarToast(`?? No hay ventas registradas para el ${fechaReporte}`, "warning");
         return;
@@ -1259,19 +1178,16 @@ function generarReporteDiario() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         
-        // Encabezado
         doc.setFontSize(16);
         doc.text(`Reporte de Ventas Diario - ${nombreEstablecimiento || 'Mi Negocio'}`, 105, 15, { align: 'center' });
         doc.setFontSize(12);
         doc.text(`Fecha: ${fechaReporte}`, 105, 22, { align: 'center' });
         
-        // Calcular totales
         const totalDolar = ventasDelDia.reduce((sum, venta) => sum + venta.totalDolar, 0);
         const totalBolivar = ventasDelDia.reduce((sum, venta) => sum + venta.totalBolivar, 0);
         const gananciaTotalDolar = ventasDelDia.reduce((sum, venta) => sum + (venta.gananciaDolar || 0), 0);
         const gananciaTotalBolivar = ventasDelDia.reduce((sum, venta) => sum + (venta.gananciaBolivar || 0), 0);
         
-        // Tabla de ventas
         doc.autoTable({
             startY: 30,
             head: [
@@ -1300,19 +1216,18 @@ function generarReporteDiario() {
                 fontSize: 9
             },
             columnStyles: {
-                0: { cellWidth: 25 }, // Producto
-                1: { cellWidth: 20 }, // Descripción
-                2: { cellWidth: 12 }, // Cantidad
-                3: { cellWidth: 15 }, // P.Unit ($)
-                4: { cellWidth: 15 }, // P.Unit (Bs)
-                5: { cellWidth: 15 }, // Total ($)
-                6: { cellWidth: 15 }, // Total (Bs)
-                7: { cellWidth: 15 }, // Ganancia ($)
-                8: { cellWidth: 15 }  // Ganancia (Bs)
+                0: { cellWidth: 25 },
+                1: { cellWidth: 20 },
+                2: { cellWidth: 12 },
+                3: { cellWidth: 15 },
+                4: { cellWidth: 15 },
+                5: { cellWidth: 15 },
+                6: { cellWidth: 15 },
+                7: { cellWidth: 15 },
+                8: { cellWidth: 15 }
             }
         });
         
-        // Totales al final
         const finalY = doc.autoTable.previous.finalY + 10;
         doc.setFontSize(10);
         doc.setTextColor(0, 0, 0);
@@ -1323,7 +1238,6 @@ function generarReporteDiario() {
         doc.text(`Ganancia Total en Bolívares: Bs${gananciaTotalBolivar.toFixed(2)}`, 14, finalY + 30);
         doc.text(`Tasa BCV utilizada: ${tasaBCVGuardada}`, 14, finalY + 40);
         
-        // Métodos de pago utilizados
         const metodosPago = {};
         ventasDelDia.forEach(venta => {
             const metodo = venta.metodoPago || 'no_especificado';
@@ -1343,7 +1257,6 @@ function generarReporteDiario() {
             yPos += 7;
         }
         
-        // Guardar PDF
         const nombreArchivo = `ventas_${fechaReporte.replace(/\//g, '-')}.pdf`;
         doc.save(nombreArchivo);
         mostrarToast(`? Reporte del ${fechaReporte} generado con éxito`);
@@ -1355,7 +1268,6 @@ function generarReporteDiario() {
 }
 
 // ================= FUNCIONES DE CÁLCULO =================
-
 function calcularProducto(nombre, codigoBarras, descripcion, costo, ganancia, unidadesPorCaja, tasaBCV, unidadesExistentes = 0) {
     const gananciaDecimal = ganancia / 100;
     const precioDolar = costo / (1 - gananciaDecimal);
@@ -1386,7 +1298,6 @@ function guardarProductoEnLista(producto) {
 }
 
 // ================= FUNCIONES DE INTERFAZ =================
-
 function actualizarLista() {
     const tbody = document.querySelector('#listaProductos tbody');
     tbody.innerHTML = '';
@@ -1422,7 +1333,6 @@ function actualizarLista() {
         tbody.appendChild(row);
     });
 
-    // Actualizar también la lista de costos si está visible
     if (document.getElementById('listaCostosContainer').style.display === 'block') {
         actualizarListaCostos();
     }
@@ -1444,7 +1354,6 @@ function reiniciarCalculadora() {
 }
 
 // ================= FUNCIONES DE VALIDACIÓN =================
-
 function validarTasaBCV(tasa) {
     if (isNaN(tasa) || tasa <= 0) {
         mostrarToast("?? Ingrese una tasa BCV válida (mayor a cero)", "error");
@@ -1474,7 +1383,6 @@ function productoExiste(nombre) {
 }
 
 // ================= FUNCIONES DE NOTIFICACIÓN =================
-
 function mostrarToast(mensaje, tipo = 'success') {
     const toast = document.createElement('div');
     toast.className = `toast ${tipo}`;
@@ -1534,7 +1442,6 @@ function buscarProducto() {
 }
 
 // ================= FUNCIONES ADICIONALES =================
-
 function editarProducto(index) {
     const producto = productos[index];
     
@@ -1562,7 +1469,7 @@ function agregarCodigoBarras(index) {
     const producto = productos[index];
     const codigoBarras = prompt(`Ingrese el código de barras para ${producto.nombre}:`, producto.codigoBarras || '');
     
-    if (codigoBarras === null) return; // Usuario canceló
+    if (codigoBarras === null) return;
     
     producto.codigoBarras = codigoBarras.trim();
     localStorage.setItem('productos', JSON.stringify(productos));
@@ -1620,7 +1527,7 @@ function imprimirTicket(index) {
 }
 
 // Sistema de actualización
-const APP_VERSION = "1.4.0"; // Versión con mejoras de pago y ganancias
+const APP_VERSION = "1.4.0";
 
 function toggleCopyrightNotice() {
     const notice = document.getElementById('copyrightNotice');
