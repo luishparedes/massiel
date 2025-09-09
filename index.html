@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -140,6 +140,7 @@
                     <th>Precio Unitario (Bs)</th>
                     <th>Cantidad</th>
                     <th>Subtotal (Bs)</th>
+                    <th>Subtotal ($)</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
@@ -168,8 +169,7 @@
                 <button onclick="seleccionarMetodoPago('punto')">Punto</button>
                 <button onclick="seleccionarMetodoPago('pago_movil')">Pago Móvil</button>
                 <button onclick="seleccionarMetodoPago('transferencia')">Transferencia</button>
-                <button onclick="seleccionarMetodoPago('credito')">Crédito</button>
-                <button onclick="seleccionarMetodoPago('combinado')">Combinado</button>
+                <button onclick="seleccionarMetodoPago('bio_pago')">Bio Pago</button>
             </div>
             
             <div id="detallesPago" style="display: none; margin-top: 20px;">
