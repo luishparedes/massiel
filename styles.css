@@ -1,4 +1,3 @@
-/* Estilos originales preservados */
 .copyright-notice {
     position: fixed;
     bottom: 20px;
@@ -15,9 +14,7 @@
     display: none;
 }
 
-.copyright-notice.show {
-    display: block;
-}
+.copyright-notice.show { display: block; }
 
 .copyright-notice .close-btn {
     position: absolute;
@@ -30,9 +27,7 @@
     color: #6c757d;
 }
 
-.copyright-notice strong {
-    color: #dc3545;
-}
+.copyright-notice strong { color: #dc3545; }
 
 @keyframes slideIn {
     from { transform: translateX(100%); opacity: 0; }
@@ -58,10 +53,7 @@
     font-size: 18px;
 }
 
-.inventario-bajo {
-    color: red;
-    font-weight: bold;
-}
+.inventario-bajo { color: red; font-weight: bold; }
 
 #listaCostosContainer {
     margin-top: 20px;
@@ -71,10 +63,7 @@
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-#listaCostos {
-    list-style-type: none;
-    padding: 0;
-}
+#listaCostos { list-style-type: none; padding: 0; }
 
 #listaCostos li {
     padding: 10px;
@@ -90,7 +79,6 @@
     margin-bottom: 10px;
 }
 
-/* Botones flotantes de navegación mejorados */
 .floating-nav {
     position: fixed;
     right: 20px;
@@ -122,21 +110,11 @@
     box-shadow: 0 6px 12px rgba(0,0,0,0.3);
 }
 
-.floating-nav button:active {
-    transform: scale(0.95);
-}
+.floating-nav button:active { transform: scale(0.95); }
 
-/* Botón para ir arriba */
-.go-top {
-    background: linear-gradient(to bottom, #4CAF50, #66BB6A) !important;
-}
+.go-top { background: linear-gradient(to bottom, #4CAF50, #66BB6A) !important; }
+.go-bottom { background: linear-gradient(to bottom, #607d8b, #78909c) !important; }
 
-/* Botón para ir abajo */
-.go-bottom {
-    background: linear-gradient(to bottom, #607d8b, #78909c) !important;
-}
-
-/* Nuevos estilos para el carrito de ventas */
 .carrito-ventas {
     margin-top: 30px;
     padding: 20px;
@@ -156,11 +134,7 @@
     gap: 10px;
 }
 
-.carrito-totales {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
+.carrito-totales { display: flex; flex-direction: column; gap: 5px; }
 
 .carrito-total {
     font-size: 1.2rem;
@@ -171,16 +145,9 @@
     border-radius: 8px;
 }
 
-#totalCarritoDolares {
-    background-color: #e8f5e9;
-    color: #388e3c;
-}
+#totalCarritoDolares { background-color: #e8f5e9; color: #388e3c; }
 
-.carrito-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-}
+.carrito-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
 
 .carrito-table th, .carrito-table td {
     padding: 12px;
@@ -194,13 +161,8 @@
     font-weight: 600;
 }
 
-.carrito-table tr:nth-child(even) {
-    background-color: #f5f5f5;
-}
-
-.carrito-table tr:hover {
-    background-color: #e0f7fa;
-}
+.carrito-table tr:nth-child(even) { background-color: #f5f5f5; }
+.carrito-table tr:hover { background-color: #e0f7fa; }
 
 .btn-eliminar-carrito {
     background: linear-gradient(to right, #f44336, #ef5350);
@@ -211,9 +173,7 @@
     cursor: pointer;
 }
 
-.btn-eliminar-carrito:hover {
-    background: linear-gradient(to right, #d32f2f, #e53935);
-}
+.btn-eliminar-carrito:hover { background: linear-gradient(to right, #d32f2f, #e53935); }
 
 .scanner-input {
     display: flex;
@@ -239,17 +199,9 @@
     width: auto;
 }
 
-.scanner-status {
-    font-size: 0.9rem;
-    color: #666;
-    margin-top: 5px;
-}
+.scanner-status { font-size: 0.9rem; color: #666; margin-top: 5px; }
 
-.finalizar-venta {
-    margin-top: 20px;
-    display: flex;
-    justify-content: flex-end;
-}
+.finalizar-venta { margin-top: 20px; display: flex; justify-content: flex-end; }
 
 .btn-finalizar {
     background: linear-gradient(to right, #4CAF50, #66BB6A);
@@ -262,11 +214,8 @@
     font-weight: bold;
 }
 
-.btn-finalizar:hover {
-    background: linear-gradient(to right, #43A047, #5CB85C);
-}
+.btn-finalizar:hover { background: linear-gradient(to right, #43A047, #5CB85C); }
 
-/* Estilos para el botón CB (Código de Barras) */
 .cb-button {
     background: linear-gradient(to right, #9c27b0, #ab47bc);
     color: white;
@@ -279,11 +228,8 @@
     font-weight: bold;
 }
 
-.cb-button:hover {
-    background: linear-gradient(to right, #7b1fa2, #8e24aa);
-}
+.cb-button:hover { background: linear-gradient(to right, #7b1fa2, #8e24aa); }
 
-/* Estilos para el modal de métodos de pago */
 .modal {
     display: none;
     position: fixed;
@@ -314,9 +260,7 @@
     cursor: pointer;
 }
 
-.close:hover {
-    color: black;
-}
+.close:hover { color: black; }
 
 .resumen-venta {
     background-color: #e8f5e9;
@@ -325,10 +269,7 @@
     margin-bottom: 15px;
 }
 
-.resumen-venta h4 {
-    margin-top: 0;
-    color: #2e7d32;
-}
+.resumen-venta h4 { margin-top: 0; color: #2e7d32; }
 
 .metodos-pago {
     display: grid;
@@ -347,19 +288,11 @@
     transition: background-color 0.3s;
 }
 
-.metodos-pago button:hover {
-    background-color: #00acc1;
-}
+.metodos-pago button:hover { background-color: #00acc1; }
 
-.campo-pago {
-    margin-bottom: 10px;
-}
+.campo-pago { margin-bottom: 10px; }
 
-.campo-pago label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-}
+.campo-pago label { display: block; margin-bottom: 5px; font-weight: bold; }
 
 .campo-pago input {
     width: 100%;
@@ -374,44 +307,18 @@
     margin-top: 15px;
 }
 
-.modal-buttons button {
-    padding: 10px 15px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
+.modal-buttons button { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; }
 
-.btn-cancelar {
-    background-color: #f44336;
-    color: white;
-}
-
-.btn-cancelar:hover {
-    background-color: #d32f2f;
-}
+.btn-cancelar { background-color: #f44336; color: white; }
+.btn-cancelar:hover { background-color: #d32f2f; }
 
 @media (max-width: 768px) {
-    .carrito-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .scanner-input {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .metodos-pago {
-        grid-template-columns: 1fr;
-    }
-    
-    .modal-content {
-        width: 90%;
-        margin: 5% auto;
-    }
+    .carrito-header { flex-direction: column; align-items: flex-start; }
+    .scanner-input { flex-direction: column; align-items: stretch; }
+    .metodos-pago { grid-template-columns: 1fr; }
+    .modal-content { width: 90%; margin: 5% auto; }
 }
 
-/* Estilos generales */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
@@ -441,19 +348,9 @@ body {
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
 }
 
-h2, h3 {
-    margin-bottom: 15px;
-    color: #00796b;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-}
-
-h2 {
-    font-size: 1.8rem;
-}
-
-h3 {
-    font-size: 1.4rem;
-}
+h2, h3 { margin-bottom: 15px; color: #00796b; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
+h2 { font-size: 1.8rem; }
+h3 { font-size: 1.4rem; }
 
 input[type="number"], input[type="text"], select {
     margin: 12px 0;
@@ -494,26 +391,17 @@ button:hover {
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
-button:active {
-    transform: translateY(0);
-}
+button:active { transform: translateY(0); }
 
 .main-button {
     background: linear-gradient(to right, #29b6f6, #26c6da);
     color: white;
 }
 
-.main-button:hover {
-    background: linear-gradient(to right, #0288d1, #00acc1);
-}
+.main-button:hover { background: linear-gradient(to right, #0288d1, #00acc1); }
 
-p {
-    margin: 12px 0;
-    color: #333;
-    line-height: 1.5;
-}
+p { margin: 12px 0; color: #333; line-height: 1.5; }
 
-/* Lista de productos */
 #listaProductos {
     width: 100%;
     max-width: 840px;
@@ -531,11 +419,7 @@ p {
     border-radius: 10px;
 }
 
-#listaProductos th, #listaProductos td {
-    padding: 12px;
-    border: 1px solid #e0e0e0;
-    text-align: left;
-}
+#listaProductos th, #listaProductos td { padding: 12px; border: 1px solid #e0e0e0; text-align: left; }
 
 #listaProductos th {
     background: linear-gradient(to right, #26c6da, #00acc1);
@@ -543,87 +427,50 @@ p {
     font-weight: 600;
 }
 
-#listaProductos tr:nth-child(even) {
-    background-color: #f5f5f5;
-}
+#listaProductos tr:nth-child(even) { background-color: #f5f5f5; }
+#listaProductos tr:hover { background-color: #e0f7fa; }
 
-#listaProductos tr:hover {
-    background-color: #e0f7fa;
-}
+#listaProductos button { padding: 8px 12px; width: auto; margin: 0 5px; font-size: 0.9rem; }
 
-/* Botones especiales */
-#listaProductos button {
-    padding: 8px 12px;
-    width: auto;
-    margin: 0 5px;
-    font-size: 0.9rem;
-}
+#listaProductos button.editar { background: linear-gradient(to right, #4CAF50, #66BB6A); }
+#listaProductos button.editar:hover { background: linear-gradient(to right, #43A047, #5CB85C); }
 
-#listaProductos button.editar {
-    background: linear-gradient(to right, #4CAF50, #66BB6A);
-}
+#listaProductos button.eliminar { background: linear-gradient(to right, #f44336, #ef5350); }
+#listaProductos button.eliminar:hover { background: linear-gradient(to right, #d32f2f, #e53935); }
 
-#listaProductos button.editar:hover {
-    background: linear-gradient(to right, #43A047, #5CB85C);
-}
-
-#listaProductos button.eliminar {
-    background: linear-gradient(to right, #f44336, #ef5350);
-}
-
-#listaProductos button.eliminar:hover {
-    background: linear-gradient(to right, #d32f2f, #e53935);
-}
-
-#listaProductos button.imprimir {
-    background: linear-gradient(to right, #FF9800, #FFA726);
-}
-
-#listaProductos button.imprimir:hover {
-    background: linear-gradient(to right, #F57C00, #FB8C00);
-}
+#listaProductos button.imprimir { background: linear-gradient(to right, #FF9800, #FFA726); }
+#listaProductos button.imprimir:hover { background: linear-gradient(to right, #F57C00, #FB8C00); }
 
 #listaProductos button.limpiar-lista {
     background: linear-gradient(to right, #f44336, #ef5350);
     margin-top: 15px;
 }
 
-#listaProductos button.limpiar-lista:hover {
-    background: linear-gradient(to right, #d32f2f, #e53935);
-}
+#listaProductos button.limpiar-lista:hover { background: linear-gradient(to right, #d32f2f, #e53935); }
 
 #listaProductos button.generar-pdf {
     background: linear-gradient(to right, #008CBA, #00bcd4);
     margin-top: 15px;
 }
 
-#listaProductos button.generar-pdf:hover {
-    background: linear-gradient(to right, #007bb5, #00acc1);
-}
+#listaProductos button.generar-pdf:hover { background: linear-gradient(to right, #007bb5, #00acc1); }
 
 #listaProductos button.lista-costos {
     background: linear-gradient(to right, #9c27b0, #ab47bc);
     margin-top: 15px;
 }
 
-#listaProductos button.lista-costos:hover {
-    background: linear-gradient(to right, #7b1fa2, #8e24aa);
-}
+#listaProductos button.lista-costos:hover { background: linear-gradient(to right, #7b1fa2, #8e24aa); }
 
 #listaProductos button.generar-respaldo {
     background: linear-gradient(to right, #607d8b, #78909c);
     margin-top: 15px;
 }
 
-#listaProductos button.generar-respaldo:hover {
-    background: linear-gradient(to right, #455a64, #546e7a);
-}
+#listaProductos button.generar-respaldo:hover { background: linear-gradient(to right, #455a64, #546e7a); }
 
-#listaProductos button.btn-cerrar-sesion:hover {
-    background: linear-gradient(to right, #455a64, #546e7a);
-}
+#listaProductos button.btn-cerrar-sesion:hover { background: linear-gradient(to right, #455a64, #546e7a); }
 
-/* Lista de costos */
 #listaCostosContainer {
     width: 100%;
     background-color: #f9f9f9;
@@ -633,10 +480,7 @@ p {
     box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
 
-#listaCostos {
-    list-style-type: none;
-    padding: 0;
-}
+#listaCostos { list-style-type: none; padding: 0; }
 
 #listaCostos li {
     padding: 12px;
@@ -646,14 +490,9 @@ p {
     transition: background-color 0.3s;
 }
 
-#listaCostos li:hover {
-    background-color: #e0f7fa;
-}
+#listaCostos li:hover { background-color: #e0f7fa; }
 
-#listaCostos li span:first-child {
-    flex: 2;
-    font-weight: 500;
-}
+#listaCostos li span:first-child { flex: 2; font-weight: 500; }
 
 #listaCostos li span:last-child {
     flex: 1;
@@ -683,7 +522,6 @@ p {
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* Toast de notificaciones */
 .toast {
     position: fixed;
     bottom: 30px;
@@ -702,32 +540,12 @@ p {
     gap: 10px;
 }
 
-.toast.error {
-    background: linear-gradient(to right, #f44336, #ef5350);
-}
-
-.toast.warning {
-    background: linear-gradient(to right, #FF9800, #FFA726);
-}
+.toast.error { background: linear-gradient(to right, #f44336, #ef5350); }
+.toast.warning { background: linear-gradient(to right, #FF9800, #FFA726); }
 
 @keyframes fadeIn {
-    from { 
-        opacity: 0;
-        bottom: 0;
-    }
-    to { 
-        opacity: 1;
-        bottom: 30px;
-    }
-}
-
-/* Estilos para el inventario */
-.inventario-bajo {
-    color: #f44336;
-    font-weight: bold;
-    background-color: #ffebee;
-    padding: 2px 5px;
-    border-radius: 4px;
+    from { opacity: 0; bottom: 0; }
+    to { opacity: 1; bottom: 30px; }
 }
 
 .ajuste-inventario {
@@ -736,94 +554,31 @@ p {
     gap: 5px;
 }
 
-.ajuste-inventario button {
-    padding: 5px 10px;
-    min-width: 30px;
-    margin: 0;
-    font-size: 0.8rem;
-}
+.ajuste-inventario button { padding: 5px 10px; min-width: 30px; margin: 0; font-size: 0.8rem; }
+.ajuste-inventario input { width: 50px; padding: 5px; text-align: center; margin: 0; }
 
-.ajuste-inventario input {
-    width: 50px;
-    padding: 5px;
-    text-align: center;
-    margin: 0;
-}
-
-/* Responsivo */
 @media (max-width: 768px) {
-    body {
-        padding: 15px;
-    }
-    
-    .calculator {
-        max-width: 100%;
-        padding: 20px;
-    }
-    
-    input[type="number"], input[type="text"], select, button {
-        width: 100%;
-    }
-    
-    #listaProductos {
-        padding: 15px;
-    }
-    
-    #listaProductos table {
-        font-size: 14px;
-    }
-    
-    #listaProductos th, #listaProductos td {
-        padding: 8px;
-    }
-    
-    #listaProductos button {
-        padding: 6px 10px;
-        font-size: 12px;
-        margin: 2px;
-    }
-    
-    #listaCostosContainer {
-        padding: 15px;
-    }
-
-    .ajuste-inventario {
-        flex-direction: column;
-        gap: 3px;
-    }
-
-    .ajuste-inventario input {
-        width: 40px;
-    }
+    body { padding: 15px; }
+    .calculator { max-width: 100%; padding: 20px; }
+    input[type="number"], input[type="text"], select, button { width: 100%; }
+    #listaProductos { padding: 15px; }
+    #listaProductos table { font-size: 14px; }
+    #listaProductos th, #listaProductos td { padding: 8px; }
+    #listaProductos button { padding: 6px 10px; font-size: 12px; margin: 2px; }
+    #listaCostosContainer { padding: 15px; }
+    .ajuste-inventario { flex-direction: column; gap: 3px; }
+    .ajuste-inventario input { width: 40px; }
 }
 
-/* Efectos adicionales */
 @keyframes pulse {
     0% { transform: scale(1); }
     50% { transform: scale(1.05); }
     100% { transform: scale(1); }
 }
 
-.pulse-effect {
-    animation: pulse 1.5s infinite;
-}
+.pulse-effect { animation: pulse 1.5s infinite; }
 
-/* Scroll personalizado */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #b2dfdb;
-    border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #80cbc4;
-}
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+::-webkit-scrollbar-thumb { background: #b2dfdb; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #80cbc4; }
