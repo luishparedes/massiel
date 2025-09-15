@@ -7,6 +7,13 @@ let carrito = JSON.parse(localStorage.getItem('carrito')) || [];
 let metodoPagoSeleccionado = null;
 let detallesPago = {}; // guardará info temporal al confirmar el pago
 
+// ===== VARIABLES PARA CONTROL DE INACTIVIDAD =====
+let inactivityTimer;
+let warningTimer;
+const INACTIVITY_LIMIT = 10 * 60 * 1000; // 10 minutos en milisegundos
+const WARNING_TIME = 9 * 60 * 1000; // Mostrar advertencia a los 9 minutos
+const REDIRECT_URL = 'http://portal.calculadoramagica.lat/';
+
 // ===== INICIALIZACIÓN =====
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Calculadora iniciada correctamente');
@@ -14,7 +21,81 @@ document.addEventListener('DOMContentLoaded', function() {
     actualizarLista();
     actualizarCarrito();
     configurarEventos();
+    
+    // Iniciar control de inactividad
+    iniciarControlInactividad();
 });
+
+// ===== CONTROL DE INACTIVIDAD =====
+function iniciarControlInactividad() {
+    // Reiniciar temporizadores ante cualquier evento de interacción
+    const eventos = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    eventos.forEach(evento => {
+        document.addEventListener(evento, reiniciarTemporizadorInactividad, true);
+    });
+    
+    // Iniciar el temporizador
+    reiniciarTemporizadorInactividad();
+}
+
+function reiniciarTemporizadorInactividad() {
+    // Limpiar temporizadores existentes
+    clearTimeout(inactivityTimer);
+    clearTimeout(warningTimer);
+    
+    // Ocultar advertencia si está visible
+    ocultarAdvertenciaInactividad();
+    
+    // Configurar nuevo temporizador de advertencia (9 minutos)
+    warningTimer = setTimeout(mostrarAdvertenciaInactividad, WARNING_TIME);
+    
+    // Configurar nuevo temporizador de redirección (10 minutos)
+    inactivityTimer = setTimeout(redirigirPorInactividad, INACTIVITY_LIMIT);
+}
+
+function mostrarAdvertenciaInactividad() {
+    // Crear o mostrar elemento de advertencia
+    let advertencia = document.getElementById('inactivity-warning');
+    
+    if (!advertencia) {
+        advertencia = document.createElement('div');
+        advertencia.id = 'inactivity-warning';
+        advertencia.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #ffcc00;
+            color: #000;
+            padding: 20px;
+            border-radius: 8px;
+            z-index: 9999;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            font-family: Arial, sans-serif;
+        `;
+        document.body.appendChild(advertencia);
+    }
+    
+    advertencia.innerHTML = `
+        <h3 style="margin-top: 0;">Advertencia de inactividad</h3>
+        <p>Será redirigido por inactividad en 1 minuto.</p>
+        <p>Mueva el mouse o presione una tecla para continuar.</p>
+    `;
+    
+    advertencia.style.display = 'block';
+}
+
+function ocultarAdvertenciaInactividad() {
+    const advertencia = document.getElementById('inactivity-warning');
+    if (advertencia) {
+        advertencia.style.display = 'none';
+    }
+}
+
+function redirigirPorInactividad() {
+    window.location.href = REDIRECT_URL;
+}
 
 // ===== UTILIDADES / TOASTS =====
 function showToast(message, type = 'success', duration = 3500) {
