@@ -1,54 +1,52 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Meta tags para control de caché -->
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+    <meta http-equiv="Pragma" content="no-cache"/>
+    <meta http-equiv="Expires" content="0"/>
+
     <title>Calculadora Mágica</title>
-    
-    <!-- Librerías JS -->
+
+    <!-- Librerías JS - Versiones específicas para compatibilidad -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    
-    <!-- Hoja de estilos -->
-    <link rel="stylesheet" href="styles.css">
+
+    <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
     <div class="copyright-icon" onclick="toggleCopyrightNotice()">©</div>
-    
+
     <div class="copyright-notice" id="copyrightNotice">
         <button class="close-btn" onclick="toggleCopyrightNotice()">×</button>
-        <strong>ADVERTENCIA:</strong> Este sistema está protegido por derechos de autor. 
-        <strong>No revendas tu código de acceso</strong> o será bloqueado y perderás tu dinero. 
+        <strong>ADVERTENCIA:</strong> Este sistema está protegido por derechos de autor.
+        <strong>No revendas tu código de acceso</strong> o será bloqueado y perderás tu dinero.
         Cualquier uso no autorizado será penalizado según las leyes aplicables.
     </div>
 
     <div class="calculator">
         <h2>Calculadora Mágica</h2>
-        
+
         <section>
             <h3>Nombre del Establecimiento</h3>
-            <input type="text" id="nombreEstablecimiento" placeholder="Ej: Tienda La Bendición">
+            <input type="text" id="nombreEstablecimiento" placeholder="Ej: Tienda La Bendición" />
             <button onclick="guardarNombreEstablecimiento()">Guardar Nombre</button>
         </section>
 
         <section>
             <h3>Tasa BCV</h3>
-            <input type="number" id="tasaBCV" placeholder="Tasa BCV" required="true">
+            <input type="number" id="tasaBCV" placeholder="Tasa BCV" required />
             <button onclick="actualizarTasaBCV()">Actualizar Tasa BCV</button>
         </section>
 
         <section>
             <h3>Datos del Producto</h3>
-            <input type="text" id="producto" placeholder="Nombre del producto" required="true">
-            <input type="text" id="codigoBarras" placeholder="Código de barras (opcional)">
-            <input type="number" id="costo" placeholder="Costo del producto" required="true">
-            <select id="descripcion" required="true">
+            <input type="text" id="producto" placeholder="Nombre del producto" required />
+            <input type="text" id="codigoBarras" placeholder="Código de barras (opcional)" />
+            <input type="number" id="costo" placeholder="Costo del producto (en $)" required />
+            <select id="descripcion" required>
                 <option value="">Selecciona una descripción</option>
                 <option value="viveres">Víveres</option>
                 <option value="gaseosas">Gaseosas</option>
@@ -71,9 +69,9 @@
 
         <section>
             <h3>Precio de Venta</h3>
-            <input type="number" id="ganancia" placeholder="Porcentaje de ganancia" required="true">
-            <input type="number" id="unidadesPorCaja" placeholder="Unidades que trae la caja" required="true">
-            <input type="number" id="unidadesExistentes" placeholder="Unidades existentes" required="true">
+            <input type="number" id="ganancia" placeholder="Porcentaje de ganancia" required />
+            <input type="number" id="unidadesPorCaja" placeholder="Unidades que trae la caja (ej: 1 para Queso en kg)" required />
+            <input type="number" id="unidadesExistentes" placeholder="Unidades existentes (ej: 50 si tienes 50 kg)" required />
             <button onclick="calcularPrecioVenta()">Calcular Precio de Venta</button>
             <p id="precioUnitario">Precio unitario: </p>
         </section>
@@ -82,9 +80,9 @@
     </div>
 
     <div id="listaProductos">
-        <input type="text" id="buscar" placeholder="Buscar producto">
+        <input type="text" id="buscar" placeholder="Buscar producto" />
         <button onclick="buscarProducto()">Buscar</button>
-        
+
         <table>
             <thead>
                 <tr>
@@ -106,30 +104,36 @@
             <button onclick="generarReporteDiario()" class="generar-pdf">Generar Reporte Diario</button>
             <button onclick="mostrarListaCostos()" class="lista-costos">Mostrar Lista de Costos</button>
             <button onclick="generarRespaldoCompleto()" class="generar-respaldo">PDF LISTA PRODUCTOS</button>
-           <button onclick="limpiarLista()" class="limpiar-lista">Limpiar Lista</button>
+            <!-- Botón limpiar lista eliminado por solicitud -->
         </div>
 
         <div id="listaCostosContainer" style="display: none;">
             <div class="costos-header">
                 <h3>Lista de Costos de Productos</h3>
-                <button onclick="generarPDFCostos()" class="generar-pdf-costos">Convertir a PDF</button>
+                <div>
+                    <input type="text" id="buscarCostos" placeholder="Buscar en lista de costos" style="display:none" oninput="filtrarListaCostos()" />
+                    <button onclick="generarPDFCostos()" class="generar-pdf-costos">Convertir a PDF</button>
+                </div>
             </div>
             <ul id="listaCostos"></ul>
         </div>
     </div>
-    
-    <!-- Nueva sección: Carrito de Ventas -->
+
     <div class="carrito-ventas">
         <h2>Carrito de Ventas</h2>
-        
+
         <div class="carrito-header">
             <div class="scanner-input">
-                <input type="text" id="codigoBarrasInput" placeholder="Escanea o ingresa código de barras">
+                <input type="text" id="codigoBarrasInput" placeholder="Escanea o ingresa código de barras o nombre del producto" />
                 <button onclick="agregarPorCodigoBarras()">Agregar Producto</button>
+
+                <div id="sugerencias" class="sugerencias-lista" aria-live="polite"></div>
             </div>
+
             <div class="scanner-status" id="scannerStatus">
                 Esperando escaneo de código de barras...
             </div>
+
             <div class="carrito-totales">
                 <div class="carrito-total" id="totalCarritoBs">
                     Total: Bs 0,00
@@ -139,47 +143,45 @@
                 </div>
             </div>
         </div>
-        
+
         <table class="carrito-table">
             <thead>
                 <tr>
                     <th>Producto</th>
                     <th>Precio Unitario (Bs)</th>
                     <th>Cantidad</th>
+                    <th>Unidad</th>
                     <th>Subtotal (Bs)</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
             <tbody id="carritoBody"></tbody>
         </table>
-        
+
         <div class="finalizar-venta">
-            <button class="btn-finalizar" onclick="finalizarVenta()">Finalizar Venta</button>
+           <button id="finalizarVenta" onclick="finalizarVenta()">Finalizar venta</button>
         </div>
     </div>
 
-    <!-- Modal para métodos de pago -->
     <div id="modalPago" class="modal">
         <div class="modal-content">
             <span class="close" onclick="cerrarModalPago()">&times;</span>
             <h3>Seleccionar Método de Pago</h3>
-            
+
             <div class="resumen-venta">
                 <h4>Resumen de Venta</h4>
                 <p id="resumenTotalBs">Total: Bs 0,00</p>
                 <p id="resumenTotalDolares">Total: $ 0,00</p>
             </div>
-            
+
             <div class="metodos-pago">
                 <button onclick="seleccionarMetodoPago('efectivo_bs')">Efectivo Bs</button>
                 <button onclick="seleccionarMetodoPago('efectivo_dolares')">Efectivo $</button>
                 <button onclick="seleccionarMetodoPago('punto')">Punto</button>
                 <button onclick="seleccionarMetodoPago('pago_movil')">Pago Móvil</button>
-                <button onclick="seleccionarMetodoPago('transferencia')">Transferencia</button>
-                <button onclick="seleccionarMetodoPago('credito')">Crédito</button>
-                <button onclick="seleccionarMetodoPago('combinado')">Combinado</button>
+                <button onclick="seleccionarMetodoPago('biopago')">Biopago</button>
             </div>
-            
+
             <div id="detallesPago" style="display: none; margin-top: 20px;">
                 <h4>Detalles del Pago</h4>
                 <div id="camposPago"></div>
@@ -191,13 +193,14 @@
         </div>
     </div>
 
-    <!-- Botones flotantes de navegación mejorados -->
     <div class="floating-nav">
         <button class="go-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">↑</button>
         <button class="go-bottom" onclick="window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'})">↓</button>
     </div>
 
-    <!-- Scripts JavaScript -->
+    <!-- Toast container -->
+    <div id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
     <script src="script.js"></script>
 </body>
 </html>
