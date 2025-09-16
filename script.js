@@ -7,6 +7,7 @@ let carrito = JSON.parse(localStorage.getItem('carrito')) || [];
 let metodoPagoSeleccionado = null;
 let detallesPago = {}; // guardará info temporal al confirmar el pago
 let productoEditando = null;
+let productosFiltrados = []; // Array para almacenar resultados de búsqueda
 
 // ===== FUNCIÓN PARA REDONDEAR A 2 DECIMALES =====
 function redondear2Decimales(numero) {
@@ -219,7 +220,27 @@ function guardarProducto() {
 }
 
 function editarProducto(index) {
-    const producto = productos[index];
+    // Si hay productos filtrados, obtener el índice real en el array original
+    let indiceReal = index;
+    
+    if (productosFiltrados.length > 0) {
+        // Buscar el producto en la lista filtrada y obtener el producto real
+        const productoFiltrado = productosFiltrados[index];
+        if (!productoFiltrado) return;
+        
+        // Encontrar el índice real en el array original
+        indiceReal = productos.findIndex(p => 
+            p.nombre === productoFiltrado.nombre && 
+            p.descripcion === productoFiltrado.descripcion
+        );
+        
+        if (indiceReal === -1) {
+            showToast("Error: Producto no encontrado en la lista principal", 'error');
+            return;
+        }
+    }
+    
+    const producto = productos[indiceReal];
     if (!producto) return;
 
     // Llenar formulario con datos del producto
@@ -241,7 +262,7 @@ function editarProducto(index) {
     }
 
     // Establecer modo edición
-    productoEditando = index;
+    productoEditando = indiceReal;
     
     showToast(`Editando: ${producto.nombre}`, 'success');
 }
@@ -371,7 +392,7 @@ function actualizarCantidadCarrito(index, cambio) {
     }
 
     // Recalcular subtotal según unidad
-    calcularSubtotalSegunUnidad(item);
+    calcularSubtotalSegonUnidad(item);
 
     localStorage.setItem('carrito', JSON.stringify(carrito));
     actualizarCarrito();
@@ -424,13 +445,13 @@ function ingresarGramos(index) {
     // Guardar cantidad en gramos y recalcular subtotal
     item.cantidad = gramos;
     item.unidad = 'gramo';
-    calcularSubtotalSegunUnidad(item);
+    calcularSubtotalSegonUnidad(item);
 
     localStorage.setItem('carrito', JSON.stringify(carrito));
     actualizarCarrito();
 }
 
-function calcularSubtotalSegunUnidad(item) {
+function calcularSubtotalSegonUnidad(item) {
     const producto = productos[item.indexProducto];
     if (!producto) return;
 
@@ -448,7 +469,7 @@ function calcularSubtotalSegunUnidad(item) {
 function cambiarUnidadCarrito(index, nuevaUnidad) {
     carrito[index].unidad = nuevaUnidad;
     // Mantener la cantidad tal cual; el usuario puede usar el + para ingresar gramos si selecciona "gramo".
-    calcularSubtotalSegunUnidad(carrito[index]);
+    calcularSubtotalSegonUnidad(carrito[index]);
     localStorage.setItem('carrito', JSON.stringify(carrito));
     actualizarCarrito();
 }
@@ -464,6 +485,8 @@ function actualizarLista() {
     const tbody = document.querySelector('#listaProductos tbody');
     if (!tbody) return;
     tbody.innerHTML = '';
+
+    productosFiltrados = []; // Reiniciar array de productos filtrados
 
     productos.forEach((producto, index) => {
         const inventarioBajo = producto.unidadesExistentes <= 5;
@@ -494,9 +517,13 @@ function actualizarLista() {
 
 function buscarProducto() {
     const termino = document.getElementById('buscar').value.trim().toLowerCase();
-    if (!termino) { actualizarLista(); return; }
+    if (!termino) { 
+        productosFiltrados = []; // Limpiar array de productos filtrados
+        actualizarLista(); 
+        return; 
+    }
 
-    const resultados = productos.filter(p =>
+    productosFiltrados = productos.filter(p =>
         (p.nombre || '').toLowerCase().includes(termino) ||
         (p.descripcion || '').toLowerCase().includes(termino) ||
         (p.codigoBarras && p.codigoBarras.toLowerCase().includes(termino))
@@ -505,7 +532,7 @@ function buscarProducto() {
     const tbody = document.querySelector('#listaProductos tbody');
     tbody.innerHTML = '';
 
-    resultados.forEach((producto, index) => {
+    productosFiltrados.forEach((producto, index) => {
         const inventarioBajo = producto.unidadesExistentes <= 5;
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -532,7 +559,25 @@ function buscarProducto() {
 }
 
 function ajustarInventario(index, operacion) {
-    const producto = productos[index];
+    // Si hay productos filtrados, obtener el índice real en el array original
+    let indiceReal = index;
+    
+    if (productosFiltrados.length > 0) {
+        const productoFiltrado = productosFiltrados[index];
+        if (!productoFiltrado) return;
+        
+        indiceReal = productos.findIndex(p => 
+            p.nombre === productoFiltrado.nombre && 
+            p.descripcion === productoFiltrado.descripcion
+        );
+        
+        if (indiceReal === -1) {
+            showToast("Error: Producto no encontrado en la lista principal", 'error');
+            return;
+        }
+    }
+    
+    const producto = productos[indiceReal];
     const cantidad = parseInt(prompt(`Ingrese la cantidad a ${operacion === 'sumar' ? 'sumar' : 'restar'}:`, "1")) || 0;
 
     if (cantidad <= 0) { showToast("Ingrese una cantidad válida", 'error'); return; }
@@ -546,9 +591,27 @@ function ajustarInventario(index, operacion) {
 }
 
 function eliminarProducto(index) {
-    const producto = productos[index];
+    // Si hay productos filtrados, obtener el índice real en el array original
+    let indiceReal = index;
+    
+    if (productosFiltrados.length > 0) {
+        const productoFiltrado = productosFiltrados[index];
+        if (!productoFiltrado) return;
+        
+        indiceReal = productos.findIndex(p => 
+            p.nombre === productoFiltrado.nombre && 
+            p.descripcion === productoFiltrado.descripcion
+        );
+        
+        if (indiceReal === -1) {
+            showToast("Error: Producto no encontrado en la lista principal", 'error');
+            return;
+        }
+    }
+    
+    const producto = productos[indiceReal];
     if (confirm(`¿Estás seguro de eliminar "${producto.nombre}"?`)) {
-        productos.splice(index, 1);
+        productos.splice(indiceReal, 1);
         localStorage.setItem('productos', JSON.stringify(productos));
         actualizarLista();
         showToast(`Producto eliminado: ${producto.nombre}`, 'success');
@@ -648,68 +711,68 @@ function confirmarMetodoPago() {
 
     // Validaciones por método
     if (metodoPagoSeleccionado === 'efectivo_bs') {
-        const recib = parseFloat(document.getElementById('montoRecibido').value) || 0;
-        if (recib < totalBs) { 
-            showToast("Monto recibido menor al total", 'error'); 
-            return; 
-        }
-        detallesPago.cambio = redondear2Decimales(recib - totalBs);
-        detallesPago.montoRecibido = recib;
+    const recib = parseFloat(document.getElementById('montoRecibido').value) || 0;
+    if (recib < totalBs) { 
+        showToast("Monto recibido menor al total", 'error'); 
+        return; 
+    }
+    detallesPago.cambio = redondear2Decimales(recib - totalBs);
+    detallesPago.montoRecibido = recib;
     } else if (metodoPagoSeleccionado === 'efectivo_dolares') {
-        const recib = parseFloat(document.getElementById('montoRecibido').value) || 0;
-        const totalEnDolares = tasaBCVGuardada ? redondear2Decimales(totalBs / tasaBCVGuardada) : 0;
-        if (recib < totalEnDolares) { 
-            showToast("Monto recibido menor al total", 'error'); 
-            return; 
-        }
-        detallesPago.cambio = redondear2Decimales(recib - totalEnDolares);
-        detallesPago.montoRecibido = recib;
+    const recib = parseFloat(document.getElementById('montoRecibido').value) || 0;
+    const totalEnDolares = tasaBCVGuardada ? redondear2Decimales(totalBs / tasaBCVGuardada) : 0;
+    if (recib < totalEnDolares) { 
+        showToast("Monto recibido menor al total", 'error'); 
+        return; 
+    }
+    detallesPago.cambio = redondear2Decimales(recib - totalEnDolares);
+    detallesPago.montoRecibido = recib;
     } else if (metodoPagoSeleccionado === 'punto' || metodoPagoSeleccionado === 'biopago') {
-        const monto = parseFloat(document.getElementById('montoPago') ? document.getElementById('montoPago').value : 0) || 0;
-        if (monto <= 0) { 
-            showToast("Ingrese el monto para Punto/Biopago", 'error'); 
-            return; 
-        }
-        detallesPago.monto = monto;
+    const monto = parseFloat(document.getElementById('montoPago') ? document.getElementById('montoPago').value : 0) || 0;
+    if (monto <= 0) { 
+        showToast("Ingrese el monto para Punto/Biopago", 'error'); 
+        return; 
+    }
+    detallesPago.monto = monto;
     } else if (metodoPagoSeleccionado === 'pago_movil') {
-        const monto = parseFloat(document.getElementById('montoPagoMovil').value) || 0;
-        const ref = document.getElementById('refPagoMovil').value.trim();
-        const banco = document.getElementById('bancoPagoMovil').value.trim();
-        if (!monto || !ref || !banco) { 
-            showToast("Complete todos los datos de Pago Móvil", 'error'); 
-            return; 
-        }
-        detallesPago = {...detallesPago, monto, ref, banco };
+    const monto = parseFloat(document.getElementById('montoPagoMovil').value) || 0;
+    const ref = document.getElementById('refPagoMovil').value.trim();
+    const banco = document.getElementById('bancoPagoMovil').value.trim();
+    if (!monto || !ref || !banco) { 
+        showToast("Complete todos los datos de Pago Móvil", 'error'); 
+        return; 
+    }
+    detallesPago = {...detallesPago, monto, ref, banco };
     }
 
     // Registrar ventas y restar inventario (aquí restamos según unidad final en carrito)
     carrito.forEach(item => {
-        const producto = productos[item.indexProducto];
-        if (producto) {
-            // Para 'gramo': item.cantidad está en gramos -> restamos item.cantidad/1000 de unidadesExistentes (que están en kilos)
-            if (item.unidad === 'gramo') {
-                producto.unidadesExistentes = redondear2Decimales(producto.unidadesExistentes - (item.cantidad / 1000));
-            } else {
-                // Para unidades: restamos la cantidad directamente
-                producto.unidadesExistentes = redondear2Decimales(producto.unidadesExistentes - item.cantidad);
-            }
-
-            // Asegurar que no haya números negativos
-            if (producto.unidadesExistentes < 0) {
-                producto.unidadesExistentes = 0;
-            }
-
-            ventasDiarias.push({
-                fecha: new Date().toLocaleDateString(),
-                hora: new Date().toLocaleTimeString(),
-                producto: producto.nombre,
-                cantidad: item.cantidad,
-                unidad: item.unidad,
-                totalBolivar: item.subtotal,
-                metodoPago: metodoPagoSeleccionado,
-                indexProducto: item.indexProducto
-            });
+    const producto = productos[item.indexProducto];
+    if (producto) {
+        // Para 'gramo': item.cantidad está en gramos -> restamos item.cantidad/1000 de unidadesExistentes (que están en kilos)
+        if (item.unidad === 'gramo') {
+            producto.unidadesExistentes = redondear2Decimales(producto.unidadesExistentes - (item.cantidad / 1000));
+        } else {
+            // Para unidades: restamos la cantidad directamente
+            producto.unidadesExistentes = redondear2Decimales(producto.unidadesExistentes - item.cantidad);
         }
+
+        // Asegurar que no haya números negativos
+        if (producto.unidadesExistentes < 0) {
+            producto.unidadesExistentes = 0;
+        }
+
+        ventasDiarias.push({
+            fecha: new Date().toLocaleDateString(),
+            hora: new Date().toLocaleTimeString(),
+            producto: producto.nombre,
+            cantidad: item.cantidad,
+            unidad: item.unidad,
+            totalBolivar: item.subtotal,
+            metodoPago: metodoPagoSeleccionado,
+            indexProducto: item.indexProducto
+        });
+    }
     });
 
     // ACTUALIZAR LOS DATOS EN LOCALSTORAGE
@@ -913,7 +976,7 @@ function generarReporteDiario() {
     doc.save(`reporte_diario_${(new Date()).toISOString().slice(0,10)}.pdf`);
 }
 
-// ===== PDF LISTA DE PRODUCTOS (orden alfabético, $ y Bs con ganancia) =====
+// ===== PDF LISTA DE PRODUCTOS (orden alfabético, $ and Bs with ganancia) =====
 function generarRespaldoCompleto() {
     if (!productos.length) { showToast("No hay productos para generar PDF", 'warning'); return; }
 
