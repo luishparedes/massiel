@@ -13,11 +13,18 @@ let productosFiltrados = []; // Array para almacenar resultados de búsqueda
 let temporizadorInactividad;
 
 function reiniciarTemporizadorInactividad() {
+    // ✅ Verificar si hubo acceso reciente desde el portal
+    const ultimoAcceso = localStorage.getItem('ultimoAcceso');
+    if (ultimoAcceso && (Date.now() - parseInt(ultimoAcceso)) < 45000) {
+        console.log('🔒 Acceso reciente detectado, no redirigir');
+        return;
+    }
+    
     if (temporizadorInactividad) {
         clearTimeout(temporizadorInactividad);
     }
     
-    // SOLUCIÓN: No redirigir si ya estamos en la página del portal
+    // No redirigir si ya estamos en la página del portal
     if (window.location.href.includes('portal.calculadoramagica.lat')) {
         console.log('🔒 Ya está en la página de portal, no redirigir');
         return;
@@ -25,6 +32,11 @@ function reiniciarTemporizadorInactividad() {
     
     temporizadorInactividad = setTimeout(() => {
         console.log('🔒 Protegiendo acceso... No compartas este código.');
+        
+        // Limpiar la sesión antes de redirigir
+        sessionStorage.removeItem('activeSessionToken');
+        localStorage.removeItem('currentValidCode');
+        
         window.location.href = 'http://portal.calculadoramagica.lat/';
     }, 60000); // 1 minuto (60000 ms)
 }
