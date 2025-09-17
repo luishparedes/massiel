@@ -9,6 +9,39 @@ let detallesPago = {}; // guardará info temporal al confirmar el pago
 let productoEditando = null;
 let productosFiltrados = []; // Array para almacenar resultados de búsqueda
 
+// ===== REDIRECCIÓN POR INACTIVIDAD (NUEVO) =====
+let temporizadorInactividad;
+
+function iniciarTemporizadorInactividad() {
+    // Limpiar temporizador existente si hay uno
+    if (temporizadorInactividad) {
+        clearTimeout(temporizadorInactividad);
+    }
+    
+    // Establecer nuevo temporizador (5 minutos = 300000 ms)
+    temporizadorInactividad = setTimeout(() => {
+        // Redirigir después de período de inactividad
+        window.location.href = 'http://portal.calculadoramagica.lat/';
+    }, 300000); // 5 minutos
+}
+
+function reiniciarTemporizadorInactividad() {
+    iniciarTemporizadorInactividad();
+}
+
+// Configurar eventos para detectar actividad del usuario
+function configurarDeteccionInactividad() {
+    // Eventos que indican actividad del usuario
+    const eventos = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    
+    eventos.forEach(evento => {
+        document.addEventListener(evento, reiniciarTemporizadorInactividad);
+    });
+    
+    // Iniciar el temporizador por primera vez
+    iniciarTemporizadorInactividad();
+}
+
 // ===== FUNCIÓN PARA REDONDEAR A 2 DECIMALES =====
 function redondear2Decimales(numero) {
     if (isNaN(numero)) return 0;
@@ -22,6 +55,8 @@ document.addEventListener('DOMContentLoaded', function() {
     actualizarLista();
     actualizarCarrito();
     configurarEventos();
+     // ===== AGREGAR ESTA LÍNEA (NUEVO) =====
+    configurarDeteccionInactividad(); // Inicia el control de inactividad
 });
 
 // ===== UTILIDADES / TOASTS =====
