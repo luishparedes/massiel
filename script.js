@@ -16,10 +16,17 @@ function reiniciarTemporizadorInactividad() {
     if (temporizadorInactividad) {
         clearTimeout(temporizadorInactividad);
     }
+    
+    // SOLUCIÓN: No redirigir si ya estamos en la página del portal
+    if (window.location.href.includes('portal.calculadoramagica.lat')) {
+        console.log('🔒 Ya está en la página de portal, no redirigir');
+        return;
+    }
+    
     temporizadorInactividad = setTimeout(() => {
         console.log('🔒 Protegiendo acceso... No compartas este código.');
         window.location.href = 'http://portal.calculadoramagica.lat/';
-    }, 60000); // 1 minuto (60000 ms) - PARA PRUEBAS
+    }, 60000); // 1 minuto (60000 ms)
 }
 
 // Configurar eventos de actividad
