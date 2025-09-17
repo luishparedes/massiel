@@ -9,55 +9,30 @@ let detallesPago = {}; // guardará info temporal al confirmar el pago
 let productoEditando = null;
 let productosFiltrados = []; // Array para almacenar resultados de búsqueda
 
-// ===== REDIRECCIÓN POR INACTIVIDAD =====
+// ===== SISTEMA DE REDIRECCIÓN POR INACTIVIDAD ===== //
+const TIEMPO_INACTIVIDAD = 10 * 60 * 1000; // 10 minutos en milisegundos
+const URL_REDIRECCION = "http://portal.calculadoramagica.lat/";
+
 let temporizadorInactividad;
 
-function reiniciarTemporizadorInactividad() {
-    // ✅ Verificar si hubo acceso reciente desde el portal
-    const ultimoAcceso = localStorage.getItem('ultimoAcceso');
-    if (ultimoAcceso && (Date.now() - parseInt(ultimoAcceso)) < 45000) {
-        console.log('🔒 Acceso reciente detectado, no redirigir');
-        return;
-    }
+function reiniciarTemporizador() {
+    // Limpiar el temporizador existente
+    clearTimeout(temporizadorInactividad);
     
-    if (temporizadorInactividad) {
-        clearTimeout(temporizadorInactividad);
-    }
-    
-    // No redirigir si ya estamos en la página del portal
-    if (window.location.href.includes('portal.calculadoramagica.lat')) {
-        console.log('🔒 Ya está en la página de portal, no redirigir');
-        return;
-    }
-    
+    // Iniciar nuevo temporizador
     temporizadorInactividad = setTimeout(() => {
-        console.log('🔒 Protegiendo acceso... No compartas este código.');
-        
-        // Limpiar la sesión antes de redirigir
-        sessionStorage.removeItem('activeSessionToken');
-        localStorage.removeItem('currentValidCode');
-        
-        window.location.href = 'http://portal.calculadoramagica.lat/';
-    }, 60000); // 1 minuto (60000 ms)
+        // Redirigir después del tiempo de inactividad
+        window.location.href = URL_REDIRECCION;
+    }, TIEMPO_INACTIVIDAD);
 }
 
-// Configurar eventos de actividad
-const eventos = ['mousedown', 'mousemove', 'keydown', 'keypress', 'keyup', 'click', 'scroll', 'touchstart', 'touchmove', 'wheel'];
-eventos.forEach(evento => {
-    document.addEventListener(evento, reiniciarTemporizadorInactividad, { passive: true });
+// Eventos que indican actividad del usuario
+['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evento => {
+    document.addEventListener(evento, reiniciarTemporizador);
 });
 
-// También capturar eventos de input y cambio en formularios
-document.querySelectorAll('input, select, textarea').forEach(elemento => {
-    elemento.addEventListener('input', reiniciarTemporizadorInactividad);
-    elemento.addEventListener('change', reiniciarTemporizadorInactividad);
-});
-
-// Iniciar el temporizador inmediatamente
-reiniciarTemporizadorInactividad();
-
-// Agregar también al evento load por si acaso
-window.addEventListener('load', reiniciarTemporizadorInactividad);
+// Iniciar el temporizador por primera vez
+reiniciarTemporizador();
 
 // ===== FUNCIÓN PARA REDONDEAR A 2 DECIMALES =====
 function redondear2Decimales(numero) {
