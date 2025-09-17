@@ -17,7 +17,7 @@ function reiniciarTemporizadorInactividad() {
         clearTimeout(temporizadorInactividad);
     }
     temporizadorInactividad = setTimeout(() => {
-        console.log('Redirigiendo por inactividad...');
+        console.log('🔒 Protegiendo acceso... No compartas este código.');
         window.location.href = 'http://portal.calculadoramagica.lat/';
     }, 60000); // 1 minuto (60000 ms) - PARA PRUEBAS
 }
