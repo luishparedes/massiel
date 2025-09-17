@@ -9,38 +9,27 @@ let detallesPago = {}; // guardará info temporal al confirmar el pago
 let productoEditando = null;
 let productosFiltrados = []; // Array para almacenar resultados de búsqueda
 
-// ===== REDIRECCIÓN POR INACTIVIDAD (NUEVO) =====
+// ===== REDIRECCIÓN POR INACTIVIDAD =====
 let temporizadorInactividad;
 
-function iniciarTemporizadorInactividad() {
-    // Limpiar temporizador existente si hay uno
+function reiniciarTemporizadorInactividad() {
     if (temporizadorInactividad) {
         clearTimeout(temporizadorInactividad);
     }
-    
-    // Establecer nuevo temporizador (5 minutos = 300000 ms)
     temporizadorInactividad = setTimeout(() => {
-        // Redirigir después de período de inactividad
         window.location.href = 'http://portal.calculadoramagica.lat/';
-    }, 300000); // 5 minutos
+    }, 300000); // 5 minutos (300000 ms)
 }
 
-function reiniciarTemporizadorInactividad() {
-    iniciarTemporizadorInactividad();
-}
+// Configurar eventos de actividad
+document.addEventListener('mousemove', reiniciarTemporizadorInactividad);
+document.addEventListener('keypress', reiniciarTemporizadorInactividad);
+document.addEventListener('click', reiniciarTemporizadorInactividad);
+document.addEventListener('scroll', reiniciarTemporizadorInactividad);
+document.addEventListener('touchstart', reiniciarTemporizadorInactividad);
 
-// Configurar eventos para detectar actividad del usuario
-function configurarDeteccionInactividad() {
-    // Eventos que indican actividad del usuario
-    const eventos = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
-    
-    eventos.forEach(evento => {
-        document.addEventListener(evento, reiniciarTemporizadorInactividad);
-    });
-    
-    // Iniciar el temporizador por primera vez
-    iniciarTemporizadorInactividad();
-}
+// Iniciar el temporizador inmediatamente
+reiniciarTemporizadorInactividad();
 
 // ===== FUNCIÓN PARA REDONDEAR A 2 DECIMALES =====
 function redondear2Decimales(numero) {
@@ -55,8 +44,6 @@ document.addEventListener('DOMContentLoaded', function() {
     actualizarLista();
     actualizarCarrito();
     configurarEventos();
-     // ===== AGREGAR ESTA LÍNEA (NUEVO) =====
-    configurarDeteccionInactividad(); // Inicia el control de inactividad
 });
 
 // ===== UTILIDADES / TOASTS =====
