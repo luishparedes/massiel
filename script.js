@@ -17,19 +17,28 @@ function reiniciarTemporizadorInactividad() {
         clearTimeout(temporizadorInactividad);
     }
     temporizadorInactividad = setTimeout(() => {
+        console.log('Redirigiendo por inactividad...');
         window.location.href = 'http://portal.calculadoramagica.lat/';
-    }, 300000); // 5 minutos (300000 ms)
+    }, 60000); // 1 minuto (60000 ms) - PARA PRUEBAS
 }
 
 // Configurar eventos de actividad
-document.addEventListener('mousemove', reiniciarTemporizadorInactividad);
-document.addEventListener('keypress', reiniciarTemporizadorInactividad);
-document.addEventListener('click', reiniciarTemporizadorInactividad);
-document.addEventListener('scroll', reiniciarTemporizadorInactividad);
-document.addEventListener('touchstart', reiniciarTemporizadorInactividad);
+const eventos = ['mousedown', 'mousemove', 'keydown', 'keypress', 'keyup', 'click', 'scroll', 'touchstart', 'touchmove', 'wheel'];
+eventos.forEach(evento => {
+    document.addEventListener(evento, reiniciarTemporizadorInactividad, { passive: true });
+});
+
+// También capturar eventos de input y cambio en formularios
+document.querySelectorAll('input, select, textarea').forEach(elemento => {
+    elemento.addEventListener('input', reiniciarTemporizadorInactividad);
+    elemento.addEventListener('change', reiniciarTemporizadorInactividad);
+});
 
 // Iniciar el temporizador inmediatamente
 reiniciarTemporizadorInactividad();
+
+// Agregar también al evento load por si acaso
+window.addEventListener('load', reiniciarTemporizadorInactividad);
 
 // ===== FUNCIÓN PARA REDONDEAR A 2 DECIMALES =====
 function redondear2Decimales(numero) {
