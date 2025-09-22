@@ -1100,3 +1100,97 @@ window.onclick = function(event) {
     const modal = document.getElementById('modalPago');
     if (event.target == modal) cerrarModalPago();
 };
+
+// ===== FUNCIONES DE RESPALDO Y RESTAURACIÓN =====
+function descargarBackup() {
+    try {
+        // Recopilar todos los datos del localStorage
+        const backupData = {
+            productos: JSON.parse(localStorage.getItem('productos')) || [],
+            nombreEstablecimiento: localStorage.getItem('nombreEstablecimiento') || '',
+            tasaBCV: localStorage.getItem('tasaBCV') || 0,
+            ventasDiarias: JSON.parse(localStorage.getItem('ventasDiarias')) || [],
+            carrito: JSON.parse(localStorage.getItem('carrito')) || [],
+            fechaBackup: new Date().toISOString(),
+            version: '1.0'
+        };
+
+        // Crear el archivo JSON
+        const dataStr = JSON.stringify(backupData, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        
+        // Crear un enlace de descarga
+        const downloadLink = document.createElement('a');
+        downloadLink.href = URL.createObjectURL(dataBlob);
+        downloadLink.download = `respaldo_calculadora_${new Date().toISOString().slice(0, 10)}.json`;
+        
+        // Simular clic en el enlace
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        
+        showToast('Respaldo descargado exitosamente', 'success');
+    } catch (error) {
+        console.error('Error al descargar respaldo:', error);
+        showToast('Error al descargar el respaldo', 'error');
+    }
+}
+
+function cargarBackup(files) {
+    if (!files || files.length === 0) return;
+    
+    const file = files[0];
+    if (!file.name.endsWith('.json')) {
+        showToast('Por favor selecciona un archivo JSON válido', 'error');
+        return;
+    }
+
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        try {
+            const backupData = JSON.parse(e.target.result);
+            
+            // Validar estructura básica del archivo
+            if (!backupData.productos || !Array.isArray(backupData.productos)) {
+                throw new Error('Formato de archivo inválido');
+            }
+            
+            // Confirmar con el usuario antes de sobrescribir datos
+            if (confirm('¿Estás seguro de que deseas cargar este respaldo? Se sobrescribirán todos los datos actuales.')) {
+                // Restaurar datos en localStorage
+                localStorage.setItem('productos', JSON.stringify(backupData.productos));
+                localStorage.setItem('nombreEstablecimiento', backupData.nombreEstablecimiento || '');
+                localStorage.setItem('tasaBCV', backupData.tasaBCV || 0);
+                localStorage.setItem('ventasDiarias', JSON.stringify(backupData.ventasDiarias || []));
+                localStorage.setItem('carrito', JSON.stringify(backupData.carrito || []));
+                
+                // Recargar variables globales
+                productos = JSON.parse(localStorage.getItem('productos')) || [];
+                nombreEstablecimiento = localStorage.getItem('nombreEstablecimiento') || '';
+                tasaBCVGuardada = parseFloat(localStorage.getItem('tasaBCV')) || 0;
+                ventasDiarias = JSON.parse(localStorage.getItem('ventasDiarias')) || [];
+                carrito = JSON.parse(localStorage.getItem('carrito')) || [];
+                
+                // Actualizar interfaz
+                cargarDatosIniciales();
+                actualizarLista();
+                actualizarCarrito();
+                
+                showToast('Respaldo cargado exitosamente', 'success');
+            }
+        } catch (error) {
+            console.error('Error al cargar respaldo:', error);
+            showToast('Error al cargar el respaldo: archivo inválido', 'error');
+        }
+    };
+    
+    reader.onerror = function() {
+        showToast('Error al leer el archivo', 'error');
+    };
+    
+    reader.readAsText(file);
+    
+    // Limpiar el input de archivo
+    document.getElementById('fileInput').value = '';
+}
