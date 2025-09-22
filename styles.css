@@ -1,6 +1,3 @@
-/* --- Estilos originales preservados y mantenidos --- */
-/* (tu CSS original quedó, con añadidos y correcciones) */
-
 /* ------------- Aviso copyright ------------- */
 .copyright-notice {
     position: fixed;
@@ -277,4 +274,47 @@ p { margin: 12px 0; color: #333; line-height: 1.5; }
 @media print {
     @page { size: auto; margin: 0; }
     body * { visibility: visible; }
+}
+
+/* ===== Estilos para los botones de respaldo ===== */
+.backup-button {
+    background: linear-gradient(to right, #4CAF50, #66BB6A);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin: 10px 5px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: auto;
+    display: inline-block;
+}
+
+.backup-button:hover {
+    background: linear-gradient(to right, #43A047, #5CB85C);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.restore-button {
+    background: linear-gradient(to right, #2196F3, #03A9F4);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin: 10px 5px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: auto;
+    display: inline-block;
+}
+
+.restore-button:hover {
+    background: linear-gradient(to right, #1976D2, #0288D1);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
