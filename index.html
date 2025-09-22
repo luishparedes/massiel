@@ -29,6 +29,14 @@
     <div class="calculator">
         <h2>Calculadora Mágica</h2>
 
+        <!-- Sección para respaldo/restauración de datos -->
+        <section>
+            <h3>Respaldo y Restauración de Datos</h3>
+            <button onclick="descargarBackup()" class="backup-button">Descargar Respaldo</button>
+            <button onclick="document.getElementById('fileInput').click()" class="restore-button">Cargar Respaldo</button>
+            <input type="file" id="fileInput" accept=".json" style="display: none" onchange="cargarBackup(this.files)" />
+        </section>
+
         <section>
             <h3>Nombre del Establecimiento</h3>
             <input type="text" id="nombreEstablecimiento" placeholder="Ej: Tienda La Bendición" />
