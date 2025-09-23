@@ -9,6 +9,10 @@ let detallesPago = {}; // guardará info temporal al confirmar el pago
 let productoEditando = null;
 let productosFiltrados = []; // Array para almacenar resultados de búsqueda
 
+// === NUEVAS VARIABLES PARA ESCÁNER ===
+let tiempoUltimaTecla = 0;
+let bufferEscaneo = '';
+
 // ===== SISTEMA DE REDIRECCIÓN POR INACTIVIDAD ===== //
 const TIEMPO_INACTIVIDAD = 10 * 60 * 1000; // 10 minutos en milisegundos
 const URL_REDIRECCION = "http://portal.calculadoramagica.lat/";
@@ -66,7 +70,7 @@ function showToast(message, type = 'success', duration = 3500) {
     }, duration);
 }
 
-// ===== CONFIGURACIÓN DE EVENTOS =====
+// ===== CONFIGURACIÓN DE EVENTOS MEJORADA =====
 function configurarEventos() {
     // Búsqueda enter
     const buscarInput = document.getElementById('buscar');
@@ -76,13 +80,86 @@ function configurarEventos() {
         });
     }
 
-    // Scanner enter
+    // ESCÁNER MEJORADO - Compatibilidad universal
     const codigoInput = document.getElementById('codigoBarrasInput');
     if (codigoInput) {
-        codigoInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') agregarPorCodigoBarras();
+        // Detectar escaneo vs tecleo manual
+        codigoInput.addEventListener('keydown', function(e) {
+            const tiempoActual = new Date().getTime();
+            
+            // Si es Enter o Tab (terminadores comunes de escáner)
+            if (e.key === 'Enter' || e.key === 'Tab') {
+                e.preventDefault();
+                
+                // Solo procesar si hay contenido y no es tecleo manual rápido
+                if (this.value.trim() && (tiempoActual - tiempoUltimaTecla) < 100) {
+                    procesarEscaneo(this.value.trim());
+                    this.value = '';
+                }
+                return;
+            }
+            
+            // Para caracteres normales, actualizar buffer y tiempo
+            if (e.key.length === 1) {
+                bufferEscaneo += e.key;
+                tiempoUltimaTecla = tiempoActual;
+                
+                // Limpiar buffer después de un tiempo si no hay más teclas
+                clearTimeout(window.bufferTimeout);
+                window.bufferTimeout = setTimeout(() => {
+                    if (bufferEscaneo.length > 0) {
+                        bufferEscaneo = '';
+                    }
+                }, 60);
+            }
+        });
+
+        // También mantener el evento input para sugerencias
+        codigoInput.addEventListener('input', function() {
+            const termino = this.value.trim().toLowerCase();
+            const sugerenciasDiv = document.getElementById('sugerencias');
+            if (!sugerenciasDiv) return;
+            sugerenciasDiv.innerHTML = '';
+
+            if (termino.length < 2) return;
+
+            const coincidencias = productos.filter(p =>
+                (p.nombre || p.producto || '').toLowerCase().includes(termino) ||
+                (p.codigoBarras && p.codigoBarras.toLowerCase().includes(termino))
+            );
+
+            coincidencias.slice(0, 8).forEach(prod => {
+                const opcion = document.createElement('div');
+                opcion.textContent = `${(prod.nombre || prod.producto)} (${prod.descripcion || prod.descripcion})`;
+                opcion.onclick = function() {
+                    document.getElementById('codigoBarrasInput').value = prod.codigoBarras || prod.nombre || prod.producto;
+                    procesarEscaneo(document.getElementById('codigoBarrasInput').value);
+                    sugerenciasDiv.innerHTML = '';
+                    document.getElementById('codigoBarrasInput').focus();
+                };
+                sugerenciasDiv.appendChild(opcion);
+            });
+        });
+
+        // Focus automático mejorado
+        codigoInput.addEventListener('blur', function() {
+            // Recuperar focus después de un breve momento
+            setTimeout(() => {
+                if (!document.activeElement || 
+                    !document.activeElement.matches('button, input[type="text"], select, textarea')) {
+                    codigoInput.focus();
+                }
+            }, 100);
         });
     }
+
+    // Focus automático al cargar la página
+    setTimeout(() => {
+        if (codigoInput) {
+            codigoInput.focus();
+            codigoInput.select();
+        }
+    }, 500);
 }
 
 // ===== BUSCADOR RÁPIDO (input del carrito con sugerencias) =====
@@ -295,55 +372,7 @@ function editarProducto(index) {
 // ===== CARRITO DE VENTAS =====
 function agregarPorCodigoBarras() {
     const codigo = document.getElementById('codigoBarrasInput').value.trim();
-    if (!codigo) { showToast("Ingrese o escanee un código de barras", 'warning'); return; }
-
-    // Buscar por código exacto primero
-    let productoEncontrado = productos.find(p =>
-        p.codigoBarras && p.codigoBarras.toLowerCase() === codigo.toLowerCase()
-    );
-
-    // Buscar por nombre si no encontrado por código
-    if (!productoEncontrado) {
-        productoEncontrado = productos.find(p =>
-            (p.nombre || '').toLowerCase().includes(codigo.toLowerCase()) ||
-            (p.producto || '').toLowerCase().includes(codigo.toLowerCase())
-        );
-        if (!productoEncontrado) {
-            showToast("Producto no encontrado", 'error');
-            return;
-        }
-    }
-
-    // Verificar si ya está en el carrito (mismo nombre y unidad 'unidad')
-    const enCarrito = carrito.findIndex(item => item.nombre === productoEncontrado.nombre && item.unidad === 'unidad');
-
-    if (enCarrito !== -1) {
-        // Actualizar cantidad (unidad)
-        carrito[enCarrito].cantidad += 1;
-        carrito[enCarrito].subtotal = redondear2Decimales(carrito[enCarrito].cantidad * carrito[enCarrito].precioUnitarioBolivar);
-        carrito[enCarrito].subtotalDolar = redondear2Decimales(carrito[enCarrito].cantidad * carrito[enCarrito].precioUnitarioDolar);
-    } else {
-        // Agregar nuevo producto (por defecto unidad)
-        carrito.push({
-            nombre: productoEncontrado.nombre,
-            descripcion: productoEncontrado.descripcion,
-            precioUnitarioBolivar: productoEncontrado.precioUnitarioBolivar,
-            precioUnitarioDolar: productoEncontrado.precioUnitarioDolar,
-            cantidad: 1,
-            unidad: 'unidad',
-            subtotal: productoEncontrado.precioUnitarioBolivar,
-            subtotalDolar: productoEncontrado.precioUnitarioDolar,
-            indexProducto: productos.findIndex(p => p.nombre === productoEncontrado.nombre)
-        });
-    }
-
-    document.getElementById('codigoBarrasInput').value = '';
-    document.getElementById('codigoBarrasInput').focus();
-    const scannerStatus = document.getElementById('scannerStatus');
-    if (scannerStatus) scannerStatus.textContent = 'Producto agregado. Esperando nuevo escaneo...';
-
-    localStorage.setItem('carrito', JSON.stringify(carrito));
-    actualizarCarrito();
+    procesarEscaneo(codigo);
 }
 
 function actualizarCarrito() {
@@ -1193,4 +1222,120 @@ function cargarBackup(files) {
     
     // Limpiar el input de archivo
     document.getElementById('fileInput').value = '';
+}
+
+// ===== NUEVAS FUNCIONES PARA ESCÁNER MEJORADO =====
+function procesarEscaneo(codigo) {
+    if (!codigo) {
+        showToast("Código de barras vacío", 'warning');
+        return;
+    }
+
+    // Buscar por código exacto primero
+    let productoEncontrado = productos.find(p =>
+        p.codigoBarras && p.codigoBarras.toLowerCase() === codigo.toLowerCase()
+    );
+
+    // Si no se encuentra por código, buscar por nombre exacto
+    if (!productoEncontrado) {
+        productoEncontrado = productos.find(p =>
+            (p.nombre || '').toLowerCase() === codigo.toLowerCase()
+        );
+    }
+
+    // Si aún no se encuentra, buscar por coincidencia parcial en nombre
+    if (!productoEncontrado) {
+        productoEncontrado = productos.find(p =>
+            (p.nombre || '').toLowerCase().includes(codigo.toLowerCase())
+        );
+    }
+
+    if (!productoEncontrado) {
+        showToast("Producto no encontrado: " + codigo, 'error');
+        mostrarSugerenciasEspecificas(codigo);
+        return;
+    }
+
+    // AGREGAR AL CARRITO
+    agregarProductoAlCarrito(productoEncontrado);
+    darFeedbackEscaneoExitoso();
+}
+
+function agregarProductoAlCarrito(productoEncontrado) {
+    // Verificar si ya está en el carrito (mismo nombre y unidad 'unidad')
+    const enCarrito = carrito.findIndex(item => item.nombre === productoEncontrado.nombre && item.unidad === 'unidad');
+
+    if (enCarrito !== -1) {
+        // Actualizar cantidad (unidad)
+        carrito[enCarrito].cantidad += 1;
+        carrito[enCarrito].subtotal = redondear2Decimales(carrito[enCarrito].cantidad * carrito[enCarrito].precioUnitarioBolivar);
+        carrito[enCarrito].subtotalDolar = redondear2Decimales(carrito[enCarrito].cantidad * carrito[enCarrito].precioUnitarioDolar);
+    } else {
+        // Agregar nuevo producto (por defecto unidad)
+        carrito.push({
+            nombre: productoEncontrado.nombre,
+            descripcion: productoEncontrado.descripcion,
+            precioUnitarioBolivar: productoEncontrado.precioUnitarioBolivar,
+            precioUnitarioDolar: productoEncontrado.precioUnitarioDolar,
+            cantidad: 1,
+            unidad: 'unidad',
+            subtotal: productoEncontrado.precioUnitarioBolivar,
+            subtotalDolar: productoEncontrado.precioUnitarioDolar,
+            indexProducto: productos.findIndex(p => p.nombre === productoEncontrado.nombre)
+        });
+    }
+
+    // Limpiar y focus
+    const codigoInput = document.getElementById('codigoBarrasInput');
+    if (codigoInput) {
+        codigoInput.value = '';
+        codigoInput.focus();
+    }
+
+    const scannerStatus = document.getElementById('scannerStatus');
+    if (scannerStatus) scannerStatus.textContent = '✓ Producto agregado. Escanee siguiente...';
+
+    localStorage.setItem('carrito', JSON.stringify(carrito));
+    actualizarCarrito();
+}
+
+function mostrarSugerenciasEspecificas(codigo) {
+    const sugerenciasDiv = document.getElementById('sugerencias');
+    if (!sugerenciasDiv) return;
+
+    sugerenciasDiv.innerHTML = '<div style="color: #ff6b6b; padding: 5px;">Producto no encontrado. Sugerencias:</div>';
+
+    // Buscar productos similares
+    const similares = productos.filter(p =>
+        (p.nombre || '').toLowerCase().includes(codigo.toLowerCase().substring(0, 3)) ||
+        (p.codigoBarras && p.codigoBarras.toLowerCase().includes(codigo.toLowerCase().substring(0, 3)))
+    ).slice(0, 5);
+
+    similares.forEach(prod => {
+        const opcion = document.createElement('div');
+        opcion.style.cursor = 'pointer';
+        opcion.style.padding = '5px';
+        opcion.style.borderBottom = '1px solid #eee';
+        opcion.innerHTML = `<strong>${prod.nombre}</strong> - ${prod.descripcion}`;
+        opcion.onclick = function() {
+            agregarProductoAlCarrito(prod);
+            sugerenciasDiv.innerHTML = '';
+        };
+        sugerenciasDiv.appendChild(opcion);
+    });
+
+    if (similares.length === 0) {
+        sugerenciasDiv.innerHTML += '<div style="padding: 5px;">No se encontraron productos similares</div>';
+    }
+}
+
+function darFeedbackEscaneoExitoso() {
+    // Cambio visual breve en el input
+    const codigoInput = document.getElementById('codigoBarrasInput');
+    if (codigoInput) {
+        codigoInput.style.backgroundColor = '#d4edda';
+        setTimeout(() => {
+            codigoInput.style.backgroundColor = '';
+        }, 300);
+    }
 }
