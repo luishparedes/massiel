@@ -4,8 +4,8 @@ let nombreEstablecimiento = localStorage.getItem('nombreEstablecimiento') || '';
 let tasaBCVGuardada = parseFloat(localStorage.getItem('tasaBCV')) || 0;
 let ventasDiarias = JSON.parse(localStorage.getItem('ventasDiarias')) || [];
 let carrito = JSON.parse(localStorage.getItem('carrito')) || [];
-let metodoPagoSeleccionado = null;
-let detallesPago = {}; // guardará info temporal al confirmar el pago
+let métodoPagoSeleccionado = null;
+let detallesPago = {}; // guardará información temporal al confirmar el pago
 let productoEditando = null;
 let productosFiltrados = []; // Array para almacenar resultados de búsqueda
 
@@ -13,8 +13,83 @@ let productosFiltrados = []; // Array para almacenar resultados de búsqueda
 let tiempoUltimaTecla = 0;
 let bufferEscaneo = '';
 
+// ===== PROTECCIÓN CONTRA F12 Y HERRAMIENTAS DE DESARROLLO =====
+(function() {
+    // Detectar tecla F12 y combinaciones de teclas
+    document.addEventListener('keydown', function(e) {
+        // Bloquear F12
+        if (e.key === 'F12' || e.keyCode === 123) {
+            e.preventDefault();
+            mostrarAdvertenciaSeguridad();
+            return false;
+        }
+        
+        // Bloquear Ctrl+Shift+I (DevTools)
+        if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.keyCode === 73)) {
+            e.preventDefault();
+            mostrarAdvertenciaSeguridad();
+            return false;
+        }
+        
+        // Bloquear Ctrl+Shift+J (Console)
+        if (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.keyCode === 74)) {
+            e.preventDefault();
+            mostrarAdvertenciaSeguridad();
+            return false;
+        }
+        
+        // Bloquear Ctrl+Shift+C (Inspector)
+        if (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.keyCode === 67)) {
+            e.preventDefault();
+            mostrarAdvertenciaSeguridad();
+            return false;
+        }
+        
+        // Bloquear Ctrl+U (Ver código fuente)
+        if (e.ctrlKey && (e.key === 'U' || e.keyCode === 85)) {
+            e.preventDefault();
+            mostrarAdvertenciaSeguridad();
+            return false;
+        }
+    });
+    
+    // Bloquear clic derecho (inspeccionar elemento)
+    document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        mostrarAdvertenciaSeguridad();
+        return false;
+    });
+    
+    // Detectar si se abren las herramientas de desarrollo
+    function detectarDevTools() {
+        const umbral = 160;
+        const inicio = performance.now();
+        debugger;
+        const fin = performance.now();
+        
+        if (fin - inicio > umbral) {
+            mostrarAdvertenciaSeguridad();
+        }
+    }
+    
+    function mostrarAdvertenciaSeguridad() {
+        // Mostrar mensaje en consola si está abierta
+        console.log('%c⚠️ ACCESO RESTRINGIDO ⚠️', 'color: red; font-size: 20px; font-weight: bold;');
+        console.log('El uso de herramientas de desarrollo está restringido en esta aplicación.');
+        
+        // Mostrar alerta al usuario
+        alert('⚠️ Acceso restringido\nEl uso de F12 y herramientas de desarrollo no está permitido en esta aplicación.');
+        
+        // Opcional: Puedes redirigir o tomar otras acciones
+        // window.location.href = '/acceso-denegado';
+    }
+    
+    // Verificar periódicamente si las herramientas están abiertas
+    setInterval(detectarDevTools, 1000);
+})();
+
 // ===== SISTEMA DE REDIRECCIÓN POR INACTIVIDAD ===== //
-const TIEMPO_INACTIVIDAD = 4 * 60 * 1000; // 4 minutos en milisegundos
+const TIEMPO_INACTIVIDAD = 4*60*1000; // 4 minutos en milisegundos
 const URL_REDIRECCION = "http://portal.calculadoramagica.lat/";
 
 let temporizadorInactividad;
