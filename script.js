@@ -14,7 +14,7 @@ let tiempoUltimaTecla = 0;
 let bufferEscaneo = '';
 
 // ===== SISTEMA DE REDIRECCIÓN POR INACTIVIDAD ===== //
-const TIEMPO_INACTIVIDAD = 10 * 60 * 1000; // 10 minutos en milisegundos
+const TIEMPO_INACTIVIDAD = 4 * 60 * 1000; // 4 minutos en milisegundos
 const URL_REDIRECCION = "http://portal.calculadoramagica.lat/";
 
 let temporizadorInactividad;
