@@ -13,6 +13,9 @@ let productosFiltrados = []; // Array para almacenar resultados de búsqueda
 let tiempoUltimaTecla = 0;
 let bufferEscaneo = '';
 
+// ===== DETECCIÓN DE DISPOSITIVO =====
+const esDispositivoMovil = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
 // ===== PROTECCIÓN CONTRA ACCESO DIRECTO (SIMPLIFICADA PARA MÓVIL Y COMPUTADORA) =====
 (function() {
     const SESSION_KEY = 'calculadora_magica_session';
@@ -39,9 +42,15 @@ let bufferEscaneo = '';
     }
 })();
 
-// ===== PROTECCIÓN CONTRA F12 Y HERRAMIENTAS DE DESARROLLO =====
+// ===== PROTECCIÓN CONTRA F12 Y HERRAMIENTAS DE DESARROLLO (SOLO EN COMPUTADORA) =====
 (function() {
-    // Detectar tecla F12 y combinaciones de teclas
+    // Si es dispositivo móvil, NO activar protección F12
+    if (esDispositivoMovil) {
+        console.log('Dispositivo móvil detectado, protección F12 desactivada');
+        return;
+    }
+    
+    // Detectar tecla F12 y combinaciones de teclas (SOLO COMPUTADORA)
     document.addEventListener('keydown', function(e) {
         // Bloquear F12
         if (e.key === 'F12' || e.keyCode === 123) {
@@ -79,14 +88,14 @@ let bufferEscaneo = '';
         }
     });
     
-    // Bloquear clic derecho (inspeccionar elemento)
+    // Bloquear clic derecho (inspeccionar elemento) - SOLO COMPUTADORA
     document.addEventListener('contextmenu', function(e) {
         e.preventDefault();
         mostrarAdvertenciaSeguridad();
         return false;
     });
     
-    // Detectar si se abren las herramientas de desarrollo
+    // Detectar si se abren las herramientas de desarrollo - SOLO COMPUTADORA
     function detectarDevTools() {
         const umbral = 160;
         const inicio = performance.now();
@@ -105,12 +114,9 @@ let bufferEscaneo = '';
         
         // Mostrar alerta al usuario
         alert('⚠️ Acceso restringido\nEl uso de F12 y herramientas de desarrollo no está permitido en esta aplicación.');
-        
-        // Opcional: Puedes redirigir o tomar otras acciones
-        // window.location.href = '/acceso-denegado';
     }
     
-    // Verificar periódicamente si las herramientas están abiertas
+    // Verificar periódicamente si las herramientas están abiertas - SOLO COMPUTADORA
     setInterval(detectarDevTools, 1000);
 })();
 
@@ -151,6 +157,7 @@ function redondear2Decimales(numero) {
 // ===== INICIALIZACIÓN =====
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Calculadora iniciada correctamente');
+    console.log('Dispositivo móvil:', esDispositivoMovil);
     cargarDatosIniciales();
     actualizarLista();
     actualizarCarrito();
