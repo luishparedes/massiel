@@ -13,63 +13,30 @@ let productosFiltrados = []; // Array para almacenar resultados de búsqueda
 let tiempoUltimaTecla = 0;
 let bufferEscaneo = '';
 
-// ===== PROTECCIÓN CONTRA ACCESO DIRECTO EN MÚLTIPLES PESTAÑAS =====
+// ===== PROTECCIÓN CONTRA ACCESO DIRECTO (SIMPLIFICADA PARA MÓVIL Y COMPUTADORA) =====
 (function() {
-    // Clave única para identificar esta instancia de la aplicación
     const SESSION_KEY = 'calculadora_magica_session';
     const URL_REDIRECCION_PORTAL = "http://portal.calculadoramagica.lat/";
-    const URL_PERMITIDA = "http://clientes.calculadoramagica.lat";
     
-    // Verificar si es un acceso directo (no desde el portal)
-    function verificarAccesoValido() {
-        const sessionValida = sessionStorage.getItem(SESSION_KEY);
+    // Verificar si ya tiene sesión activa
+    const sessionValida = sessionStorage.getItem(SESSION_KEY);
+    
+    // Si no tiene sesión y no viene del portal, redirigir
+    if (!sessionValida) {
         const referrer = document.referrer;
-        const currentUrl = window.location.href;
+        const vieneDePortal = referrer && referrer.includes('portal.calculadoramagica.lat');
+        const vieneDeClientes = referrer && referrer.includes('clientes.calculadoramagica.lat');
         
-        // Si no hay sesión válida Y no viene del portal NI de la URL permitida
-        if (!sessionValida && 
-            !referrer.includes('portal.calculadoramagica.lat') && 
-            !referrer.includes('clientes.calculadoramagica.lat') &&
-            currentUrl.includes('clientes.calculadoramagica.lat')) {
-            
-            // Redirigir inmediatamente al portal
+        // Permitir acceso si viene del portal, de clientes, o si no hay referrer (móviles)
+        if (!vieneDePortal && !vieneDeClientes && referrer !== '') {
             console.log('Acceso directo detectado, redirigiendo al portal...');
             window.location.href = URL_REDIRECCION_PORTAL;
-            return false;
+            return;
         }
         
-        // Establecer sesión válida
-        if (!sessionValida) {
-            sessionStorage.setItem(SESSION_KEY, 'activa_' + Date.now());
-        }
-        
-        return true;
+        // Crear sesión válida
+        sessionStorage.setItem(SESSION_KEY, 'activa_' + Date.now());
     }
-    
-    // Sincronización entre pestañas
-    function configurarSincronizacionPestañas() {
-        // Escuchar cambios en el almacenamiento local entre pestañas
-        window.addEventListener('storage', function(e) {
-            if (e.key === SESSION_KEY && e.newValue === 'cerrada') {
-                // Otra pestaña cerró la sesión, redirigir
-                window.location.href = URL_REDIRECCION_PORTAL;
-            }
-        });
-    }
-    
-    // Verificación inicial
-    if (!verificarAccesoValido()) {
-        return; // Detener ejecución si se redirige
-    }
-    
-    configurarSincronizacionPestañas();
-    
-    // También verificar periódicamente
-    setInterval(() => {
-        if (!sessionStorage.getItem(SESSION_KEY)) {
-            window.location.href = URL_REDIRECCION_PORTAL;
-        }
-    }, 5000);
 })();
 
 // ===== PROTECCIÓN CONTRA F12 Y HERRAMIENTAS DE DESARROLLO =====
@@ -161,7 +128,6 @@ function reiniciarTemporizador() {
     temporizadorInactividad = setTimeout(() => {
         // Cerrar sesión antes de redirigir
         sessionStorage.removeItem('calculadora_magica_session');
-        localStorage.setItem('calculadora_magica_session', 'cerrada');
         
         // Redirigir después del tiempo de inactividad
         window.location.href = URL_REDIRECCION;
