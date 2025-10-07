@@ -13,9 +13,6 @@ let productosFiltrados = []; // Array para almacenar resultados de búsqueda
 let tiempoUltimaTecla = 0;
 let bufferEscaneo = '';
 
-// ===== DETECCIÓN DE DISPOSITIVO =====
-const esDispositivoMovil = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
 // ===== PROTECCIÓN CONTRA ACCESO DIRECTO (SIMPLIFICADA PARA MÓVIL Y COMPUTADORA) =====
 (function() {
     const SESSION_KEY = 'calculadora_magica_session';
@@ -42,15 +39,93 @@ const esDispositivoMovil = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|O
     }
 })();
 
-// ===== PROTECCIÓN CONTRA F12 Y HERRAMIENTAS DE DESARROLLO (SOLO EN COMPUTADORA) =====
-(function() {
-    // Si es dispositivo móvil, NO activar protección F12
-    if (esDispositivoMovil) {
-        console.log('Dispositivo móvil detectado, protección F12 desactivada');
+// ===== SISTEMA DE REDIRECCIÓN POR INACTIVIDAD MEJORADO ===== //
+const TIEMPO_INACTIVIDAD = 4 * 60 * 1000; // 4 minutos en milisegundos
+const URL_REDIRECCION = "http://portal.calculadoramagica.lat/";
+
+let temporizadorInactividad;
+let ultimaActividad = Date.now();
+
+// Función para registrar actividad
+function registrarActividad() {
+    ultimaActividad = Date.now();
+    reiniciarTemporizador();
+}
+
+// Función para verificar inactividad periódicamente
+function verificarInactividad() {
+    const tiempoTranscurrido = Date.now() - ultimaActividad;
+    
+    if (tiempoTranscurrido >= TIEMPO_INACTIVIDAD) {
+        // Redirigir por inactividad
+        console.log('Redirigiendo por inactividad después de', Math.round(tiempoTranscurrido / 1000), 'segundos');
+        
+        // Limpiar sesiones
+        sessionStorage.removeItem('calculadora_magica_session');
+        localStorage.removeItem('ultimaActividad');
+        
+        // Redirigir al portal
+        window.location.href = URL_REDIRECCION;
         return;
     }
     
-    // Detectar tecla F12 y combinaciones de teclas (SOLO COMPUTADORA)
+    // Programar siguiente verificación
+    setTimeout(verificarInactividad, 1000);
+}
+
+function reiniciarTemporizador() {
+    // Guardar timestamp de última actividad
+    localStorage.setItem('ultimaActividad', Date.now().toString());
+    
+    // Limpiar temporizador existente
+    if (temporizadorInactividad) {
+        clearTimeout(temporizadorInactividad);
+    }
+    
+    // Iniciar nuevo temporizador
+    temporizadorInactividad = setTimeout(() => {
+        console.log('Temporizador de inactividad ejecutado');
+        
+        // Limpiar sesiones
+        sessionStorage.removeItem('calculadora_magica_session');
+        localStorage.removeItem('ultimaActividad');
+        
+        // Redirigir después del tiempo de inactividad
+        window.location.href = URL_REDIRECCION;
+    }, TIEMPO_INACTIVIDAD);
+}
+
+// Eventos que indican actividad del usuario
+['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click', 'input'].forEach(evento => {
+    document.addEventListener(evento, registrarActividad, { passive: true });
+});
+
+// Inicializar sistema de inactividad
+function inicializarSistemaInactividad() {
+    // Recuperar última actividad desde localStorage
+    const ultimaActividadGuardada = localStorage.getItem('ultimaActividad');
+    if (ultimaActividadGuardada) {
+        ultimaActividad = parseInt(ultimaActividadGuardada);
+        
+        // Verificar si ya pasó el tiempo de inactividad
+        const tiempoTranscurrido = Date.now() - ultimaActividad;
+        if (tiempoTranscurrido >= TIEMPO_INACTIVIDAD) {
+            console.log('Sesión expirada al cargar. Redirigiendo...');
+            sessionStorage.removeItem('calculadora_magica_session');
+            localStorage.removeItem('ultimaActividad');
+            window.location.href = URL_REDIRECCION;
+            return;
+        }
+    }
+    
+    // Iniciar verificaciones
+    reiniciarTemporizador();
+    verificarInactividad();
+}
+
+// ===== PROTECCIÓN CONTRA F12 Y HERRAMIENTAS DE DESARROLLO =====
+(function() {
+    // Detectar tecla F12 y combinaciones de teclas
     document.addEventListener('keydown', function(e) {
         // Bloquear F12
         if (e.key === 'F12' || e.keyCode === 123) {
@@ -88,14 +163,14 @@ const esDispositivoMovil = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|O
         }
     });
     
-    // Bloquear clic derecho (inspeccionar elemento) - SOLO COMPUTADORA
+    // Bloquear clic derecho (inspeccionar elemento)
     document.addEventListener('contextmenu', function(e) {
         e.preventDefault();
         mostrarAdvertenciaSeguridad();
         return false;
     });
     
-    // Detectar si se abren las herramientas de desarrollo - SOLO COMPUTADORA
+    // Detectar si se abren las herramientas de desarrollo
     function detectarDevTools() {
         const umbral = 160;
         const inicio = performance.now();
@@ -114,39 +189,14 @@ const esDispositivoMovil = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|O
         
         // Mostrar alerta al usuario
         alert('⚠️ Acceso restringido\nEl uso de F12 y herramientas de desarrollo no está permitido en esta aplicación.');
+        
+        // Opcional: Puedes redirigir o tomar otras acciones
+        // window.location.href = '/acceso-denegado';
     }
     
-    // Verificar periódicamente si las herramientas están abiertas - SOLO COMPUTADORA
+    // Verificar periódicamente si las herramientas están abiertas
     setInterval(detectarDevTools, 1000);
 })();
-
-// ===== SISTEMA DE REDIRECCIÓN POR INACTIVIDAD ===== //
-const TIEMPO_INACTIVIDAD = 4*60*1000; // 4 minutos en milisegundos
-const URL_REDIRECCION = "http://portal.calculadoramagica.lat/";
-
-let temporizadorInactividad;
-
-function reiniciarTemporizador() {
-    // Limpiar el temporizador existente
-    clearTimeout(temporizadorInactividad);
-    
-    // Iniciar nuevo temporizador
-    temporizadorInactividad = setTimeout(() => {
-        // Cerrar sesión antes de redirigir
-        sessionStorage.removeItem('calculadora_magica_session');
-        
-        // Redirigir después del tiempo de inactividad
-        window.location.href = URL_REDIRECCION;
-    }, TIEMPO_INACTIVIDAD);
-}
-
-// Eventos que indican actividad del usuario
-['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evento => {
-    document.addEventListener(evento, reiniciarTemporizador);
-});
-
-// Iniciar el temporizador por primera vez
-reiniciarTemporizador();
 
 // ===== FUNCIÓN PARA REDONDEAR A 2 DECIMALES =====
 function redondear2Decimales(numero) {
@@ -157,7 +207,7 @@ function redondear2Decimales(numero) {
 // ===== INICIALIZACIÓN =====
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Calculadora iniciada correctamente');
-    console.log('Dispositivo móvil:', esDispositivoMovil);
+    inicializarSistemaInactividad(); // Inicializar sistema de inactividad
     cargarDatosIniciales();
     actualizarLista();
     actualizarCarrito();
