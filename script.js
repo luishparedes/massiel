@@ -1218,6 +1218,228 @@ function generarRespaldoCompleto() {
     doc.save(`lista_productos_${(new Date()).toISOString().slice(0,10)}.pdf`);
 }
 
+// ===== NUEVAS FUNCIONALIDADES INNOVADORAS =====
+
+// ===== PDF POR CATEGORÍA =====
+function mostrarOpcionesPDF() {
+    document.getElementById('modalCategorias').style.display = 'block';
+}
+
+function cerrarModalCategorias() {
+    document.getElementById('modalCategorias').style.display = 'none';
+}
+
+function generarPDFPorCategoria(categoria) {
+    if (!productos.length) { 
+        showToast("No hay productos para generar PDF", 'warning'); 
+        return; 
+    }
+
+    let productosFiltrados = [];
+    let tituloCategoria = '';
+
+    if (categoria === 'todos') {
+        productosFiltrados = [...productos];
+        tituloCategoria = 'TODOS LOS PRODUCTOS';
+    } else {
+        productosFiltrados = productos.filter(p => p.descripcion === categoria);
+        
+        // Mapear el valor de la categoría a un nombre legible
+        const nombresCategorias = {
+            'viveres': 'VÍVERES',
+            'bebidas': 'BEBIDAS',
+            'licores': 'LICORES',
+            'enlatados': 'ENLATADOS',
+            'plasticos': 'PLÁSTICOS',
+            'papeleria': 'PAPELERÍA',
+            'lacteos': 'LÁCTEOS',
+            'ferreteria': 'FERRETERÍA',
+            'agropecuaria': 'AGROPECUARIA',
+            'frigorifico': 'FRIGORÍFICO',
+            'pescaderia': 'PESCADERÍA',
+            'repuesto': 'REPUESTO',
+            'confiteria': 'CONFITERÍA',
+            'ropa': 'ROPA',
+            'calzados': 'CALZADOS',
+            'charcuteria': 'CHARCUTERÍA',
+            'carnes': 'CARNES',
+            'otros': 'OTROS'
+        };
+        
+        tituloCategoria = nombresCategorias[categoria] || categoria.toUpperCase();
+    }
+
+    if (productosFiltrados.length === 0) {
+        showToast(`No hay productos en la categoría: ${tituloCategoria}`, 'warning');
+        cerrarModalCategorias();
+        return;
+    }
+
+    // Ordenar alfabéticamente
+    productosFiltrados.sort((a, b) => (a.nombre || '').localeCompare((b.nombre || ''), 'es', { sensitivity: 'base' }));
+
+    const rows = productosFiltrados.map(p => [
+        p.nombre,
+        `$${p.precioUnitarioDolar.toFixed(2)}`,
+        `Bs ${p.precioUnitarioBolivar.toFixed(2)}`
+    ]);
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Encabezado
+    doc.setFontSize(16);
+    doc.text(nombreEstablecimiento || 'Lista de Productos', 14, 18);
+    doc.setFontSize(12);
+    doc.text(`Categoría: ${tituloCategoria}`, 14, 26);
+    doc.setFontSize(10);
+    doc.text(`Fecha: ${(new Date()).toLocaleDateString()}`, 14, 34);
+
+    // Tabla
+    doc.autoTable({
+        head: [['Producto', 'Precio ($)', 'Precio (Bs)']],
+        body: rows,
+        startY: 42,
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [38, 198, 218] }
+    });
+
+    doc.save(`lista_${categoria}_${(new Date()).toISOString().slice(0,10)}.pdf`);
+    cerrarModalCategorias();
+    showToast(`PDF generado para: ${tituloCategoria}`, 'success');
+}
+
+// ===== ETIQUETAS PARA ANAQUELES =====
+function generarEtiquetasAnaqueles() {
+    document.getElementById('modalEtiquetas').style.display = 'block';
+}
+
+function cerrarModalEtiquetas() {
+    document.getElementById('modalEtiquetas').style.display = 'none';
+}
+
+function generarEtiquetasPorCategoria(categoria) {
+    if (!productos.length) { 
+        showToast("No hay productos para generar etiquetas", 'warning'); 
+        return; 
+    }
+
+    let productosFiltrados = [];
+    let tituloCategoria = '';
+
+    if (categoria === 'todos') {
+        productosFiltrados = [...productos];
+        tituloCategoria = 'TODOS LOS PRODUCTOS';
+    } else {
+        productosFiltrados = productos.filter(p => p.descripcion === categoria);
+        
+        const nombresCategorias = {
+            'viveres': 'VÍVERES',
+            'bebidas': 'BEBIDAS',
+            'licores': 'LICORES',
+            'enlatados': 'ENLATADOS',
+            'plasticos': 'PLÁSTICOS',
+            'papeleria': 'PAPELERÍA',
+            'lacteos': 'LÁCTEOS',
+            'ferreteria': 'FERRETERÍA',
+            'agropecuaria': 'AGROPECUARIA',
+            'frigorifico': 'FRIGORÍFICO',
+            'pescaderia': 'PESCADERÍA',
+            'repuesto': 'REPUESTO',
+            'confiteria': 'CONFITERÍA',
+            'ropa': 'ROPA',
+            'calzados': 'CALZADOS',
+            'charcuteria': 'CHARCUTERÍA',
+            'carnes': 'CARNES',
+            'otros': 'OTROS'
+        };
+        
+        tituloCategoria = nombresCategorias[categoria] || categoria.toUpperCase();
+    }
+
+    if (productosFiltrados.length === 0) {
+        showToast(`No hay productos en la categoría: ${tituloCategoria}`, 'warning');
+        cerrarModalEtiquetas();
+        return;
+    }
+
+    // Ordenar alfabéticamente
+    productosFiltrados.sort((a, b) => (a.nombre || '').localeCompare((b.nombre || ''), 'es', { sensitivity: 'base' }));
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+    });
+
+    // Configuración de etiquetas
+    const pageWidth = 210; // A4 width in mm
+    const pageHeight = 297; // A4 height in mm
+    const margin = 10;
+    const labelWidth = 63; // 3 columnas
+    const labelHeight = 35; // Altura de cada etiqueta
+    const labelsPerPage = 21; // 3 columnas x 7 filas
+
+    let currentPage = 0;
+    let labelIndex = 0;
+
+    productosFiltrados.forEach((producto, index) => {
+        if (labelIndex >= labelsPerPage) {
+            doc.addPage();
+            currentPage++;
+            labelIndex = 0;
+        }
+
+        const row = Math.floor(labelIndex / 3);
+        const col = labelIndex % 3;
+        
+        const x = margin + (col * labelWidth);
+        const y = margin + (row * labelHeight);
+
+        // Dibujar cuadro de etiqueta
+        doc.setDrawColor(200, 200, 200);
+        doc.setFillColor(255, 255, 255);
+        doc.rect(x, y, labelWidth - 2, labelHeight - 2, 'FD');
+
+        // Nombre del establecimiento (más pequeño)
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text(nombreEstablecimiento || 'TIENDA', x + 2, y + 5);
+
+        // Nombre del producto
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        const nombreProducto = producto.nombre.length > 25 ? 
+            producto.nombre.substring(0, 25) + '...' : producto.nombre;
+        doc.text(nombreProducto, x + 2, y + 10);
+
+        // Precio en bolívares (grande y destacado)
+        doc.setFontSize(14);
+        doc.setTextColor(220, 0, 0);
+        doc.setFont(undefined, 'bold');
+        doc.text(`Bs ${producto.precioUnitarioBolivar.toFixed(2)}`, x + 2, y + 20);
+
+        // Categoría (pequeño)
+        doc.setFontSize(7);
+        doc.setTextColor(100, 100, 100);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Categoría: ${tituloCategoria}`, x + 2, y + 25);
+
+        // Código de barras si existe
+        if (producto.codigoBarras) {
+            doc.setFontSize(6);
+            doc.text(`Cód: ${producto.codigoBarras}`, x + 2, y + 30);
+        }
+
+        labelIndex++;
+    });
+
+    doc.save(`etiquetas_${categoria}_${(new Date()).toISOString().slice(0,10)}.pdf`);
+    cerrarModalEtiquetas();
+    showToast(`Etiquetas generadas para: ${tituloCategoria}`, 'success');
+}
+
 // ===== Imprimir ticket térmico (abre una ventana con formato estrecho y llama print) =====
 function imprimirTicketTermico(detalles) {
     try {
@@ -1289,6 +1511,12 @@ function imprimirTicketTermico(detalles) {
 window.onclick = function(event) {
     const modal = document.getElementById('modalPago');
     if (event.target == modal) cerrarModalPago();
+    
+    const modalCategorias = document.getElementById('modalCategorias');
+    if (event.target == modalCategorias) cerrarModalCategorias();
+    
+    const modalEtiquetas = document.getElementById('modalEtiquetas');
+    if (event.target == modalEtiquetas) cerrarModalEtiquetas();
 };
 
 // ===== FUNCIONES DE RESPALDO Y RESTAURACIÓN =====
