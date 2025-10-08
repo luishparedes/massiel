@@ -57,7 +57,7 @@
             <select id="descripcion" required>
                 <option value="">Selecciona una descripción</option>
                 <option value="viveres">Víveres</option>
-                <option value="gaseosas">Gaseosas</option>
+                <option value="bebidas">Bebidas</option>
                 <option value="licores">Licores</option>
                 <option value="enlatados">Enlatados</option>
                 <option value="plasticos">Plásticos</option>
@@ -71,6 +71,8 @@
                 <option value="confiteria">Confitería</option>
                 <option value="ropa">Ropa</option>
                 <option value="calzados">Calzados</option>
+                <option value="charcuteria">Charcutería</option>
+                <option value="carnes">Carnes</option>
                 <option value="otros">Otros</option>
             </select>
         </section>
@@ -112,7 +114,8 @@
             <button onclick="generarReporteDiario()" class="generar-pdf">Generar Reporte Diario</button>
             <button onclick="mostrarListaCostos()" class="lista-costos">Mostrar Lista de Costos</button>
             <button onclick="generarRespaldoCompleto()" class="generar-respaldo">PDF LISTA PRODUCTOS</button>
-            <!-- Botón limpiar lista eliminado por solicitud -->
+            <button onclick="mostrarOpcionesPDF()" class="generar-pdf-categoria">PDF POR CATEGORÍA</button>
+            <button onclick="generarEtiquetasAnaqueles()" class="generar-etiquetas">ETIQUETAS ANAQUELES</button>
         </div>
 
         <div id="listaCostosContainer" style="display: none;">
@@ -124,6 +127,64 @@
                 </div>
             </div>
             <ul id="listaCostos"></ul>
+        </div>
+    </div>
+
+    <!-- Modal para selección de categorías PDF -->
+    <div id="modalCategorias" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModalCategorias()">&times;</span>
+            <h3>Generar PDF por Categoría</h3>
+            <div class="categorias-lista">
+                <button onclick="generarPDFPorCategoria('todos')" class="categoria-btn">TODOS LOS PRODUCTOS</button>
+                <button onclick="generarPDFPorCategoria('viveres')" class="categoria-btn">VÍVERES</button>
+                <button onclick="generarPDFPorCategoria('bebidas')" class="categoria-btn">BEBIDAS</button>
+                <button onclick="generarPDFPorCategoria('licores')" class="categoria-btn">LICORES</button>
+                <button onclick="generarPDFPorCategoria('enlatados')" class="categoria-btn">ENLATADOS</button>
+                <button onclick="generarPDFPorCategoria('plasticos')" class="categoria-btn">PLÁSTICOS</button>
+                <button onclick="generarPDFPorCategoria('papeleria')" class="categoria-btn">PAPELERÍA</button>
+                <button onclick="generarPDFPorCategoria('lacteos')" class="categoria-btn">LÁCTEOS</button>
+                <button onclick="generarPDFPorCategoria('ferreteria')" class="categoria-btn">FERRETERÍA</button>
+                <button onclick="generarPDFPorCategoria('agropecuaria')" class="categoria-btn">AGROPECUARIA</button>
+                <button onclick="generarPDFPorCategoria('frigorifico')" class="categoria-btn">FRIGORÍFICO</button>
+                <button onclick="generarPDFPorCategoria('pescaderia')" class="categoria-btn">PESCADERÍA</button>
+                <button onclick="generarPDFPorCategoria('repuesto')" class="categoria-btn">REPUESTO</button>
+                <button onclick="generarPDFPorCategoria('confiteria')" class="categoria-btn">CONFITERÍA</button>
+                <button onclick="generarPDFPorCategoria('ropa')" class="categoria-btn">ROPA</button>
+                <button onclick="generarPDFPorCategoria('calzados')" class="categoria-btn">CALZADOS</button>
+                <button onclick="generarPDFPorCategoria('charcuteria')" class="categoria-btn">CHARCUTERÍA</button>
+                <button onclick="generarPDFPorCategoria('carnes')" class="categoria-btn">CARNES</button>
+                <button onclick="generarPDFPorCategoria('otros')" class="categoria-btn">OTROS</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para selección de categorías etiquetas -->
+    <div id="modalEtiquetas" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModalEtiquetas()">&times;</span>
+            <h3>Generar Etiquetas para Anaqueles</h3>
+            <div class="categorias-lista">
+                <button onclick="generarEtiquetasPorCategoria('todos')" class="categoria-btn">TODOS LOS PRODUCTOS</button>
+                <button onclick="generarEtiquetasPorCategoria('viveres')" class="categoria-btn">VÍVERES</button>
+                <button onclick="generarEtiquetasPorCategoria('bebidas')" class="categoria-btn">BEBIDAS</button>
+                <button onclick="generarEtiquetasPorCategoria('licores')" class="categoria-btn">LICORES</button>
+                <button onclick="generarEtiquetasPorCategoria('enlatados')" class="categoria-btn">ENLATADOS</button>
+                <button onclick="generarEtiquetasPorCategoria('plasticos')" class="categoria-btn">PLÁSTICOS</button>
+                <button onclick="generarEtiquetasPorCategoria('papeleria')" class="categoria-btn">PAPELERÍA</button>
+                <button onclick="generarEtiquetasPorCategoria('lacteos')" class="categoria-btn">LÁCTEOS</button>
+                <button onclick="generarEtiquetasPorCategoria('ferreteria')" class="categoria-btn">FERRETERÍA</button>
+                <button onclick="generarEtiquetasPorCategoria('agropecuaria')" class="categoria-btn">AGROPECUARIA</button>
+                <button onclick="generarEtiquetasPorCategoria('frigorifico')" class="categoria-btn">FRIGORÍFICO</button>
+                <button onclick="generarEtiquetasPorCategoria('pescaderia')" class="categoria-btn">PESCADERÍA</button>
+                <button onclick="generarEtiquetasPorCategoria('repuesto')" class="categoria-btn">REPUESTO</button>
+                <button onclick="generarEtiquetasPorCategoria('confiteria')" class="categoria-btn">CONFITERÍA</button>
+                <button onclick="generarEtiquetasPorCategoria('ropa')" class="categoria-btn">ROPA</button>
+                <button onclick="generarEtiquetasPorCategoria('calzados')" class="categoria-btn">CALZADOS</button>
+                <button onclick="generarEtiquetasPorCategoria('charcuteria')" class="categoria-btn">CHARCUTERÍA</button>
+                <button onclick="generarEtiquetasPorCategoria('carnes')" class="categoria-btn">CARNES</button>
+                <button onclick="generarEtiquetasPorCategoria('otros')" class="categoria-btn">OTROS</button>
+            </div>
         </div>
     </div>
 
