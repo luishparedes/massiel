@@ -201,8 +201,6 @@ p { margin: 12px 0; color: #333; line-height: 1.5; }
 #listaProductos button.generar-pdf:hover { background: linear-gradient(to right, #007bb5, #00acc1); }
 #listaProductos button.lista-costos { background: linear-gradient(to right, #9c27b0, #ab47bc); margin-top: 15px; }
 #listaProductos button.lista-costos:hover { background: linear-gradient(to right, #7b1fa2, #8e24aa); }
-#listaProductos button.generar-respaldo { background: linear-gradient(to right, #607d8b, #78909c); margin-top: 15px; }
-#listaProductos button.generar-respaldo:hover { background: linear-gradient(to right, #455a64, #546e7a); }
 
 /* NUEVOS BOTONES PARA INNOVACIONES */
 #listaProductos button.generar-pdf-categoria { 
