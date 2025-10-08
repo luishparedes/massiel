@@ -1191,33 +1191,6 @@ function generarReporteDiario() {
     doc.save(`reporte_diario_${(new Date()).toISOString().slice(0,10)}.pdf`);
 }
 
-// ===== PDF LISTA DE PRODUCTOS (orden alfabético, $ and Bs with ganancia) =====
-function generarRespaldoCompleto() {
-    if (!productos.length) { showToast("No hay productos para generar PDF", 'warning'); return; }
-
-    const copia = [...productos].sort((a, b) => (a.nombre || '').localeCompare((b.nombre || ''), 'es', { sensitivity: 'base' }));
-    const rows = copia.map(p => [
-        p.nombre,
-        p.descripcion,
-        `$${p.precioUnitarioDolar.toFixed(2)}`,
-        `Bs ${p.precioUnitarioBolivar.toFixed(2)}`
-    ]);
-
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    doc.setFontSize(14);
-    doc.text(nombreEstablecimiento || 'Lista de Productos', 14, 18);
-
-    doc.autoTable({
-        head: [['Producto', 'Descripción', 'Precio ($)', 'Precio (Bs)']],
-        body: rows,
-        startY: 28,
-        styles: { fontSize: 9 }
-    });
-
-    doc.save(`lista_productos_${(new Date()).toISOString().slice(0,10)}.pdf`);
-}
-
 // ===== NUEVAS FUNCIONALIDADES INNOVADORAS =====
 
 // ===== PDF POR CATEGORÍA =====
@@ -1263,6 +1236,12 @@ function generarPDFPorCategoria(categoria) {
             'calzados': 'CALZADOS',
             'charcuteria': 'CHARCUTERÍA',
             'carnes': 'CARNES',
+            'aseo_personal': 'ASEO PERSONAL',
+            'limpieza': 'PRODUCTOS DE LIMPIEZA',
+            'verduras': 'VERDURAS',
+            'frutas': 'FRUTAS',
+            'hortalizas': 'HORTALIZAS',
+            'aliños': 'ALIÑOS',
             'otros': 'OTROS'
         };
         
@@ -1351,6 +1330,12 @@ function generarEtiquetasPorCategoria(categoria) {
             'calzados': 'CALZADOS',
             'charcuteria': 'CHARCUTERÍA',
             'carnes': 'CARNES',
+            'aseo_personal': 'ASEO PERSONAL',
+            'limpieza': 'PRODUCTOS DE LIMPIEZA',
+            'verduras': 'VERDURAS',
+            'frutas': 'FRUTAS',
+            'hortalizas': 'HORTALIZAS',
+            'aliños': 'ALIÑOS',
             'otros': 'OTROS'
         };
         
