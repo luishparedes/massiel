@@ -204,6 +204,23 @@ p { margin: 12px 0; color: #333; line-height: 1.5; }
 #listaProductos button.generar-respaldo { background: linear-gradient(to right, #607d8b, #78909c); margin-top: 15px; }
 #listaProductos button.generar-respaldo:hover { background: linear-gradient(to right, #455a64, #546e7a); }
 
+/* NUEVOS BOTONES PARA INNOVACIONES */
+#listaProductos button.generar-pdf-categoria { 
+    background: linear-gradient(to right, #9c27b0, #ab47bc); 
+    margin-top: 15px; 
+}
+#listaProductos button.generar-pdf-categoria:hover { 
+    background: linear-gradient(to right, #7b1fa2, #8e24aa); 
+}
+
+#listaProductos button.generar-etiquetas { 
+    background: linear-gradient(to right, #ff9800, #ffa726); 
+    margin-top: 15px; 
+}
+#listaProductos button.generar-etiquetas:hover { 
+    background: linear-gradient(to right, #f57c00, #fb8c00); 
+}
+
 /* lista costos */
 #listaCostosContainer { width: 100%; background-color: #f9f9f9; padding: 25px; border-radius: 15px; margin-top: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
 #listaCostos { list-style-type: none; padding: 0; }
@@ -317,4 +334,51 @@ p { margin: 12px 0; color: #333; line-height: 1.5; }
     background: linear-gradient(to right, #1976D2, #0288D1);
     transform: translateY(-2px);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* ===== NUEVOS ESTILOS PARA INNOVACIONES ===== */
+
+/* Modal de categorías */
+.categorias-lista {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.categoria-btn {
+    background: linear-gradient(to right, #26c6da, #00acc1);
+    color: white;
+    border: none;
+    padding: 12px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.categoria-btn:hover {
+    background: linear-gradient(to right, #00acc1, #0097a7);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* Botones de acción mejorados */
+.action-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    margin-top: 20px;
+}
+
+/* Responsive para modales de categorías */
+@media (max-width: 768px) {
+    .categorias-lista {
+        grid-template-columns: 1fr;
+    }
+    
+    .action-buttons {
+        grid-template-columns: 1fr;
+    }
 }
