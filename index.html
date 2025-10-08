@@ -73,6 +73,12 @@
                 <option value="calzados">Calzados</option>
                 <option value="charcuteria">Charcutería</option>
                 <option value="carnes">Carnes</option>
+                <option value="aseo_personal">Aseo Personal</option>
+                <option value="limpieza">Productos de Limpieza</option>
+                <option value="verduras">Verduras</option>
+                <option value="frutas">Frutas</option>
+                <option value="hortalizas">Hortalizas</option>
+                <option value="aliños">Aliños</option>
                 <option value="otros">Otros</option>
             </select>
         </section>
@@ -113,7 +119,6 @@
         <div class="action-buttons">
             <button onclick="generarReporteDiario()" class="generar-pdf">Generar Reporte Diario</button>
             <button onclick="mostrarListaCostos()" class="lista-costos">Mostrar Lista de Costos</button>
-            <button onclick="generarRespaldoCompleto()" class="generar-respaldo">PDF LISTA PRODUCTOS</button>
             <button onclick="mostrarOpcionesPDF()" class="generar-pdf-categoria">PDF POR CATEGORÍA</button>
             <button onclick="generarEtiquetasAnaqueles()" class="generar-etiquetas">ETIQUETAS ANAQUELES</button>
         </div>
@@ -131,7 +136,7 @@
     </div>
 
     <!-- Modal para selección de categorías PDF -->
-    <div id="modalCategorias" class="modal">
+    <div id="modalCategorias" class="modal" style="display: none;">
         <div class="modal-content">
             <span class="close" onclick="cerrarModalCategorias()">&times;</span>
             <h3>Generar PDF por Categoría</h3>
@@ -154,13 +159,19 @@
                 <button onclick="generarPDFPorCategoria('calzados')" class="categoria-btn">CALZADOS</button>
                 <button onclick="generarPDFPorCategoria('charcuteria')" class="categoria-btn">CHARCUTERÍA</button>
                 <button onclick="generarPDFPorCategoria('carnes')" class="categoria-btn">CARNES</button>
+                <button onclick="generarPDFPorCategoria('aseo_personal')" class="categoria-btn">ASEO PERSONAL</button>
+                <button onclick="generarPDFPorCategoria('limpieza')" class="categoria-btn">PRODUCTOS DE LIMPIEZA</button>
+                <button onclick="generarPDFPorCategoria('verduras')" class="categoria-btn">VERDURAS</button>
+                <button onclick="generarPDFPorCategoria('frutas')" class="categoria-btn">FRUTAS</button>
+                <button onclick="generarPDFPorCategoria('hortalizas')" class="categoria-btn">HORTALIZAS</button>
+                <button onclick="generarPDFPorCategoria('aliños')" class="categoria-btn">ALIÑOS</button>
                 <button onclick="generarPDFPorCategoria('otros')" class="categoria-btn">OTROS</button>
             </div>
         </div>
     </div>
 
     <!-- Modal para selección de categorías etiquetas -->
-    <div id="modalEtiquetas" class="modal">
+    <div id="modalEtiquetas" class="modal" style="display: none;">
         <div class="modal-content">
             <span class="close" onclick="cerrarModalEtiquetas()">&times;</span>
             <h3>Generar Etiquetas para Anaqueles</h3>
@@ -183,6 +194,12 @@
                 <button onclick="generarEtiquetasPorCategoria('calzados')" class="categoria-btn">CALZADOS</button>
                 <button onclick="generarEtiquetasPorCategoria('charcuteria')" class="categoria-btn">CHARCUTERÍA</button>
                 <button onclick="generarEtiquetasPorCategoria('carnes')" class="categoria-btn">CARNES</button>
+                <button onclick="generarEtiquetasPorCategoria('aseo_personal')" class="categoria-btn">ASEO PERSONAL</button>
+                <button onclick="generarEtiquetasPorCategoria('limpieza')" class="categoria-btn">PRODUCTOS DE LIMPIEZA</button>
+                <button onclick="generarEtiquetasPorCategoria('verduras')" class="categoria-btn">VERDURAS</button>
+                <button onclick="generarEtiquetasPorCategoria('frutas')" class="categoria-btn">FRUTAS</button>
+                <button onclick="generarEtiquetasPorCategoria('hortalizas')" class="categoria-btn">HORTALIZAS</button>
+                <button onclick="generarEtiquetasPorCategoria('aliños')" class="categoria-btn">ALIÑOS</button>
                 <button onclick="generarEtiquetasPorCategoria('otros')" class="categoria-btn">OTROS</button>
             </div>
         </div>
