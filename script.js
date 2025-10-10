@@ -302,12 +302,19 @@ function configurarEventos() {
             });
         });
 
-        // Focus automático mejorado
+        // Focus automático mejorado - EXCLUIR CAMPOS DE CONFIGURACIÓN
         codigoInput.addEventListener('blur', function() {
-            // Recuperar focus después de un breve momento
+            // Recuperar focus después de un breve momento, pero solo si no estamos en campos de configuración
             setTimeout(() => {
-                if (!document.activeElement || 
-                    !document.activeElement.matches('button, input[type="text"], select, textarea')) {
+                const activeElement = document.activeElement;
+                const esCampoConfiguracion = activeElement && 
+                    (activeElement.id === 'tasaBCV' || 
+                     activeElement.id === 'nombreEstablecimiento' ||
+                     activeElement.closest('.config-section'));
+                
+                if (!esCampoConfiguracion && 
+                    (!activeElement || 
+                     !activeElement.matches('button, input[type="text"], select, textarea'))) {
                     codigoInput.focus();
                 }
             }, 100);
@@ -321,6 +328,22 @@ function configurarEventos() {
             codigoInput.select();
         }
     }, 500);
+
+    // PREVENIR QUE EL CAMPOS DE CONFIGURACIÓN ACTIVEN EL REDIRECCIONAMIENTO DEL ESCÁNER
+    const camposConfiguracion = ['tasaBCV', 'nombreEstablecimiento'];
+    camposConfiguracion.forEach(id => {
+        const campo = document.getElementById(id);
+        if (campo) {
+            campo.addEventListener('focus', function() {
+                // Desactivar temporalmente el comportamiento del escáner
+                this.setAttribute('data-scanning-disabled', 'true');
+            });
+            campo.addEventListener('blur', function() {
+                // Reactivar el comportamiento del escáner
+                this.removeAttribute('data-scanning-disabled');
+            });
+        }
+    });
 }
 
 // ===== BUSCADOR RÁPIDO (input del carrito con sugerencias) =====
@@ -753,7 +776,7 @@ function buscarProducto() {
         row.innerHTML = `
             <td>${producto.nombre}</td>
             <td>${producto.descripcion}</td>
-            <td>${producto.codigoBarras || 'N/A'}</td>
+            <td>${producto.codigoBarras || 'N/A'}}</td>
             <td class="${inventarioBajo ? 'inventario-bajo' : ''}">${producto.unidadesExistentes}</td>
             <td>
                 <div class="ajuste-inventario">
