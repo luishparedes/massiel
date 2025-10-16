@@ -12,6 +12,7 @@ let productosFiltrados = [];
 // === VARIABLES PARA ESCÁNER MEJORADO ===
 let tiempoUltimaTecla = 0;
 let bufferEscaneo = '';
+let focusActivo = false; // Controlar si el focus está activo
 
 // ===== DETECCIÓN DE DISPOSITIVO MÓVIL =====
 const esMovil = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -31,28 +32,25 @@ document.addEventListener('DOMContentLoaded', function() {
     actualizarCarrito();
     configurarEventosMovil();
     
-    // Focus automático en escáner
+    // Focus automático en escáner SOLO si es móvil y no hay interacción previa
     setTimeout(() => {
-        const codigoInput = document.getElementById('codigoBarrasInput');
-        if (codigoInput && esMovil) {
-            codigoInput.focus();
+        if (esMovil && !focusActivo) {
+            activarFocusEscanner();
         }
-    }, 1000);
+    }, 1500);
 });
 
 // ===== CONFIGURACIÓN DE VIEWPORT DINÁMICA =====
 function configurarViewport() {
     const viewport = document.querySelector('meta[name="viewport"]');
     if (esMovil && !esTablet) {
-        // Para móviles: prevenir zoom pero permitir interacción táctil
         viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
     } else if (esTablet) {
-        // Para tablets: permitir algo de zoom
         viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes');
     }
 }
 
-// ===== CONFIGURACIÓN DE EVENTOS PARA MÓVIL =====
+// ===== CONFIGURACIÓN DE EVENTOS PARA MÓVIL CORREGIDA =====
 function configurarEventosMovil() {
     // Búsqueda con enter
     const buscarInput = document.getElementById('buscar');
@@ -60,9 +58,24 @@ function configurarEventosMovil() {
         buscarInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') buscarProducto();
         });
+        
+        // Prevenir que el focus del buscador active el escáner
+        buscarInput.addEventListener('focus', function() {
+            focusActivo = true;
+            desactivarFocusEscanner();
+        });
+        
+        buscarInput.addEventListener('blur', function() {
+            setTimeout(() => {
+                if (!document.activeElement || document.activeElement.tagName === 'BODY') {
+                    focusActivo = false;
+                    reactivarFocusEscanner();
+                }
+            }, 500);
+        });
     }
 
-    // ESCÁNER OPTIMIZADO PARA MÓVIL
+    // ESCÁNER OPTIMIZADO PARA MÓVIL - CORREGIDO
     const codigoInput = document.getElementById('codigoBarrasInput');
     if (codigoInput) {
         // Evento input para sugerencias
@@ -76,21 +89,32 @@ function configurarEventosMovil() {
             manejarEntradaEscaneo(e);
         });
 
-        // Focus mejorado para móvil
+        // Focus mejorado para móvil - CORREGIDO
+        codigoInput.addEventListener('focus', function() {
+            focusActivo = true;
+        });
+
         codigoInput.addEventListener('blur', function() {
-            if (esMovil) {
-                setTimeout(() => {
-                    const activeElement = document.activeElement;
-                    const esCampoConfiguracion = activeElement && 
-                        (activeElement.id === 'tasaBCV' || 
-                         activeElement.id === 'nombreEstablecimiento' ||
-                         activeElement.closest('.config-section'));
-                    
-                    if (!esCampoConfiguracion) {
-                        this.focus();
-                    }
-                }, 300);
-            }
+            // Solo reactivar el focus si el usuario no ha interactuado con otros campos
+            setTimeout(() => {
+                const activeElement = document.activeElement;
+                const esCampoConfiguracion = activeElement && 
+                    (activeElement.id === 'tasaBCV' || 
+                     activeElement.id === 'nombreEstablecimiento' ||
+                     activeElement.id === 'buscar' ||
+                     activeElement.id === 'producto' ||
+                     activeElement.id === 'codigoBarras' ||
+                     activeElement.id === 'costo' ||
+                     activeElement.id === 'ganancia' ||
+                     activeElement.id === 'unidadesPorCaja' ||
+                     activeElement.id === 'unidadesExistentes' ||
+                     activeElement.closest('.config-section'));
+                
+                if (!esCampoConfiguracion && !activeElement) {
+                    focusActivo = false;
+                    reactivarFocusEscanner();
+                }
+            }, 1000);
         });
 
         // Evento táctil para limpiar sugerencias
@@ -100,6 +124,35 @@ function configurarEventosMovil() {
             }
         });
     }
+
+    // PROTEGER TODOS LOS CAMPOS DE CONFIGURACIÓN
+    const camposConfiguracion = [
+        'tasaBCV', 'nombreEstablecimiento', 'producto', 'codigoBarras', 
+        'costo', 'ganancia', 'unidadesPorCaja', 'unidadesExistentes', 'descripcion'
+    ];
+    
+    camposConfiguracion.forEach(id => {
+        const campo = document.getElementById(id);
+        if (campo) {
+            campo.addEventListener('focus', function() {
+                focusActivo = true;
+                desactivarFocusEscanner();
+            });
+            
+            campo.addEventListener('blur', function() {
+                setTimeout(() => {
+                    const activeElement = document.activeElement;
+                    if (!activeElement || 
+                        (activeElement.tagName !== 'INPUT' && 
+                         activeElement.tagName !== 'SELECT' && 
+                         activeElement.tagName !== 'TEXTAREA')) {
+                        focusActivo = false;
+                        reactivarFocusEscanner();
+                    }
+                }, 500);
+            });
+        }
+    });
 
     // Prevenir comportamiento por defecto en formularios
     document.addEventListener('touchstart', function(e) {
@@ -132,14 +185,42 @@ function configurarEventosMovil() {
         // Swipe izquierda/derecha para navegar entre secciones
         if (Math.abs(diffX) > 50 && Math.abs(diffY) < 50) {
             if (diffX > 0) {
-                // Swipe izquierda - ir a carrito
                 scrollToSection('carrito');
             } else {
-                // Swipe derecha - ir a productos
                 scrollToSection('productos');
             }
         }
     });
+}
+
+// ===== FUNCIONES DE CONTROL DE FOCUS MEJORADAS =====
+function activarFocusEscanner() {
+    const codigoInput = document.getElementById('codigoBarrasInput');
+    if (codigoInput && !focusActivo && esMovil) {
+        try {
+            codigoInput.focus();
+            // Solo seleccionar texto si está vacío
+            if (!codigoInput.value) {
+                codigoInput.setSelectionRange(0, 0);
+            }
+        } catch (error) {
+            console.log('Error al activar focus:', error);
+        }
+    }
+}
+
+function desactivarFocusEscanner() {
+    focusActivo = true;
+    const codigoInput = document.getElementById('codigoBarrasInput');
+    if (codigoInput) {
+        codigoInput.blur();
+    }
+}
+
+function reactivarFocusEscanner() {
+    if (!focusActivo && esMovil) {
+        setTimeout(activarFocusEscanner, 500);
+    }
 }
 
 // ===== MANEJO DE ESCANEO MEJORADO PARA MÓVIL =====
@@ -184,7 +265,7 @@ function mostrarSugerencias(termino) {
     const coincidencias = productos.filter(p =>
         (p.nombre || p.producto || '').toLowerCase().includes(termino) ||
         (p.codigoBarras && p.codigoBarras.toLowerCase().includes(termino))
-    ).slice(0, 6); // Menos resultados en móvil
+    ).slice(0, 6);
 
     if (coincidencias.length === 0) {
         const noResults = document.createElement('div');
@@ -205,7 +286,6 @@ function mostrarSugerencias(termino) {
             <div class="precio-sugerencia">Bs ${prod.precioUnitarioBolivar?.toFixed(2) || '0.00'}</div>
         `;
         
-        // Evento táctil mejorado
         opcion.addEventListener('touchstart', function(e) {
             e.preventDefault();
             this.style.backgroundColor = '#f0f0f0';
@@ -217,7 +297,7 @@ function mostrarSugerencias(termino) {
             agregarProductoAlCarrito(prod);
             sugerenciasDiv.innerHTML = '';
             document.getElementById('codigoBarrasInput').value = '';
-            document.getElementById('codigoBarrasInput').focus();
+            // No forzar focus automático después de seleccionar sugerencia
         });
         
         sugerenciasDiv.appendChild(opcion);
@@ -241,7 +321,7 @@ function scrollToSection(seccion) {
     
     const element = document.querySelector(sections[seccion]);
     if (element) {
-        const yOffset = -80; // Offset para navbar flotante
+        const yOffset = -80;
         const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
         
         window.scrollTo({
@@ -249,7 +329,6 @@ function scrollToSection(seccion) {
             behavior: 'smooth'
         });
         
-        // Feedback visual
         element.style.boxShadow = '0 0 0 3px rgba(38, 198, 218, 0.5)';
         setTimeout(() => {
             element.style.boxShadow = '';
@@ -280,7 +359,7 @@ function scrollToSection(seccion) {
 })();
 
 // ===== SISTEMA DE INACTIVIDAD MEJORADO =====
-const TIEMPO_INACTIVIDAD = 5 * 60 * 1000; // 5 minutos
+const TIEMPO_INACTIVIDAD = 5 * 60 * 1000;
 const URL_REDIRECCION = "http://portal.calculadoramagica.lat/";
 
 let temporizadorInactividad;
@@ -361,15 +440,12 @@ function showToast(message, type = 'success', duration = 3000) {
     
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    toast.textContent = message;
     
-    // Icono según tipo
     const icon = type === 'success' ? '✓' : type === 'error' ? '✗' : '⚠';
     toast.innerHTML = `<span class="toast-icon">${icon}</span> ${message}`;
     
     container.appendChild(toast);
     
-    // Auto-eliminar
     setTimeout(() => {
         toast.style.opacity = '0';
         toast.style.transform = 'translateY(20px)';
@@ -420,7 +496,6 @@ function guardarProducto() {
     const unidadesExistentesInput = parseFloat(document.getElementById('unidadesExistentes').value) || 0;
     const tasaBCV = parseFloat(document.getElementById('tasaBCV').value) || tasaBCVGuardada;
 
-    // Validaciones
     if (!nombre || !descripcion) { 
         showToast("Complete nombre y descripción", 'error'); 
         return; 
@@ -434,7 +509,6 @@ function guardarProducto() {
         return; 
     }
 
-    // Validar código único
     if (codigoBarras && productoEditando === null) {
         const codigoExistente = productos.findIndex(p => 
             p.codigoBarras && p.codigoBarras.toLowerCase() === codigoBarras.toLowerCase()
@@ -445,7 +519,6 @@ function guardarProducto() {
         }
     }
 
-    // Calcular precios
     const gananciaDecimal = ganancia / 100;
     const precioDolar = costo / (1 - gananciaDecimal);
     const precioBolivares = precioDolar * tasaBCV;
@@ -467,7 +540,6 @@ function guardarProducto() {
         fechaActualizacion: new Date().toISOString()
     };
 
-    // Guardar o actualizar
     let productoExistenteIndex = productoEditando !== null ? productoEditando : 
         productos.findIndex(p => (p.nombre || p.producto || '').toLowerCase() === nombre.toLowerCase());
 
@@ -482,7 +554,6 @@ function guardarProducto() {
     localStorage.setItem('productos', JSON.stringify(productos));
     actualizarLista();
 
-    // Limpiar formulario
     document.getElementById('producto').value = '';
     document.getElementById('codigoBarras').value = '';
     document.getElementById('costo').value = '';
@@ -514,7 +585,6 @@ function editarProducto(index) {
     const producto = productos[indiceReal];
     if (!producto) return;
 
-    // Llenar formulario
     document.getElementById('producto').value = producto.nombre || '';
     document.getElementById('codigoBarras').value = producto.codigoBarras || '';
     document.getElementById('descripcion').value = producto.descripcion || '';
@@ -523,7 +593,6 @@ function editarProducto(index) {
     document.getElementById('unidadesPorCaja').value = producto.unidadesPorCaja || '';
     document.getElementById('unidadesExistentes').value = producto.unidadesExistentes || '';
     
-    // Mostrar precio
     const tasaBCV = parseFloat(document.getElementById('tasaBCV').value) || tasaBCVGuardada;
     if (tasaBCV > 0) {
         const precioUnitarioDolar = producto.precioUnitarioDolar;
@@ -536,7 +605,6 @@ function editarProducto(index) {
     productoEditando = indiceReal;
     showToast(`Editando: ${producto.nombre}`, 'success');
     
-    // Scroll al formulario
     scrollToSection('calculator');
 }
 
@@ -547,7 +615,6 @@ function procesarEscaneo(codigo) {
         return;
     }
 
-    // Buscar producto
     let productoEncontrado = productos.find(p =>
         p.codigoBarras && p.codigoBarras.toLowerCase() === codigo.toLowerCase()
     );
@@ -578,12 +645,10 @@ function agregarProductoAlCarrito(producto) {
     );
 
     if (enCarrito !== -1) {
-        // Actualizar cantidad
         carrito[enCarrito].cantidad += 1;
         carrito[enCarrito].subtotal = redondear2Decimales(carrito[enCarrito].cantidad * carrito[enCarrito].precioUnitarioBolivar);
         carrito[enCarrito].subtotalDolar = redondear2Decimales(carrito[enCarrito].cantidad * carrito[enCarrito].precioUnitarioDolar);
     } else {
-        // Agregar nuevo
         carrito.push({
             nombre: producto.nombre,
             descripcion: producto.descripcion,
@@ -597,17 +662,15 @@ function agregarProductoAlCarrito(producto) {
         });
     }
 
-    // Feedback visual
     const codigoInput = document.getElementById('codigoBarrasInput');
     if (codigoInput) {
         codigoInput.value = '';
-        if (esMovil) codigoInput.focus();
+        // NO forzar focus automáticamente después de agregar producto
     }
 
     const scannerStatus = document.getElementById('scannerStatus');
     if (scannerStatus) scannerStatus.textContent = '✓ Producto agregado';
 
-    // Efecto visual en el carrito
     const carritoElement = document.querySelector('.carrito-ventas');
     carritoElement.style.transform = 'scale(1.02)';
     setTimeout(() => {
@@ -822,7 +885,7 @@ function cerrarModalPago() {
     detallesPago = {};
 }
 
-// ===== FUNCIONES ADICIONALES (se mantienen igual pero optimizadas) =====
+// ===== FUNCIONES ADICIONALES =====
 function guardarNombreEstablecimiento() {
     nombreEstablecimiento = document.getElementById('nombreEstablecimiento').value.trim();
     if (!nombreEstablecimiento) { 
@@ -844,7 +907,6 @@ function actualizarTasaBCV() {
     tasaBCVGuardada = nuevaTasa;
     localStorage.setItem('tasaBCV', tasaBCVGuardada);
 
-    // Recalcular precios
     productos.forEach(producto => {
         producto.precioUnitarioBolivar = producto.precioUnitarioDolar * nuevaTasa;
         producto.precioMayorBolivar = producto.precioMayorDolar * nuevaTasa;
@@ -862,11 +924,6 @@ function toggleCopyrightNotice() {
     notice.style.display = notice.style.display === 'block' ? 'none' : 'block';
 }
 
-// ===== FUNCIONES DE LAS OTRAS SECCIONES (se mantienen igual) =====
-// ... (aquí irían las funciones restantes como mostrarListaCostos, generarPDFCostos, 
-// generarReporteDiario, generarPDFPorCategoria, generarEtiquetasAnaqueles, etc.)
-// Se mantienen igual que en tu código original pero optimizadas para móvil
-
 // Cerrar modales al hacer clic fuera
 window.onclick = function(event) {
     const modales = ['modalPago', 'modalCategorias', 'modalEtiquetas'];
@@ -878,19 +935,11 @@ window.onclick = function(event) {
     });
 };
 
-// Prevenir comportamiento por defecto en enlaces
-document.addEventListener('touchstart', function(e) {
-    if (e.target.tagName === 'A') {
-        e.preventDefault();
-    }
-}, { passive: false });
-
 // Manejar la visibilidad de la página
 document.addEventListener('visibilitychange', function() {
     if (document.hidden) {
-        // Página no visible, podrías pausar temporizadores
+        // Página no visible
     } else {
-        // Página visible again
         registrarActividad();
     }
 });
@@ -900,4 +949,4 @@ window.addEventListener('beforeunload', function() {
     localStorage.setItem('ultimaActividad', Date.now().toString());
 });
 
-console.log('Calculadora Mágica - JavaScript móvil cargado');
+console.log('Calculadora Mágica - JavaScript móvil optimizado cargado');
