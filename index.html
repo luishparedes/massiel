@@ -2,7 +2,9 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
     <meta http-equiv="Pragma" content="no-cache"/>
     <meta http-equiv="Expires" content="0"/>
@@ -26,112 +28,164 @@
         Cualquier uso no autorizado será penalizado según las leyes aplicables.
     </div>
 
-    <div class="calculator">
-        <h2>Calculadora Mágica</h2>
+    <!-- Contenedor principal responsive -->
+    <div class="main-container">
+        <div class="calculator">
+            <h2>Calculadora Mágica</h2>
 
-        <!-- Sección para respaldo/restauración de datos -->
-        <section>
-            <h3>Respaldo y Restauración de Datos</h3>
-            <button onclick="descargarBackup()" class="backup-button">Descargar Respaldo</button>
-            <button onclick="document.getElementById('fileInput').click()" class="restore-button">Cargar Respaldo</button>
-            <input type="file" id="fileInput" accept=".json" style="display: none" onchange="cargarBackup(this.files)" />
-        </section>
+            <!-- Sección para respaldo/restauración de datos -->
+            <section class="config-section">
+                <h3>Respaldo y Restauración</h3>
+                <div class="button-group-mobile">
+                    <button onclick="descargarBackup()" class="backup-button">Descargar Respaldo</button>
+                    <button onclick="document.getElementById('fileInput').click()" class="restore-button">Cargar Respaldo</button>
+                    <input type="file" id="fileInput" accept=".json" style="display: none" onchange="cargarBackup(this.files)" />
+                </div>
+            </section>
 
-        <section>
-            <h3>Nombre del Establecimiento</h3>
-            <input type="text" id="nombreEstablecimiento" placeholder="Ej: Tienda La Bendición" />
-            <button onclick="guardarNombreEstablecimiento()">Guardar Nombre</button>
-        </section>
+            <section class="config-section">
+                <h3>Nombre del Establecimiento</h3>
+                <input type="text" id="nombreEstablecimiento" placeholder="Ej: Tienda La Bendición" />
+                <button onclick="guardarNombreEstablecimiento()" class="mobile-btn">Guardar Nombre</button>
+            </section>
 
-        <section>
-            <h3>Tasa BCV</h3>
-            <input type="number" id="tasaBCV" placeholder="Tasa BCV" required />
-            <button onclick="actualizarTasaBCV()">Actualizar Tasa BCV</button>
-        </section>
+            <section class="config-section">
+                <h3>Tasa BCV</h3>
+                <input type="number" id="tasaBCV" placeholder="Tasa BCV" required />
+                <button onclick="actualizarTasaBCV()" class="mobile-btn">Actualizar Tasa BCV</button>
+            </section>
 
-        <section>
-            <h3>Datos del Producto</h3>
-            <input type="text" id="producto" placeholder="Nombre del producto" required />
-            <input type="text" id="codigoBarras" placeholder="Código de barras (opcional)" />
-            <input type="number" id="costo" placeholder="Costo del producto (en $)" required />
-            <select id="descripcion" required>
-                <option value="">Selecciona una descripción</option>
-                <option value="viveres">Víveres</option>
-                <option value="bebidas">Bebidas</option>
-                <option value="licores">Licores</option>
-                <option value="enlatados">Enlatados</option>
-                <option value="plasticos">Plásticos</option>
-                <option value="papeleria">Papelería</option>
-                <option value="lacteos">Lácteos</option>
-                <option value="ferreteria">Ferretería</option>
-                <option value="agropecuaria">Agropecuaria</option>
-                <option value="frigorifico">Frigorífico</option>
-                <option value="pescaderia">Pescadería</option>
-                <option value="repuesto">Repuesto</option>
-                <option value="confiteria">Confitería</option>
-                <option value="ropa">Ropa</option>
-                <option value="calzados">Calzados</option>
-                <option value="charcuteria">Charcutería</option>
-                <option value="carnes">Carnes</option>
-                <option value="aseo_personal">Aseo Personal</option>
-                <option value="limpieza">Productos de Limpieza</option>
-                <option value="verduras">Verduras</option>
-                <option value="frutas">Frutas</option>
-                <option value="hortalizas">Hortalizas</option>
-                <option value="aliños">Aliños</option>
-                <option value="otros">Otros</option>
-            </select>
-        </section>
+            <section class="product-section">
+                <h3>Datos del Producto</h3>
+                <input type="text" id="producto" placeholder="Nombre del producto" required />
+                <input type="text" id="codigoBarras" placeholder="Código de barras (opcional)" />
+                <input type="number" id="costo" placeholder="Costo del producto (en $)" required />
+                <select id="descripcion" required class="mobile-select">
+                    <option value="">Selecciona una descripción</option>
+                    <option value="viveres">Víveres</option>
+                    <option value="bebidas">Bebidas</option>
+                    <option value="licores">Licores</option>
+                    <option value="enlatados">Enlatados</option>
+                    <option value="plasticos">Plásticos</option>
+                    <option value="papeleria">Papelería</option>
+                    <option value="lacteos">Lácteos</option>
+                    <option value="ferreteria">Ferretería</option>
+                    <option value="agropecuaria">Agropecuaria</option>
+                    <option value="frigorifico">Frigorífico</option>
+                    <option value="pescaderia">Pescadería</option>
+                    <option value="repuesto">Repuesto</option>
+                    <option value="confiteria">Confitería</option>
+                    <option value="ropa">Ropa</option>
+                    <option value="calzados">Calzados</option>
+                    <option value="charcuteria">Charcutería</option>
+                    <option value="carnes">Carnes</option>
+                    <option value="aseo_personal">Aseo Personal</option>
+                    <option value="limpieza">Productos de Limpieza</option>
+                    <option value="verduras">Verduras</option>
+                    <option value="frutas">Frutas</option>
+                    <option value="hortalizas">Hortalizas</option>
+                    <option value="aliños">Aliños</option>
+                    <option value="otros">Otros</option>
+                </select>
+            </section>
 
-        <section>
-            <h3>Precio de Venta</h3>
-            <input type="number" id="ganancia" placeholder="Porcentaje de ganancia" required />
-            <input type="number" id="unidadesPorCaja" placeholder="Unidades que trae la caja (ej: 1 para Queso en kg)" required />
-            <input type="number" id="unidadesExistentes" placeholder="Unidades existentes (ej: 50 si tienes 50 kg)" required />
-            <button onclick="calcularPrecioVenta()">Calcular Precio de Venta</button>
-            <p id="precioUnitario">Precio unitario: </p>
-        </section>
+            <section class="price-section">
+                <h3>Precio de Venta</h3>
+                <input type="number" id="ganancia" placeholder="Porcentaje de ganancia" required />
+                <input type="number" id="unidadesPorCaja" placeholder="Unidades por caja" required />
+                <input type="number" id="unidadesExistentes" placeholder="Unidades existentes" required />
+                <button onclick="calcularPrecioVenta()" class="mobile-btn">Calcular Precio</button>
+                <p id="precioUnitario">Precio unitario: </p>
+            </section>
 
-        <button onclick="guardarProducto()">Guardar Producto</button>
-    </div>
-
-    <div id="listaProductos">
-        <input type="text" id="buscar" placeholder="Buscar producto" />
-        <button onclick="buscarProducto()">Buscar</button>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Producto</th>
-                    <th>Descripción</th>
-                    <th>Código Barras</th>
-                    <th>Existencias</th>
-                    <th>Ajustar Inventario</th>
-                    <th>Precio Unitario ($)</th>
-                    <th>Precio Unitario (Bs)</th>
-                    <th>Ganancia (%)</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-
-        <div class="action-buttons">
-            <button onclick="generarReporteDiario()" class="generar-pdf">Generar Reporte Diario</button>
-            <button onclick="mostrarListaCostos()" class="lista-costos">Mostrar Lista de Costos</button>
-            <button onclick="mostrarOpcionesPDF()" class="generar-pdf-categoria">PDF POR CATEGORÍA</button>
-            <button onclick="generarEtiquetasAnaqueles()" class="generar-etiquetas">ETIQUETAS ANAQUELES</button>
+            <button onclick="guardarProducto()" class="main-button mobile-btn">Guardar Producto</button>
         </div>
 
-        <div id="listaCostosContainer" style="display: none;">
-            <div class="costos-header">
-                <h3>Lista de Costos de Productos</h3>
-                <div>
-                    <input type="text" id="buscarCostos" placeholder="Buscar en lista de costos" style="display:none" oninput="filtrarListaCostos()" />
-                    <button onclick="generarPDFCostos()" class="generar-pdf-costos">Convertir a PDF</button>
+        <!-- CARRITO DE VENTAS - Ahora más accesible en móvil -->
+        <div class="carrito-ventas">
+            <h2>Carrito de Ventas</h2>
+
+            <div class="carrito-header">
+                <div class="scanner-input">
+                    <input type="text" id="codigoBarrasInput" placeholder="Escanea o ingresa código/nombre" />
+                    <button onclick="agregarPorCodigoBarras()" class="mobile-btn">Agregar</button>
+
+                    <div id="sugerencias" class="sugerencias-lista" aria-live="polite"></div>
+                </div>
+
+                <div class="scanner-status" id="scannerStatus">
+                    Esperando escaneo...
+                </div>
+
+                <div class="carrito-totales">
+                    <div class="carrito-total" id="totalCarritoBs">
+                        Total: Bs 0,00
+                    </div>
+                    <div class="carrito-total" id="totalCarritoDolares">
+                        Total: $ 0,00
+                    </div>
                 </div>
             </div>
-            <ul id="listaCostos"></ul>
+
+            <div class="carrito-table-container">
+                <table class="carrito-table">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Precio (Bs)</th>
+                            <th>Cantidad</th>
+                            <th>Subtotal (Bs)</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="carritoBody"></tbody>
+                </table>
+            </div>
+
+            <div class="finalizar-venta">
+               <button id="finalizarVenta" onclick="finalizarVenta()" class="mobile-btn success-btn">Finalizar venta</button>
+            </div>
+        </div>
+
+        <!-- LISTA DE PRODUCTOS -->
+        <div id="listaProductos">
+            <div class="search-section">
+                <input type="text" id="buscar" placeholder="Buscar producto" />
+                <button onclick="buscarProducto()" class="mobile-btn">Buscar</button>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Descripción</th>
+                            <th>Existencias</th>
+                            <th>Precio (Bs)</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="action-buttons">
+                <button onclick="generarReporteDiario()" class="generar-pdf mobile-btn">Reporte Diario</button>
+                <button onclick="mostrarListaCostos()" class="lista-costos mobile-btn">Lista de Costos</button>
+                <button onclick="mostrarOpcionesPDF()" class="generar-pdf-categoria mobile-btn">PDF por Categoría</button>
+                <button onclick="generarEtiquetasAnaqueles()" class="generar-etiquetas mobile-btn">Etiquetas Anaqueles</button>
+            </div>
+
+            <div id="listaCostosContainer" style="display: none;">
+                <div class="costos-header">
+                    <h3>Lista de Costos de Productos</h3>
+                    <div>
+                        <input type="text" id="buscarCostos" placeholder="Buscar en lista de costos" style="display:none" oninput="filtrarListaCostos()" />
+                        <button onclick="generarPDFCostos()" class="generar-pdf-costos mobile-btn">Convertir a PDF</button>
+                    </div>
+                </div>
+                <ul id="listaCostos"></ul>
+            </div>
         </div>
     </div>
 
@@ -141,31 +195,31 @@
             <span class="close" onclick="cerrarModalCategorias()">&times;</span>
             <h3>Generar PDF por Categoría</h3>
             <div class="categorias-lista">
-                <button onclick="generarPDFPorCategoria('todos')" class="categoria-btn">TODOS LOS PRODUCTOS</button>
-                <button onclick="generarPDFPorCategoria('viveres')" class="categoria-btn">VÍVERES</button>
-                <button onclick="generarPDFPorCategoria('bebidas')" class="categoria-btn">BEBIDAS</button>
-                <button onclick="generarPDFPorCategoria('licores')" class="categoria-btn">LICORES</button>
-                <button onclick="generarPDFPorCategoria('enlatados')" class="categoria-btn">ENLATADOS</button>
-                <button onclick="generarPDFPorCategoria('plasticos')" class="categoria-btn">PLÁSTICOS</button>
-                <button onclick="generarPDFPorCategoria('papeleria')" class="categoria-btn">PAPELERÍA</button>
-                <button onclick="generarPDFPorCategoria('lacteos')" class="categoria-btn">LÁCTEOS</button>
-                <button onclick="generarPDFPorCategoria('ferreteria')" class="categoria-btn">FERRETERÍA</button>
-                <button onclick="generarPDFPorCategoria('agropecuaria')" class="categoria-btn">AGROPECUARIA</button>
-                <button onclick="generarPDFPorCategoria('frigorifico')" class="categoria-btn">FRIGORÍFICO</button>
-                <button onclick="generarPDFPorCategoria('pescaderia')" class="categoria-btn">PESCADERÍA</button>
-                <button onclick="generarPDFPorCategoria('repuesto')" class="categoria-btn">REPUESTO</button>
-                <button onclick="generarPDFPorCategoria('confiteria')" class="categoria-btn">CONFITERÍA</button>
-                <button onclick="generarPDFPorCategoria('ropa')" class="categoria-btn">ROPA</button>
-                <button onclick="generarPDFPorCategoria('calzados')" class="categoria-btn">CALZADOS</button>
-                <button onclick="generarPDFPorCategoria('charcuteria')" class="categoria-btn">CHARCUTERÍA</button>
-                <button onclick="generarPDFPorCategoria('carnes')" class="categoria-btn">CARNES</button>
-                <button onclick="generarPDFPorCategoria('aseo_personal')" class="categoria-btn">ASEO PERSONAL</button>
-                <button onclick="generarPDFPorCategoria('limpieza')" class="categoria-btn">PRODUCTOS DE LIMPIEZA</button>
-                <button onclick="generarPDFPorCategoria('verduras')" class="categoria-btn">VERDURAS</button>
-                <button onclick="generarPDFPorCategoria('frutas')" class="categoria-btn">FRUTAS</button>
-                <button onclick="generarPDFPorCategoria('hortalizas')" class="categoria-btn">HORTALIZAS</button>
-                <button onclick="generarPDFPorCategoria('aliños')" class="categoria-btn">ALIÑOS</button>
-                <button onclick="generarPDFPorCategoria('otros')" class="categoria-btn">OTROS</button>
+                <button onclick="generarPDFPorCategoria('todos')" class="categoria-btn mobile-btn">TODOS LOS PRODUCTOS</button>
+                <button onclick="generarPDFPorCategoria('viveres')" class="categoria-btn mobile-btn">VÍVERES</button>
+                <button onclick="generarPDFPorCategoria('bebidas')" class="categoria-btn mobile-btn">BEBIDAS</button>
+                <button onclick="generarPDFPorCategoria('licores')" class="categoria-btn mobile-btn">LICORES</button>
+                <button onclick="generarPDFPorCategoria('enlatados')" class="categoria-btn mobile-btn">ENLATADOS</button>
+                <button onclick="generarPDFPorCategoria('plasticos')" class="categoria-btn mobile-btn">PLÁSTICOS</button>
+                <button onclick="generarPDFPorCategoria('papeleria')" class="categoria-btn mobile-btn">PAPELERÍA</button>
+                <button onclick="generarPDFPorCategoria('lacteos')" class="categoria-btn mobile-btn">LÁCTEOS</button>
+                <button onclick="generarPDFPorCategoria('ferreteria')" class="categoria-btn mobile-btn">FERRETERÍA</button>
+                <button onclick="generarPDFPorCategoria('agropecuaria')" class="categoria-btn mobile-btn">AGROPECUARIA</button>
+                <button onclick="generarPDFPorCategoria('frigorifico')" class="categoria-btn mobile-btn">FRIGORÍFICO</button>
+                <button onclick="generarPDFPorCategoria('pescaderia')" class="categoria-btn mobile-btn">PESCADERÍA</button>
+                <button onclick="generarPDFPorCategoria('repuesto')" class="categoria-btn mobile-btn">REPUESTO</button>
+                <button onclick="generarPDFPorCategoria('confiteria')" class="categoria-btn mobile-btn">CONFITERÍA</button>
+                <button onclick="generarPDFPorCategoria('ropa')" class="categoria-btn mobile-btn">ROPA</button>
+                <button onclick="generarPDFPorCategoria('calzados')" class="categoria-btn mobile-btn">CALZADOS</button>
+                <button onclick="generarPDFPorCategoria('charcuteria')" class="categoria-btn mobile-btn">CHARCUTERÍA</button>
+                <button onclick="generarPDFPorCategoria('carnes')" class="categoria-btn mobile-btn">CARNES</button>
+                <button onclick="generarPDFPorCategoria('aseo_personal')" class="categoria-btn mobile-btn">ASEO PERSONAL</button>
+                <button onclick="generarPDFPorCategoria('limpieza')" class="categoria-btn mobile-btn">PRODUCTOS DE LIMPIEZA</button>
+                <button onclick="generarPDFPorCategoria('verduras')" class="categoria-btn mobile-btn">VERDURAS</button>
+                <button onclick="generarPDFPorCategoria('frutas')" class="categoria-btn mobile-btn">FRUTAS</button>
+                <button onclick="generarPDFPorCategoria('hortalizas')" class="categoria-btn mobile-btn">HORTALIZAS</button>
+                <button onclick="generarPDFPorCategoria('aliños')" class="categoria-btn mobile-btn">ALIÑOS</button>
+                <button onclick="generarPDFPorCategoria('otros')" class="categoria-btn mobile-btn">OTROS</button>
             </div>
         </div>
     </div>
@@ -176,79 +230,36 @@
             <span class="close" onclick="cerrarModalEtiquetas()">&times;</span>
             <h3>Generar Etiquetas para Anaqueles</h3>
             <div class="categorias-lista">
-                <button onclick="generarEtiquetasPorCategoria('todos')" class="categoria-btn">TODOS LOS PRODUCTOS</button>
-                <button onclick="generarEtiquetasPorCategoria('viveres')" class="categoria-btn">VÍVERES</button>
-                <button onclick="generarEtiquetasPorCategoria('bebidas')" class="categoria-btn">BEBIDAS</button>
-                <button onclick="generarEtiquetasPorCategoria('licores')" class="categoria-btn">LICORES</button>
-                <button onclick="generarEtiquetasPorCategoria('enlatados')" class="categoria-btn">ENLATADOS</button>
-                <button onclick="generarEtiquetasPorCategoria('plasticos')" class="categoria-btn">PLÁSTICOS</button>
-                <button onclick="generarEtiquetasPorCategoria('papeleria')" class="categoria-btn">PAPELERÍA</button>
-                <button onclick="generarEtiquetasPorCategoria('lacteos')" class="categoria-btn">LÁCTEOS</button>
-                <button onclick="generarEtiquetasPorCategoria('ferreteria')" class="categoria-btn">FERRETERÍA</button>
-                <button onclick="generarEtiquetasPorCategoria('agropecuaria')" class="categoria-btn">AGROPECUARIA</button>
-                <button onclick="generarEtiquetasPorCategoria('frigorifico')" class="categoria-btn">FRIGORÍFICO</button>
-                <button onclick="generarEtiquetasPorCategoria('pescaderia')" class="categoria-btn">PESCADERÍA</button>
-                <button onclick="generarEtiquetasPorCategoria('repuesto')" class="categoria-btn">REPUESTO</button>
-                <button onclick="generarEtiquetasPorCategoria('confiteria')" class="categoria-btn">CONFITERÍA</button>
-                <button onclick="generarEtiquetasPorCategoria('ropa')" class="categoria-btn">ROPA</button>
-                <button onclick="generarEtiquetasPorCategoria('calzados')" class="categoria-btn">CALZADOS</button>
-                <button onclick="generarEtiquetasPorCategoria('charcuteria')" class="categoria-btn">CHARCUTERÍA</button>
-                <button onclick="generarEtiquetasPorCategoria('carnes')" class="categoria-btn">CARNES</button>
-                <button onclick="generarEtiquetasPorCategoria('aseo_personal')" class="categoria-btn">ASEO PERSONAL</button>
-                <button onclick="generarEtiquetasPorCategoria('limpieza')" class="categoria-btn">PRODUCTOS DE LIMPIEZA</button>
-                <button onclick="generarEtiquetasPorCategoria('verduras')" class="categoria-btn">VERDURAS</button>
-                <button onclick="generarEtiquetasPorCategoria('frutas')" class="categoria-btn">FRUTAS</button>
-                <button onclick="generarEtiquetasPorCategoria('hortalizas')" class="categoria-btn">HORTALIZAS</button>
-                <button onclick="generarEtiquetasPorCategoria('aliños')" class="categoria-btn">ALIÑOS</button>
-                <button onclick="generarEtiquetasPorCategoria('otros')" class="categoria-btn">OTROS</button>
+                <button onclick="generarEtiquetasPorCategoria('todos')" class="categoria-btn mobile-btn">TODOS LOS PRODUCTOS</button>
+                <button onclick="generarEtiquetasPorCategoria('viveres')" class="categoria-btn mobile-btn">VÍVERES</button>
+                <button onclick="generarEtiquetasPorCategoria('bebidas')" class="categoria-btn mobile-btn">BEBIDAS</button>
+                <button onclick="generarEtiquetasPorCategoria('licores')" class="categoria-btn mobile-btn">LICORES</button>
+                <button onclick="generarEtiquetasPorCategoria('enlatados')" class="categoria-btn mobile-btn">ENLATADOS</button>
+                <button onclick="generarEtiquetasPorCategoria('plasticos')" class="categoria-btn mobile-btn">PLÁSTICOS</button>
+                <button onclick="generarEtiquetasPorCategoria('papeleria')" class="categoria-btn mobile-btn">PAPELERÍA</button>
+                <button onclick="generarEtiquetasPorCategoria('lacteos')" class="categoria-btn mobile-btn">LÁCTEOS</button>
+                <button onclick="generarEtiquetasPorCategoria('ferreteria')" class="categoria-btn mobile-btn">FERRETERÍA</button>
+                <button onclick="generarEtiquetasPorCategoria('agropecuaria')" class="categoria-btn mobile-btn">AGROPECUARIA</button>
+                <button onclick="generarEtiquetasPorCategoria('frigorifico')" class="categoria-btn mobile-btn">FRIGORÍFICO</button>
+                <button onclick="generarEtiquetasPorCategoria('pescaderia')" class="categoria-btn mobile-btn">PESCADERÍA</button>
+                <button onclick="generarEtiquetasPorCategoria('repuesto')" class="categoria-btn mobile-btn">REPUESTO</button>
+                <button onclick="generarEtiquetasPorCategoria('confiteria')" class="categoria-btn mobile-btn">CONFITERÍA</button>
+                <button onclick="generarEtiquetasPorCategoria('ropa')" class="categoria-btn mobile-btn">ROPA</button>
+                <button onclick="generarEtiquetasPorCategoria('calzados')" class="categoria-btn mobile-btn">CALZADOS</button>
+                <button onclick="generarEtiquetasPorCategoria('charcuteria')" class="categoria-btn mobile-btn">CHARCUTERÍA</button>
+                <button onclick="generarEtiquetasPorCategoria('carnes')" class="categoria-btn mobile-btn">CARNES</button>
+                <button onclick="generarEtiquetasPorCategoria('aseo_personal')" class="categoria-btn mobile-btn">ASEO PERSONAL</button>
+                <button onclick="generarEtiquetasPorCategoria('limpieza')" class="categoria-btn mobile-btn">PRODUCTOS DE LIMPIEZA</button>
+                <button onclick="generarEtiquetasPorCategoria('verduras')" class="categoria-btn mobile-btn">VERDURAS</button>
+                <button onclick="generarEtiquetasPorCategoria('frutas')" class="categoria-btn mobile-btn">FRUTAS</button>
+                <button onclick="generarEtiquetasPorCategoria('hortalizas')" class="categoria-btn mobile-btn">HORTALIZAS</button>
+                <button onclick="generarEtiquetasPorCategoria('aliños')" class="categoria-btn mobile-btn">ALIÑOS</button>
+                <button onclick="generarEtiquetasPorCategoria('otros')" class="categoria-btn mobile-btn">OTROS</button>
             </div>
         </div>
     </div>
 
-    <div class="carrito-ventas">
-        <h2>Carrito de Ventas</h2>
-
-        <div class="carrito-header">
-            <div class="scanner-input">
-                <input type="text" id="codigoBarrasInput" placeholder="Escanea o ingresa código de barras o nombre del producto" />
-                <button onclick="agregarPorCodigoBarras()">Agregar Producto</button>
-
-                <div id="sugerencias" class="sugerencias-lista" aria-live="polite"></div>
-            </div>
-
-            <div class="scanner-status" id="scannerStatus">
-                Esperando escaneo de código de barras...
-            </div>
-
-            <div class="carrito-totales">
-                <div class="carrito-total" id="totalCarritoBs">
-                    Total: Bs 0,00
-                </div>
-                <div class="carrito-total" id="totalCarritoDolares">
-                    Total: $ 0,00
-                </div>
-            </div>
-        </div>
-
-        <table class="carrito-table">
-            <thead>
-                <tr>
-                    <th>Producto</th>
-                    <th>Precio Unitario (Bs)</th>
-                    <th>Cantidad</th>
-                    <th>Unidad</th>
-                    <th>Subtotal (Bs)</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody id="carritoBody"></tbody>
-        </table>
-
-        <div class="finalizar-venta">
-           <button id="finalizarVenta" onclick="finalizarVenta()">Finalizar venta</button>
-        </div>
-    </div>
-
+    <!-- Modal de pago -->
     <div id="modalPago" class="modal">
         <div class="modal-content">
             <span class="close" onclick="cerrarModalPago()">&times;</span>
@@ -261,27 +272,29 @@
             </div>
 
             <div class="metodos-pago">
-                <button onclick="seleccionarMetodoPago('efectivo_bs')">Efectivo Bs</button>
-                <button onclick="seleccionarMetodoPago('efectivo_dolares')">Efectivo $</button>
-                <button onclick="seleccionarMetodoPago('punto')">Punto</button>
-                <button onclick="seleccionarMetodoPago('pago_movil')">Pago Móvil</button>
-                <button onclick="seleccionarMetodoPago('biopago')">Biopago</button>
+                <button onclick="seleccionarMetodoPago('efectivo_bs')" class="mobile-btn">Efectivo Bs</button>
+                <button onclick="seleccionarMetodoPago('efectivo_dolares')" class="mobile-btn">Efectivo $</button>
+                <button onclick="seleccionarMetodoPago('punto')" class="mobile-btn">Punto</button>
+                <button onclick="seleccionarMetodoPago('pago_movil')" class="mobile-btn">Pago Móvil</button>
+                <button onclick="seleccionarMetodoPago('biopago')" class="mobile-btn">Biopago</button>
             </div>
 
             <div id="detallesPago" style="display: none; margin-top: 20px;">
                 <h4>Detalles del Pago</h4>
                 <div id="camposPago"></div>
                 <div class="modal-buttons">
-                    <button onclick="confirmarMetodoPago()">Confirmar Pago</button>
-                    <button onclick="cancelarPago()" class="btn-cancelar">Cancelar</button>
+                    <button onclick="confirmarMetodoPago()" class="mobile-btn success-btn">Confirmar Pago</button>
+                    <button onclick="cancelarPago()" class="btn-cancelar mobile-btn">Cancelar</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Navegación flotante para móvil -->
     <div class="floating-nav">
-        <button class="go-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">↑</button>
-        <button class="go-bottom" onclick="window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'})">↓</button>
+        <button class="go-top" onclick="scrollToSection('calculator')">📱</button>
+        <button class="go-middle" onclick="scrollToSection('carrito')">🛒</button>
+        <button class="go-bottom" onclick="scrollToSection('productos')">📋</button>
     </div>
 
     <!-- Toast container -->
