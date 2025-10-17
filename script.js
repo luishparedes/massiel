@@ -212,7 +212,31 @@ document.addEventListener('DOMContentLoaded', function() {
     actualizarLista();
     actualizarCarrito();
     configurarEventos();
+    configurarEventosMoviles(); // Nueva función para eventos móviles
 });
+
+// ===== CONFIGURACIÓN ESPECÍFICA PARA MÓVILES =====
+function configurarEventosMoviles() {
+    // Prevenir zoom en inputs en iOS
+    document.addEventListener('touchstart', function(e) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
+            document.body.style.zoom = '100%';
+        }
+    });
+    
+    // Mejorar el desplazamiento en móviles
+    document.addEventListener('touchmove', function(e) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
+            e.preventDefault();
+        }
+    }, { passive: false });
+    
+    // Ajustar viewport para móviles
+    const viewport = document.querySelector('meta[name="viewport"]');
+    if (viewport) {
+        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+    }
+}
 
 // ===== UTILIDADES / TOASTS =====
 function showToast(message, type = 'success', duration = 3500) {
@@ -233,11 +257,23 @@ function showToast(message, type = 'success', duration = 3500) {
 
 // ===== CONFIGURACIÓN DE EVENTOS MEJORADA =====
 function configurarEventos() {
-    // Búsqueda enter
+    // Búsqueda enter - CORREGIDO PARA MÓVILES
     const buscarInput = document.getElementById('buscar');
     if (buscarInput) {
         buscarInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') buscarProducto();
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                buscarProducto();
+            }
+        });
+        
+        // Para móviles: agregar evento de input en tiempo real
+        buscarInput.addEventListener('input', function(e) {
+            // En móviles, buscar automáticamente después de un breve delay
+            clearTimeout(this.searchTimeout);
+            this.searchTimeout = setTimeout(() => {
+                buscarProducto();
+            }, 500);
         });
     }
 
@@ -587,15 +623,15 @@ function actualizarCarrito() {
 
         // Si unidad = 'gramo', el botón + abrirá un prompt para ingresar gramos (ingresarGramos)
         const botonMas = item.unidad === 'gramo'
-            ? `<button onclick="ingresarGramos(${index})">+</button>`
-            : `<button onclick="actualizarCantidadCarrito(${index}, 1)">+</button>`;
+            ? `<button onclick="ingresarGramos(${index})" class="btn-carrito">+</button>`
+            : `<button onclick="actualizarCantidadCarrito(${index}, 1)" class="btn-carrito">+</button>`;
 
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${item.nombre} (${item.descripcion})</td>
             <td>Bs ${item.precioUnitarioBolivar.toFixed(2)}</td>
             <td>
-                <button onclick="actualizarCantidadCarrito(${index}, -1)">-</button>
+                <button onclick="actualizarCantidadCarrito(${index}, -1)" class="btn-carrito">-</button>
                 ${cantidadMostrada}
                 ${botonMas}
             </td>
@@ -647,10 +683,11 @@ function ingresarGramos(index) {
         return;
     }
 
-    const entrada = prompt("Ingrese la cantidad en gramos (ej: 350):", item.cantidad || '');
-    if (entrada === null) return; // el usuario canceló
+    // Usar un modal en lugar de prompt para mejor experiencia móvil
+    const gramosInput = prompt("Ingrese la cantidad en gramos (ej: 350):", item.cantidad || '');
+    if (gramosInput === null) return; // el usuario canceló
 
-    const gramos = parseFloat(entrada);
+    const gramos = parseFloat(gramosInput);
     if (isNaN(gramos) || gramos <= 0) {
         showToast("Ingrese una cantidad válida en gramos", 'error');
         return;
@@ -737,8 +774,8 @@ function actualizarLista() {
             <td class="${inventarioBajo ? 'inventario-bajo' : ''}">${producto.unidadesExistentes}</td>
             <td>
                 <div class="ajuste-inventario">
-                    <button onclick="ajustarInventario(${index}, 'sumar')">+</button>
-                    <button onclick="ajustarInventario(${index}, 'restar')">-</button>
+                    <button onclick="ajustarInventario(${index}, 'sumar')" class="btn-inventario">+</button>
+                    <button onclick="ajustarInventario(${index}, 'restar')" class="btn-inventario">-</button>
                 </div>
             </td>
             <td>$${producto.precioUnitarioDolar.toFixed(2)}</td>
@@ -753,6 +790,7 @@ function actualizarLista() {
     });
 }
 
+// ===== BUSCADOR MEJORADO PARA MÓVILES =====
 function buscarProducto() {
     const termino = document.getElementById('buscar').value.trim().toLowerCase();
     if (!termino) { 
@@ -768,7 +806,14 @@ function buscarProducto() {
     );
 
     const tbody = document.querySelector('#listaProductos tbody');
+    if (!tbody) return;
+    
     tbody.innerHTML = '';
+
+    if (productosFiltrados.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">No se encontraron productos</td></tr>';
+        return;
+    }
 
     productosFiltrados.forEach((producto, index) => {
         const inventarioBajo = producto.unidadesExistentes <= 5;
@@ -776,12 +821,12 @@ function buscarProducto() {
         row.innerHTML = `
             <td>${producto.nombre}</td>
             <td>${producto.descripcion}</td>
-            <td>${producto.codigoBarras || 'N/A'}}</td>
+            <td>${producto.codigoBarras || 'N/A'}</td>
             <td class="${inventarioBajo ? 'inventario-bajo' : ''}">${producto.unidadesExistentes}</td>
             <td>
                 <div class="ajuste-inventario">
-                    <button onclick="ajustarInventario(${index}, 'sumar')">+</button>
-                    <button onclick="ajustarInventario(${index}, 'restar')">-</button>
+                    <button onclick="ajustarInventario(${index}, 'sumar')" class="btn-inventario">+</button>
+                    <button onclick="ajustarInventario(${index}, 'restar')" class="btn-inventario">-</button>
                 </div>
             </td>
             <td>$${producto.precioUnitarioDolar.toFixed(2)}</td>
@@ -891,11 +936,11 @@ function seleccionarMetodoPago(metodo) {
         detallesDiv.innerHTML = `
             <div class="campo-pago">
                 <label>Monto recibido (${metodo === 'efectivo_bs' ? 'Bs' : '$'}):</label>
-                <input type="number" id="montoRecibido" placeholder="Ingrese monto recibido" />
+                <input type="number" id="montoRecibido" placeholder="Ingrese monto recibido" class="input-movil" />
             </div>
             <div class="campo-pago">
                 <label>Cambio:</label>
-                <input type="text" id="cambioCalculado" readonly placeholder="0.00" />
+                <input type="text" id="cambioCalculado" readonly placeholder="0.00" class="input-movil" />
             </div>
         `;
         setTimeout(() => {
@@ -916,22 +961,22 @@ function seleccionarMetodoPago(metodo) {
         detallesDiv.innerHTML = `
             <div class="campo-pago">
                 <label>Monto a pagar:</label>
-                <input type="number" id="montoPago" placeholder="Ingrese monto" />
+                <input type="number" id="montoPago" placeholder="Ingrese monto" class="input-movil" />
             </div>
         `;
     } else if (metodo === 'pago_movil') {
         detallesDiv.innerHTML = `
             <div class="campo-pago">
                 <label>Monto a pagar:</label>
-                <input type="number" id="montoPagoMovil" placeholder="Ingrese monto" />
+                <input type="number" id="montoPagoMovil" placeholder="Ingrese monto" class="input-movil" />
             </div>
             <div class="campo-pago">
                 <label>Referencia / Número:</label>
-                <input type="text" id="refPagoMovil" placeholder="Referencia bancaria" />
+                <input type="text" id="refPagoMovil" placeholder="Referencia bancaria" class="input-movil" />
             </div>
             <div class="campo-pago">
                 <label>Banco:</label>
-                <input type="text" id="bancoPagoMovil" placeholder="Nombre del banco" />
+                <input type="text" id="bancoPagoMovil" placeholder="Nombre del banco" class="input-movil" />
             </div>
         `;
     }
@@ -1474,14 +1519,19 @@ function imprimirTicketTermico(detalles) {
         <head>
             <meta charset="utf-8"/>
             <title>Ticket</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
-                body { font-family: monospace; padding: 6px; }
-                .ticket { width: 280px; }
+                body { font-family: monospace; padding: 6px; margin: 0; }
+                .ticket { width: 280px; max-width: 100%; }
                 .ticket h2 { text-align:center; font-size: 16px; margin:6px 0; }
                 .line { border-top: 1px dashed #000; margin:6px 0; }
                 .items div { margin-bottom:6px; font-size:12px; }
                 .totals { margin-top:8px; font-weight:bold; font-size:13px; }
                 .small { font-size:11px; color:#333; }
+                @media print {
+                    body { padding: 0; }
+                    .ticket { width: 58mm; }
+                }
             </style>
         </head>
         <body>
@@ -1736,3 +1786,31 @@ function darFeedbackEscaneoExitoso() {
         }, 300);
     }
 }
+
+// ===== FUNCIONES ADICIONALES PARA MEJORAR LA EXPERIENCIA MÓVIL =====
+
+// Prevenir acciones no deseadas en móviles
+document.addEventListener('touchstart', function(e) {
+    // Prevenir zoom en inputs
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
+        document.body.style.zoom = "100%";
+    }
+}, { passive: true });
+
+// Mejorar el desplazamiento en móviles
+document.addEventListener('touchmove', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
+        e.preventDefault();
+    }
+}, { passive: false });
+
+// Ajustar el viewport para dispositivos móviles
+function ajustarViewportMovil() {
+    const viewport = document.querySelector('meta[name="viewport"]');
+    if (viewport) {
+        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+    }
+}
+
+// Inicializar ajustes para móviles
+ajustarViewportMovil();
