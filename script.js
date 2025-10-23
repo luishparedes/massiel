@@ -5,109 +5,86 @@ let tasaBCVGuardada = parseFloat(localStorage.getItem('tasaBCV')) || 0;
 let ventasDiarias = JSON.parse(localStorage.getItem('ventasDiarias')) || [];
 let carrito = JSON.parse(localStorage.getItem('carrito')) || [];
 let métodoPagoSeleccionado = null;
-let detallesPago = {}; // guardará información temporal al confirmar el pago
+let detallesPago = {};
 let productoEditando = null;
-let productosFiltrados = []; // Array para almacenar resultados de búsqueda
+let productosFiltrados = [];
 
 // === NUEVAS VARIABLES PARA ESCÁNER ===
 let tiempoUltimaTecla = 0;
 let bufferEscaneo = '';
 
-// ===== PROTECCIÓN CONTRA ACCESO DIRECTO (SIMPLIFICADA PARA MÓVIL Y COMPUTADORA) =====
+// ===== PROTECCIÓN CONTRA ACCESO DIRECTO =====
 (function() {
     const SESSION_KEY = 'calculadora_magica_session';
     const URL_REDIRECCION_PORTAL = "http://portal.calculadoramagica.lat/";
     
-    // Verificar si ya tiene sesión activa
     const sessionValida = sessionStorage.getItem(SESSION_KEY);
     
-    // Si no tiene sesión y no viene del portal, redirigir
     if (!sessionValida) {
         const referrer = document.referrer;
         const vieneDePortal = referrer && referrer.includes('portal.calculadoramagica.lat');
         const vieneDeClientes = referrer && referrer.includes('clientes.calculadoramagica.lat');
         
-        // Permitir acceso si viene del portal, de clientes, o si no hay referrer (móviles)
         if (!vieneDePortal && !vieneDeClientes && referrer !== '') {
             console.log('Acceso directo detectado, redirigiendo al portal...');
             window.location.href = URL_REDIRECCION_PORTAL;
             return;
         }
         
-        // Crear sesión válida
         sessionStorage.setItem(SESSION_KEY, 'activa_' + Date.now());
     }
 })();
 
-// ===== SISTEMA DE REDIRECCIÓN POR INACTIVIDAD MEJORADO ===== //
-const TIEMPO_INACTIVIDAD = 4 * 60 * 1000; // 4 minutos en milisegundos
+// ===== SISTEMA DE REDIRECCIÓN POR INACTIVIDAD MEJORADO =====
+const TIEMPO_INACTIVIDAD = 4 * 60 * 1000;
 const URL_REDIRECCION = "http://portal.calculadoramagica.lat/";
 
 let temporizadorInactividad;
 let ultimaActividad = Date.now();
 
-// Función para registrar actividad
 function registrarActividad() {
     ultimaActividad = Date.now();
     reiniciarTemporizador();
 }
 
-// Función para verificar inactividad periódicamente
 function verificarInactividad() {
     const tiempoTranscurrido = Date.now() - ultimaActividad;
     
     if (tiempoTranscurrido >= TIEMPO_INACTIVIDAD) {
-        // Redirigir por inactividad
         console.log('Redirigiendo por inactividad después de', Math.round(tiempoTranscurrido / 1000), 'segundos');
-        
-        // Limpiar sesiones
         sessionStorage.removeItem('calculadora_magica_session');
         localStorage.removeItem('ultimaActividad');
-        
-        // Redirigir al portal
         window.location.href = URL_REDIRECCION;
         return;
     }
     
-    // Programar siguiente verificación
     setTimeout(verificarInactividad, 1000);
 }
 
 function reiniciarTemporizador() {
-    // Guardar timestamp de última actividad
     localStorage.setItem('ultimaActividad', Date.now().toString());
     
-    // Limpiar temporizador existente
     if (temporizadorInactividad) {
         clearTimeout(temporizadorInactividad);
     }
     
-    // Iniciar nuevo temporizador
     temporizadorInactividad = setTimeout(() => {
         console.log('Temporizador de inactividad ejecutado');
-        
-        // Limpiar sesiones
         sessionStorage.removeItem('calculadora_magica_session');
         localStorage.removeItem('ultimaActividad');
-        
-        // Redirigir después del tiempo de inactividad
         window.location.href = URL_REDIRECCION;
     }, TIEMPO_INACTIVIDAD);
 }
 
-// Eventos que indican actividad del usuario
 ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click', 'input'].forEach(evento => {
     document.addEventListener(evento, registrarActividad, { passive: true });
 });
 
-// Inicializar sistema de inactividad
 function inicializarSistemaInactividad() {
-    // Recuperar última actividad desde localStorage
     const ultimaActividadGuardada = localStorage.getItem('ultimaActividad');
     if (ultimaActividadGuardada) {
         ultimaActividad = parseInt(ultimaActividadGuardada);
         
-        // Verificar si ya pasó el tiempo de inactividad
         const tiempoTranscurrido = Date.now() - ultimaActividad;
         if (tiempoTranscurrido >= TIEMPO_INACTIVIDAD) {
             console.log('Sesión expirada al cargar. Redirigiendo...');
@@ -118,59 +95,36 @@ function inicializarSistemaInactividad() {
         }
     }
     
-    // Iniciar verificaciones
     reiniciarTemporizador();
     verificarInactividad();
 }
 
 // ===== PROTECCIÓN CONTRA F12 Y HERRAMIENTAS DE DESARROLLO =====
 (function() {
-    // Detectar tecla F12 y combinaciones de teclas
+    function mostrarAdvertenciaSeguridad() {
+        console.log('%c⚠️ ACCESO RESTRINGIDO ⚠️', 'color: red; font-size: 20px; font-weight: bold;');
+        console.log('El uso de herramientas de desarrollo está restringido en esta aplicación.');
+        alert('⚠️ Acceso restringido\nEl uso de F12 y herramientas de desarrollo no está permitido en esta aplicación.');
+    }
+    
     document.addEventListener('keydown', function(e) {
-        // Bloquear F12
-        if (e.key === 'F12' || e.keyCode === 123) {
-            e.preventDefault();
-            mostrarAdvertenciaSeguridad();
-            return false;
-        }
-        
-        // Bloquear Ctrl+Shift+I (DevTools)
-        if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.keyCode === 73)) {
-            e.preventDefault();
-            mostrarAdvertenciaSeguridad();
-            return false;
-        }
-        
-        // Bloquear Ctrl+Shift+J (Console)
-        if (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.keyCode === 74)) {
-            e.preventDefault();
-            mostrarAdvertenciaSeguridad();
-            return false;
-        }
-        
-        // Bloquear Ctrl+Shift+C (Inspector)
-        if (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.keyCode === 67)) {
-            e.preventDefault();
-            mostrarAdvertenciaSeguridad();
-            return false;
-        }
-        
-        // Bloquear Ctrl+U (Ver código fuente)
-        if (e.ctrlKey && (e.key === 'U' || e.keyCode === 85)) {
+        if (e.key === 'F12' || e.keyCode === 123 ||
+            (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.keyCode === 73)) ||
+            (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.keyCode === 74)) ||
+            (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.keyCode === 67)) ||
+            (e.ctrlKey && (e.key === 'U' || e.keyCode === 85))) {
             e.preventDefault();
             mostrarAdvertenciaSeguridad();
             return false;
         }
     });
     
-    // Bloquear clic derecho (inspeccionar elemento)
     document.addEventListener('contextmenu', function(e) {
         e.preventDefault();
         mostrarAdvertenciaSeguridad();
         return false;
     });
     
-    // Detectar si se abren las herramientas de desarrollo
     function detectarDevTools() {
         const umbral = 160;
         const inicio = performance.now();
@@ -182,19 +136,6 @@ function inicializarSistemaInactividad() {
         }
     }
     
-    function mostrarAdvertenciaSeguridad() {
-        // Mostrar mensaje en consola si está abierta
-        console.log('%c⚠️ ACCESO RESTRINGIDO ⚠️', 'color: red; font-size: 20px; font-weight: bold;');
-        console.log('El uso de herramientas de desarrollo está restringido en esta aplicación.');
-        
-        // Mostrar alerta al usuario
-        alert('⚠️ Acceso restringido\nEl uso de F12 y herramientas de desarrollo no está permitido en esta aplicación.');
-        
-        // Opcional: Puedes redirigir o tomar otras acciones
-        // window.location.href = '/acceso-denegado';
-    }
-    
-    // Verificar periódicamente si las herramientas están abiertas
     setInterval(detectarDevTools, 1000);
 })();
 
@@ -207,31 +148,28 @@ function redondear2Decimales(numero) {
 // ===== INICIALIZACIÓN =====
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Calculadora iniciada correctamente');
-    inicializarSistemaInactividad(); // Inicializar sistema de inactividad
+    inicializarSistemaInactividad();
     cargarDatosIniciales();
     actualizarLista();
     actualizarCarrito();
     configurarEventos();
-    configurarEventosMoviles(); // Nueva función para eventos móviles
+    configurarEventosMoviles();
 });
 
 // ===== CONFIGURACIÓN ESPECÍFICA PARA MÓVILES =====
 function configurarEventosMoviles() {
-    // Prevenir zoom en inputs en iOS
     document.addEventListener('touchstart', function(e) {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
             document.body.style.zoom = '100%';
         }
     });
     
-    // Mejorar el desplazamiento en móviles
     document.addEventListener('touchmove', function(e) {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
             e.preventDefault();
         }
     }, { passive: false });
     
-    // Ajustar viewport para móviles
     const viewport = document.querySelector('meta[name="viewport"]');
     if (viewport) {
         viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
@@ -241,7 +179,7 @@ function configurarEventosMoviles() {
 // ===== UTILIDADES / TOASTS =====
 function showToast(message, type = 'success', duration = 3500) {
     const container = document.getElementById('toastContainer');
-    if (!container) return; // por si no existe el contenedor
+    if (!container) return;
     const toast = document.createElement('div');
     toast.className = `toast ${type === 'success' ? 'success' : type === 'error' ? 'error' : 'warning'}`;
     toast.textContent = message;
@@ -257,7 +195,6 @@ function showToast(message, type = 'success', duration = 3500) {
 
 // ===== CONFIGURACIÓN DE EVENTOS MEJORADA =====
 function configurarEventos() {
-    // Búsqueda enter - CORREGIDO PARA MÓVILES
     const buscarInput = document.getElementById('buscar');
     if (buscarInput) {
         buscarInput.addEventListener('keypress', function(e) {
@@ -267,9 +204,7 @@ function configurarEventos() {
             }
         });
         
-        // Para móviles: agregar evento de input en tiempo real
         buscarInput.addEventListener('input', function(e) {
-            // En móviles, buscar automáticamente después de un breve delay
             clearTimeout(this.searchTimeout);
             this.searchTimeout = setTimeout(() => {
                 buscarProducto();
@@ -277,18 +212,14 @@ function configurarEventos() {
         });
     }
 
-    // ESCÁNER MEJORADO - Compatibilidad universal
     const codigoInput = document.getElementById('codigoBarrasInput');
     if (codigoInput) {
-        // Detectar escaneo vs tecleo manual
         codigoInput.addEventListener('keydown', function(e) {
             const tiempoActual = new Date().getTime();
             
-            // Si es Enter o Tab (terminadores comunes de escáner)
             if (e.key === 'Enter' || e.key === 'Tab') {
                 e.preventDefault();
                 
-                // Solo procesar si hay contenido y no es tecleo manual rápido
                 if (this.value.trim() && (tiempoActual - tiempoUltimaTecla) < 100) {
                     procesarEscaneo(this.value.trim());
                     this.value = '';
@@ -296,12 +227,10 @@ function configurarEventos() {
                 return;
             }
             
-            // Para caracteres normales, actualizar buffer y tiempo
             if (e.key.length === 1) {
                 bufferEscaneo += e.key;
                 tiempoUltimaTecla = tiempoActual;
                 
-                // Limpiar buffer después de un tiempo si no hay más teclas
                 clearTimeout(window.bufferTimeout);
                 window.bufferTimeout = setTimeout(() => {
                     if (bufferEscaneo.length > 0) {
@@ -311,7 +240,6 @@ function configurarEventos() {
             }
         });
 
-        // También mantener el evento input para sugerencias
         codigoInput.addEventListener('input', function() {
             const termino = this.value.trim().toLowerCase();
             const sugerenciasDiv = document.getElementById('sugerencias');
@@ -338,9 +266,7 @@ function configurarEventos() {
             });
         });
 
-        // Focus automático mejorado - EXCLUIR CAMPOS DE CONFIGURACIÓN
         codigoInput.addEventListener('blur', function() {
-            // Recuperar focus después de un breve momento, pero solo si no estamos en campos de configuración
             setTimeout(() => {
                 const activeElement = document.activeElement;
                 const esCampoConfiguracion = activeElement && 
@@ -357,7 +283,6 @@ function configurarEventos() {
         });
     }
 
-    // Focus automático al cargar la página
     setTimeout(() => {
         if (codigoInput) {
             codigoInput.focus();
@@ -365,24 +290,21 @@ function configurarEventos() {
         }
     }, 500);
 
-    // PREVENIR QUE EL CAMPOS DE CONFIGURACIÓN ACTIVEN EL REDIRECCIONAMIENTO DEL ESCÁNER
     const camposConfiguracion = ['tasaBCV', 'nombreEstablecimiento'];
     camposConfiguracion.forEach(id => {
         const campo = document.getElementById(id);
         if (campo) {
             campo.addEventListener('focus', function() {
-                // Desactivar temporalmente el comportamiento del escáner
                 this.setAttribute('data-scanning-disabled', 'true');
             });
             campo.addEventListener('blur', function() {
-                // Reactivar el comportamiento del escáner
                 this.removeAttribute('data-scanning-disabled');
             });
         }
     });
 }
 
-// ===== BUSCADOR RÁPIDO (input del carrito con sugerencias) =====
+// ===== BUSCADOR RÁPIDO =====
 const codigoInputElem = document.getElementById('codigoBarrasInput');
 if (codigoInputElem) {
     codigoInputElem.addEventListener('input', function() {
@@ -472,7 +394,6 @@ function guardarProducto() {
         return; 
     }
 
-    // Validar código de barras único (solo si no estamos editando)
     if (codigoBarras && productoEditando === null) {
         const codigoExistente = productos.findIndex(p => 
             p.codigoBarras && p.codigoBarras.toLowerCase() === codigoBarras.toLowerCase()
@@ -483,7 +404,6 @@ function guardarProducto() {
         }
     }
 
-    // Si estamos editando un producto, mantener su índice original
     let productoExistenteIndex = -1;
     if (productoEditando !== null) {
         productoExistenteIndex = productoEditando;
@@ -515,11 +435,9 @@ function guardarProducto() {
     };
 
     if (productoExistenteIndex !== -1) {
-        // Actualizar producto existente
         productos[productoExistenteIndex] = producto;
         showToast("✓ Producto actualizado exitosamente", 'success');
     } else {
-        // Agregar nuevo producto
         productos.push(producto);
         showToast("✓ Producto guardado exitosamente", 'success');
     }
@@ -527,7 +445,6 @@ function guardarProducto() {
     localStorage.setItem('productos', JSON.stringify(productos));
     actualizarLista();
 
-    // Reiniciar formulario
     document.getElementById('producto').value = '';
     document.getElementById('codigoBarras').value = '';
     document.getElementById('costo').value = '';
@@ -537,20 +454,16 @@ function guardarProducto() {
     document.getElementById('descripcion').selectedIndex = 0;
     document.getElementById('precioUnitario').innerHTML = '';
 
-    // Resetear variable de edición
     productoEditando = null;
 }
 
 function editarProducto(index) {
-    // Si hay productos filtrados, obtener el índice real en el array original
     let indiceReal = index;
     
     if (productosFiltrados.length > 0) {
-        // Buscar el producto en la lista filtrada y obtener el producto real
         const productoFiltrado = productosFiltrados[index];
         if (!productoFiltrado) return;
         
-        // Encontrar el índice real en el array original
         indiceReal = productos.findIndex(p => 
             p.nombre === productoFiltrado.nombre && 
             p.descripcion === productoFiltrado.descripcion
@@ -565,7 +478,6 @@ function editarProducto(index) {
     const producto = productos[indiceReal];
     if (!producto) return;
 
-    // Llenar formulario con datos del producto
     document.getElementById('producto').value = producto.nombre || '';
     document.getElementById('codigoBarras').value = producto.codigoBarras || '';
     document.getElementById('descripcion').value = producto.descripcion || '';
@@ -574,7 +486,6 @@ function editarProducto(index) {
     document.getElementById('unidadesPorCaja').value = producto.unidadesPorCaja || '';
     document.getElementById('unidadesExistentes').value = producto.unidadesExistentes || '';
     
-    // Calcular y mostrar precio unitario
     const tasaBCV = parseFloat(document.getElementById('tasaBCV').value) || tasaBCVGuardada;
     if (tasaBCV > 0) {
         const precioUnitarioDolar = producto.precioUnitarioDolar;
@@ -583,7 +494,6 @@ function editarProducto(index) {
             `<strong>Precio unitario:</strong> $${precioUnitarioDolar.toFixed(2)} / Bs${precioUnitarioBolivar.toFixed(2)}`;
     }
 
-    // Establecer modo edición
     productoEditando = indiceReal;
     
     showToast(`Editando: ${producto.nombre}`, 'success');
@@ -618,10 +528,8 @@ function actualizarCarrito() {
         totalBs += item.subtotal;
         totalDolares += item.subtotalDolar;
 
-        // Si la unidad es 'gramo', mostramos la cantidad seguida de "g"
         const cantidadMostrada = item.unidad === 'gramo' ? `${item.cantidad} g` : item.cantidad;
 
-        // Si unidad = 'gramo', el botón + abrirá un prompt para ingresar gramos (ingresarGramos)
         const botonMas = item.unidad === 'gramo'
             ? `<button onclick="ingresarGramos(${index})" class="btn-carrito">+</button>`
             : `<button onclick="actualizarCantidadCarrito(${index}, 1)" class="btn-carrito">+</button>`;
@@ -657,7 +565,6 @@ function actualizarCantidadCarrito(index, cambio) {
     const item = carrito[index];
     if (!item) return;
 
-    // Para gramos, el cambio se interpreta como gramos (ej: -1 resta 1 gr)
     item.cantidad += cambio;
 
     if (item.cantidad <= 0) {
@@ -665,7 +572,6 @@ function actualizarCantidadCarrito(index, cambio) {
         return;
     }
 
-    // Recalcular subtotal según unidad
     calcularSubtotalSegonUnidad(item);
 
     localStorage.setItem('carrito', JSON.stringify(carrito));
@@ -683,9 +589,8 @@ function ingresarGramos(index) {
         return;
     }
 
-    // Usar un modal en lugar de prompt para mejor experiencia móvil
     const gramosInput = prompt("Ingrese la cantidad en gramos (ej: 350):", item.cantidad || '');
-    if (gramosInput === null) return; // el usuario canceló
+    if (gramosInput === null) return;
 
     const gramos = parseFloat(gramosInput);
     if (isNaN(gramos) || gramos <= 0) {
@@ -693,19 +598,13 @@ function ingresarGramos(index) {
         return;
     }
 
-    // Validación simple de stock: producto.unidadesExistentes está en kilos según tu esquema,
-    // por eso convertimos a gramos para comparar.
     const disponibleGramos = (producto.unidadesExistentes || 0) * 1000;
 
-    // (Opcional) sumar lo que ya hay en carrito de este producto (excluyendo el ítem actual) para evitar sobreventa
     let enCarritoMismoProducto = 0;
     carrito.forEach((it, i) => {
         if (i !== index && it.indexProducto === item.indexProducto) {
             if (it.unidad === 'gramo') enCarritoMismoProducto += (parseFloat(it.cantidad) || 0);
             else {
-                // si está en unidades, convertimos esa unidad a gramos:
-                // suponemos que producto.unidadesPorCaja indica cómo convertir; si no aplica, será 0
-                // Para productos por kilos normalmente unidadesPorCaja = 1 -> 1 unidad = 1000 g.
                 const factor = producto.unidadesPorCaja || 1;
                 enCarritoMismoProducto += (parseFloat(it.cantidad) || 0) * factor * 1000;
             }
@@ -717,7 +616,6 @@ function ingresarGramos(index) {
         return;
     }
 
-    // Guardar cantidad en gramos y recalcular subtotal
     item.cantidad = gramos;
     item.unidad = 'gramo';
     calcularSubtotalSegonUnidad(item);
@@ -726,16 +624,15 @@ function ingresarGramos(index) {
     actualizarCarrito();
 }
 
+// ===== FUNCIÓN CALCULAR SUBTOTAL SEGÚN UNIDAD =====
 function calcularSubtotalSegonUnidad(item) {
     const producto = productos[item.indexProducto];
     if (!producto) return;
 
     if (item.unidad === 'gramo') {
-        // cantidad está en gramos, se multiplica por 0.001 para kilos
         item.subtotal = redondear2Decimales(item.cantidad * item.precioUnitarioBolivar * 0.001);
         item.subtotalDolar = redondear2Decimales(item.cantidad * item.precioUnitarioDolar * 0.001);
     } else {
-        // unidad
         item.subtotal = redondear2Decimales(item.cantidad * item.precioUnitarioBolivar);
         item.subtotalDolar = redondear2Decimales(item.cantidad * item.precioUnitarioDolar);
     }
@@ -743,7 +640,6 @@ function calcularSubtotalSegonUnidad(item) {
 
 function cambiarUnidadCarrito(index, nuevaUnidad) {
     carrito[index].unidad = nuevaUnidad;
-    // Mantener la cantidad tal cual; el usuario puede usar el + para ingresar gramos si selecciona "gramo".
     calcularSubtotalSegonUnidad(carrito[index]);
     localStorage.setItem('carrito', JSON.stringify(carrito));
     actualizarCarrito();
@@ -761,11 +657,10 @@ function actualizarLista() {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    productosFiltrados = []; // Reiniciar array de productos filtrados
+    productosFiltrados = [];
 
     productos.forEach((producto, index) => {
         const inventarioBajo = producto.unidadesExistentes <= 5;
-        // Mostrar existencias: si el usuario maneja kilos, mantén kilos; si quieres mostrar gramos puedes adaptar.
         const filas = document.createElement('tr');
         filas.innerHTML = `
             <td>${producto.nombre}</td>
@@ -794,7 +689,7 @@ function actualizarLista() {
 function buscarProducto() {
     const termino = document.getElementById('buscar').value.trim().toLowerCase();
     if (!termino) { 
-        productosFiltrados = []; // Limpiar array de productos filtrados
+        productosFiltrados = [];
         actualizarLista(); 
         return; 
     }
@@ -842,7 +737,6 @@ function buscarProducto() {
 }
 
 function ajustarInventario(index, operacion) {
-    // Si hay productos filtrados, obtener el índice real en el array original
     let indiceReal = index;
     
     if (productosFiltrados.length > 0) {
@@ -874,7 +768,6 @@ function ajustarInventario(index, operacion) {
 }
 
 function eliminarProducto(index) {
-    // Si hay productos filtrados, obtener el índice real en el array original
     let indiceReal = index;
     
     if (productosFiltrados.length > 0) {
@@ -929,7 +822,6 @@ function seleccionarMetodoPago(metodo) {
     const totalBs = carrito.reduce((sum, i) => sum + i.subtotal, 0);
     detallesDiv.innerHTML = '';
 
-    // Limpio objeto detallesPago
     detallesPago = { metodo, totalBs };
 
     if (metodo === 'efectivo_bs' || metodo === 'efectivo_dolares') {
@@ -992,105 +884,93 @@ function confirmarMetodoPago() {
 
     const totalBs = carrito.reduce((sum, item) => sum + item.subtotal, 0);
 
-    // Validaciones por método
     if (metodoPagoSeleccionado === 'efectivo_bs') {
-    const recib = parseFloat(document.getElementById('montoRecibido').value) || 0;
-    if (recib < totalBs) { 
-        showToast("Monto recibido menor al total", 'error'); 
-        return; 
-    }
-    detallesPago.cambio = redondear2Decimales(recib - totalBs);
-    detallesPago.montoRecibido = recib;
+        const recib = parseFloat(document.getElementById('montoRecibido').value) || 0;
+        if (recib < totalBs) { 
+            showToast("Monto recibido menor al total", 'error'); 
+            return; 
+        }
+        detallesPago.cambio = redondear2Decimales(recib - totalBs);
+        detallesPago.montoRecibido = recib;
     } else if (metodoPagoSeleccionado === 'efectivo_dolares') {
-    const recib = parseFloat(document.getElementById('montoRecibido').value) || 0;
-    const totalEnDolares = tasaBCVGuardada ? redondear2Decimales(totalBs / tasaBCVGuardada) : 0;
-    if (recib < totalEnDolares) { 
-        showToast("Monto recibido menor al total", 'error'); 
-        return; 
-    }
-    detallesPago.cambio = redondear2Decimales(recib - totalEnDolares);
-    detallesPago.montoRecibido = recib;
+        const recib = parseFloat(document.getElementById('montoRecibido').value) || 0;
+        const totalEnDolares = tasaBCVGuardada ? redondear2Decimales(totalBs / tasaBCVGuardada) : 0;
+        if (recib < totalEnDolares) { 
+            showToast("Monto recibido menor al total", 'error'); 
+            return; 
+        }
+        detallesPago.cambio = redondear2Decimales(recib - totalEnDolares);
+        detallesPago.montoRecibido = recib;
     } else if (metodoPagoSeleccionado === 'punto' || metodoPagoSeleccionado === 'biopago') {
-    const monto = parseFloat(document.getElementById('montoPago') ? document.getElementById('montoPago').value : 0) || 0;
-    if (monto <= 0) { 
-        showToast("Ingrese el monto para Punto/Biopago", 'error'); 
-        return; 
-    }
-    detallesPago.monto = monto;
+        const monto = parseFloat(document.getElementById('montoPago') ? document.getElementById('montoPago').value : 0) || 0;
+        if (monto <= 0) { 
+            showToast("Ingrese el monto para Punto/Biopago", 'error'); 
+            return; 
+        }
+        detallesPago.monto = monto;
     } else if (metodoPagoSeleccionado === 'pago_movil') {
-    const monto = parseFloat(document.getElementById('montoPagoMovil').value) || 0;
-    const ref = document.getElementById('refPagoMovil').value.trim();
-    const banco = document.getElementById('bancoPagoMovil').value.trim();
-    if (!monto || !ref || !banco) { 
-        showToast("Complete todos los datos de Pago Móvil", 'error'); 
-        return; 
-    }
-    detallesPago = {...detallesPago, monto, ref, banco };
+        const monto = parseFloat(document.getElementById('montoPagoMovil').value) || 0;
+        const ref = document.getElementById('refPagoMovil').value.trim();
+        const banco = document.getElementById('bancoPagoMovil').value.trim();
+        if (!monto || !ref || !banco) { 
+            showToast("Complete todos los datos de Pago Móvil", 'error'); 
+            return; 
+        }
+        detallesPago = {...detallesPago, monto, ref, banco };
     }
 
-    // Registrar ventas y restar inventario (aquí restamos según unidad final en carrito)
     carrito.forEach(item => {
-    const producto = productos[item.indexProducto];
-    if (producto) {
-        // Para 'gramo': item.cantidad está en gramos -> restamos item.cantidad/1000 de unidadesExistentes (que están en kilos)
-        if (item.unidad === 'gramo') {
-            producto.unidadesExistentes = redondear2Decimales(producto.unidadesExistentes - (item.cantidad / 1000));
-        } else {
-            // Para unidades: restamos la cantidad directamente
-            producto.unidadesExistentes = redondear2Decimales(producto.unidadesExistentes - item.cantidad);
-        }
+        const producto = productos[item.indexProducto];
+        if (producto) {
+            if (item.unidad === 'gramo') {
+                producto.unidadesExistentes = redondear2Decimales(producto.unidadesExistentes - (item.cantidad / 1000));
+            } else {
+                producto.unidadesExistentes = redondear2Decimales(producto.unidadesExistentes - item.cantidad);
+            }
 
-        // Asegurar que no haya números negativos
-        if (producto.unidadesExistentes < 0) {
-            producto.unidadesExistentes = 0;
-        }
+            if (producto.unidadesExistentes < 0) {
+                producto.unidadesExistentes = 0;
+            }
 
-        ventasDiarias.push({
-            fecha: new Date().toLocaleDateString(),
-            hora: new Date().toLocaleTimeString(),
-            producto: producto.nombre,
-            cantidad: item.cantidad,
-            unidad: item.unidad,
-            totalBolivar: item.subtotal,
-            metodoPago: metodoPagoSeleccionado,
-            indexProducto: item.indexProducto
-        });
-    }
+            ventasDiarias.push({
+                fecha: new Date().toLocaleDateString(),
+                hora: new Date().toLocaleTimeString(),
+                producto: producto.nombre,
+                cantidad: item.cantidad,
+                unidad: item.unidad,
+                totalBolivar: item.subtotal,
+                metodoPago: metodoPagoSeleccionado,
+                indexProducto: item.indexProducto
+            });
+        }
     });
 
-    // ACTUALIZAR LOS DATOS EN LOCALSTORAGE
     localStorage.setItem('productos', JSON.stringify(productos));
     localStorage.setItem('ventasDiarias', JSON.stringify(ventasDiarias));
 
     showToast(`Venta completada por Bs ${redondear2Decimales(totalBs).toFixed(2)}`, 'success');
 
-    // Preparar detalles para el ticket
     detallesPago.totalBs = redondear2Decimales(totalBs);
     detallesPago.items = JSON.parse(JSON.stringify(carrito));
     detallesPago.fecha = new Date().toLocaleString();
 
-    // Limpiar carrito
     carrito = [];
     localStorage.setItem('carrito', JSON.stringify(carrito));
     actualizarCarrito();
-    
-    // Actualizar la lista de productos para reflejar el nuevo inventario
     actualizarLista();
     
     cerrarModalPago();
 
-    // Imprimir ticket térmico automáticamente
     imprimirTicketTermico(detallesPago);
 }
 
-// cancelar pago
 function cancelarPago() {
     document.getElementById('detallesPago').style.display = 'none';
     metodoPagoSeleccionado = null;
     detallesPago = {};
 }
 
-// ===== NOMBRE ESTABLECIMIENTO Y TASA BCV (toasts por éxito/error) =====
+// ===== NOMBRE ESTABLECIMIENTO Y TASA BCV =====
 function guardarNombreEstablecimiento() {
     nombreEstablecimiento = document.getElementById('nombreEstablecimiento').value.trim();
     if (!nombreEstablecimiento) { showToast("Ingrese un nombre válido", 'error'); return; }
@@ -1106,7 +986,6 @@ function actualizarTasaBCV() {
     tasaBCVGuardada = nuevaTasa;
     localStorage.setItem('tasaBCV', tasaBCVGuardada);
 
-    // Recalcular precios de todos los productos
     productos.forEach(producto => {
         producto.precioUnitarioBolivar = producto.precioUnitarioDolar * nuevaTasa;
         producto.precioMayorBolivar = producto.precioMayorDolar * nuevaTasa;
@@ -1118,14 +997,13 @@ function actualizarTasaBCV() {
     showToast(`Tasa BCV actualizada a: ${nuevaTasa}`, 'success');
 }
 
-// toggle copyright
 function toggleCopyrightNotice() {
     const notice = document.getElementById('copyrightNotice');
     if (!notice) return;
     notice.style.display = notice.style.display === 'block' ? 'none' : 'block';
 }
 
-/* ===== LISTA DE COSTOS (ORDEN ALFABÉTICO + buscador condicional) ===== */
+/* ===== LISTA DE COSTOS ===== */
 function mostrarListaCostos() {
     const container = document.getElementById('listaCostosContainer');
     const buscarCostosInput = document.getElementById('buscarCostos');
@@ -1194,7 +1072,7 @@ function generarPDFCostos() {
     doc.save(`lista_costos_${(new Date()).toISOString().slice(0,10)}.pdf`);
 }
 
-// ===== GENERAR REPORTE DIARIO (PDF) con detalle y cálculo de ganancia =====
+// ===== GENERAR REPORTE DIARIO (PDF) =====
 function generarReporteDiario() {
     if (!ventasDiarias.length) { showToast("No hay ventas registradas", 'warning'); return; }
 
@@ -1285,7 +1163,6 @@ function generarPDFPorCategoria(categoria) {
     } else {
         productosFiltrados = productos.filter(p => p.descripcion === categoria);
         
-        // Mapear el valor de la categoría a un nombre legible
         const nombresCategorias = {
             'viveres': 'VÍVERES',
             'bebidas': 'BEBIDAS',
@@ -1322,7 +1199,6 @@ function generarPDFPorCategoria(categoria) {
         return;
     }
 
-    // Ordenar alfabéticamente
     productosFiltrados.sort((a, b) => (a.nombre || '').localeCompare((b.nombre || ''), 'es', { sensitivity: 'base' }));
 
     const rows = productosFiltrados.map(p => [
@@ -1334,7 +1210,6 @@ function generarPDFPorCategoria(categoria) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // Encabezado
     doc.setFontSize(16);
     doc.text(nombreEstablecimiento || 'Lista de Productos', 14, 18);
     doc.setFontSize(12);
@@ -1342,7 +1217,6 @@ function generarPDFPorCategoria(categoria) {
     doc.setFontSize(10);
     doc.text(`Fecha: ${(new Date()).toLocaleDateString()}`, 14, 34);
 
-    // Tabla
     doc.autoTable({
         head: [['Producto', 'Precio ($)', 'Precio (Bs)']],
         body: rows,
@@ -1416,7 +1290,6 @@ function generarEtiquetasPorCategoria(categoria) {
         return;
     }
 
-    // Ordenar alfabéticamente
     productosFiltrados.sort((a, b) => (a.nombre || '').localeCompare((b.nombre || ''), 'es', { sensitivity: 'base' }));
 
     const { jsPDF } = window.jspdf;
@@ -1426,13 +1299,12 @@ function generarEtiquetasPorCategoria(categoria) {
         format: 'a4'
     });
 
-    // Configuración de etiquetas
-    const pageWidth = 210; // A4 width in mm
-    const pageHeight = 297; // A4 height in mm
+    const pageWidth = 210;
+    const pageHeight = 297;
     const margin = 10;
-    const labelWidth = 63; // 3 columnas
-    const labelHeight = 35; // Altura de cada etiqueta
-    const labelsPerPage = 21; // 3 columnas x 7 filas
+    const labelWidth = 63;
+    const labelHeight = 35;
+    const labelsPerPage = 21;
 
     let currentPage = 0;
     let labelIndex = 0;
@@ -1450,36 +1322,30 @@ function generarEtiquetasPorCategoria(categoria) {
         const x = margin + (col * labelWidth);
         const y = margin + (row * labelHeight);
 
-        // Dibujar cuadro de etiqueta
         doc.setDrawColor(200, 200, 200);
         doc.setFillColor(255, 255, 255);
         doc.rect(x, y, labelWidth - 2, labelHeight - 2, 'FD');
 
-        // Nombre del establecimiento (más pequeño)
         doc.setFontSize(8);
         doc.setTextColor(100, 100, 100);
         doc.text(nombreEstablecimiento || 'TIENDA', x + 2, y + 5);
 
-        // Nombre del producto
         doc.setFontSize(10);
         doc.setTextColor(0, 0, 0);
         const nombreProducto = producto.nombre.length > 25 ? 
             producto.nombre.substring(0, 25) + '...' : producto.nombre;
         doc.text(nombreProducto, x + 2, y + 10);
 
-        // Precio en bolívares (grande y destacado)
         doc.setFontSize(14);
         doc.setTextColor(220, 0, 0);
         doc.setFont(undefined, 'bold');
         doc.text(`Bs ${producto.precioUnitarioBolivar.toFixed(2)}`, x + 2, y + 20);
 
-        // Categoría (pequeño)
         doc.setFontSize(7);
         doc.setTextColor(100, 100, 100);
         doc.setFont(undefined, 'normal');
         doc.text(`Categoría: ${tituloCategoria}`, x + 2, y + 25);
 
-        // Código de barras si existe
         if (producto.codigoBarras) {
             doc.setFontSize(6);
             doc.text(`Cód: ${producto.codigoBarras}`, x + 2, y + 30);
@@ -1493,7 +1359,7 @@ function generarEtiquetasPorCategoria(categoria) {
     showToast(`Etiquetas generadas para: ${tituloCategoria}`, 'success');
 }
 
-// ===== Imprimir ticket térmico (abre una ventana con formato estrecho y llama print) =====
+// ===== Imprimir ticket térmico =====
 function imprimirTicketTermico(detalles) {
     try {
         const printWindow = window.open('', '_blank', 'toolbar=0,location=0,menubar=0');
@@ -1580,7 +1446,6 @@ window.onclick = function(event) {
 // ===== FUNCIONES DE RESPALDO Y RESTAURACIÓN =====
 function descargarBackup() {
     try {
-        // Recopilar todos los datos del localStorage
         const backupData = {
             productos: JSON.parse(localStorage.getItem('productos')) || [],
             nombreEstablecimiento: localStorage.getItem('nombreEstablecimiento') || '',
@@ -1591,16 +1456,13 @@ function descargarBackup() {
             version: '1.0'
         };
 
-        // Crear el archivo JSON
         const dataStr = JSON.stringify(backupData, null, 2);
         const dataBlob = new Blob([dataStr], { type: 'application/json' });
         
-        // Crear un enlace de descarga
         const downloadLink = document.createElement('a');
         downloadLink.href = URL.createObjectURL(dataBlob);
         downloadLink.download = `respaldo_calculadora_${new Date().toISOString().slice(0, 10)}.json`;
         
-        // Simular clic en el enlace
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);
@@ -1627,28 +1489,23 @@ function cargarBackup(files) {
         try {
             const backupData = JSON.parse(e.target.result);
             
-            // Validar estructura básica del archivo
             if (!backupData.productos || !Array.isArray(backupData.productos)) {
                 throw new Error('Formato de archivo inválido');
             }
             
-            // Confirmar con el usuario antes de sobrescribir datos
             if (confirm('¿Estás seguro de que deseas cargar este respaldo? Se sobrescribirán todos los datos actuales.')) {
-                // Restaurar datos en localStorage
                 localStorage.setItem('productos', JSON.stringify(backupData.productos));
                 localStorage.setItem('nombreEstablecimiento', backupData.nombreEstablecimiento || '');
                 localStorage.setItem('tasaBCV', backupData.tasaBCV || 0);
                 localStorage.setItem('ventasDiarias', JSON.stringify(backupData.ventasDiarias || []));
                 localStorage.setItem('carrito', JSON.stringify(backupData.carrito || []));
                 
-                // Recargar variables globales
                 productos = JSON.parse(localStorage.getItem('productos')) || [];
                 nombreEstablecimiento = localStorage.getItem('nombreEstablecimiento') || '';
                 tasaBCVGuardada = parseFloat(localStorage.getItem('tasaBCV')) || 0;
                 ventasDiarias = JSON.parse(localStorage.getItem('ventasDiarias')) || [];
                 carrito = JSON.parse(localStorage.getItem('carrito')) || [];
                 
-                // Actualizar interfaz
                 cargarDatosIniciales();
                 actualizarLista();
                 actualizarCarrito();
@@ -1667,7 +1524,6 @@ function cargarBackup(files) {
     
     reader.readAsText(file);
     
-    // Limpiar el input de archivo
     document.getElementById('fileInput').value = '';
 }
 
@@ -1678,19 +1534,16 @@ function procesarEscaneo(codigo) {
         return;
     }
 
-    // Buscar por código exacto primero
     let productoEncontrado = productos.find(p =>
         p.codigoBarras && p.codigoBarras.toLowerCase() === codigo.toLowerCase()
     );
 
-    // Si no se encuentra por código, buscar por nombre exacto
     if (!productoEncontrado) {
         productoEncontrado = productos.find(p =>
             (p.nombre || '').toLowerCase() === codigo.toLowerCase()
         );
     }
 
-    // Si aún no se encuentra, buscar por coincidencia parcial en nombre
     if (!productoEncontrado) {
         productoEncontrado = productos.find(p =>
             (p.nombre || '').toLowerCase().includes(codigo.toLowerCase())
@@ -1703,22 +1556,18 @@ function procesarEscaneo(codigo) {
         return;
     }
 
-    // AGREGAR AL CARRITO
     agregarProductoAlCarrito(productoEncontrado);
     darFeedbackEscaneoExitoso();
 }
 
 function agregarProductoAlCarrito(productoEncontrado) {
-    // Verificar si ya está en el carrito (mismo nombre y unidad 'unidad')
     const enCarrito = carrito.findIndex(item => item.nombre === productoEncontrado.nombre && item.unidad === 'unidad');
 
     if (enCarrito !== -1) {
-        // Actualizar cantidad (unidad)
         carrito[enCarrito].cantidad += 1;
         carrito[enCarrito].subtotal = redondear2Decimales(carrito[enCarrito].cantidad * carrito[enCarrito].precioUnitarioBolivar);
         carrito[enCarrito].subtotalDolar = redondear2Decimales(carrito[enCarrito].cantidad * carrito[enCarrito].precioUnitarioDolar);
     } else {
-        // Agregar nuevo producto (por defecto unidad)
         carrito.push({
             nombre: productoEncontrado.nombre,
             descripcion: productoEncontrado.descripcion,
@@ -1732,7 +1581,6 @@ function agregarProductoAlCarrito(productoEncontrado) {
         });
     }
 
-    // Limpiar y focus
     const codigoInput = document.getElementById('codigoBarrasInput');
     if (codigoInput) {
         codigoInput.value = '';
@@ -1752,7 +1600,6 @@ function mostrarSugerenciasEspecificas(codigo) {
 
     sugerenciasDiv.innerHTML = '<div style="color: #ff6b6b; padding: 5px;">Producto no encontrado. Sugerencias:</div>';
 
-    // Buscar productos similares
     const similares = productos.filter(p =>
         (p.nombre || '').toLowerCase().includes(codigo.toLowerCase().substring(0, 3)) ||
         (p.codigoBarras && p.codigoBarras.toLowerCase().includes(codigo.toLowerCase().substring(0, 3)))
@@ -1777,7 +1624,6 @@ function mostrarSugerenciasEspecificas(codigo) {
 }
 
 function darFeedbackEscaneoExitoso() {
-    // Cambio visual breve en el input
     const codigoInput = document.getElementById('codigoBarrasInput');
     if (codigoInput) {
         codigoInput.style.backgroundColor = '#d4edda';
@@ -1787,30 +1633,69 @@ function darFeedbackEscaneoExitoso() {
     }
 }
 
-// ===== FUNCIONES ADICIONALES PARA MEJORAR LA EXPERIENCIA MÓVIL =====
+// ===== SISTEMA DE SINCRONIZACIÓN OFFLINE =====
+function verificarConexion() {
+    return navigator.onLine;
+}
 
-// Prevenir acciones no deseadas en móviles
-document.addEventListener('touchstart', function(e) {
-    // Prevenir zoom en inputs
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
-        document.body.style.zoom = "100%";
-    }
-}, { passive: true });
+function guardarDatosOffline() {
+    const datos = {
+        productos: productos,
+        nombreEstablecimiento: nombreEstablecimiento,
+        tasaBCV: tasaBCVGuardada,
+        ventasDiarias: ventasDiarias,
+        carrito: carrito,
+        timestamp: new Date().getTime()
+    };
+    
+    localStorage.setItem('datosOffline', JSON.stringify(datos));
+}
 
-// Mejorar el desplazamiento en móviles
-document.addEventListener('touchmove', function(e) {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
-        e.preventDefault();
-    }
-}, { passive: false });
-
-// Ajustar el viewport para dispositivos móviles
-function ajustarViewportMovil() {
-    const viewport = document.querySelector('meta[name="viewport"]');
-    if (viewport) {
-        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+function cargarDatosOffline() {
+    const datosGuardados = localStorage.getItem('datosOffline');
+    if (datosGuardados) {
+        const datos = JSON.parse(datosGuardados);
+        
+        // Solo cargar si los datos offline son más recientes
+        const timestampOffline = datos.timestamp || 0;
+        const timestampActual = localStorage.getItem('ultimaSincronizacion') || 0;
+        
+        if (timestampOffline > timestampActual) {
+            productos = datos.productos || productos;
+            nombreEstablecimiento = datos.nombreEstablecimiento || nombreEstablecimiento;
+            tasaBCVGuardada = datos.tasaBCV || tasaBCVGuardada;
+            ventasDiarias = datos.ventasDiarias || ventasDiarias;
+            carrito = datos.carrito || carrito;
+            
+            // Actualizar localStorage
+            localStorage.setItem('productos', JSON.stringify(productos));
+            localStorage.setItem('nombreEstablecimiento', nombreEstablecimiento);
+            localStorage.setItem('tasaBCV', tasaBCVGuardada.toString());
+            localStorage.setItem('ventasDiarias', JSON.stringify(ventasDiarias));
+            localStorage.setItem('carrito', JSON.stringify(carrito));
+            
+            showToast('Datos recuperados correctamente', 'success');
+        }
     }
 }
 
-// Inicializar ajustes para móviles
-ajustarViewportMovil();
+// Guardar datos automáticamente cada 30 segundos
+setInterval(guardarDatosOffline, 30000);
+
+// Cargar datos offline al iniciar
+window.addEventListener('load', function() {
+    if (!verificarConexion()) {
+        cargarDatosOffline();
+    }
+});
+
+// Sincronizar cuando se recupera la conexión
+window.addEventListener('online', function() {
+    showToast('Conexión restaurada - Sincronizando datos', 'success');
+    localStorage.setItem('ultimaSincronizacion', new Date().getTime().toString());
+});
+
+window.addEventListener('offline', function() {
+    showToast('Sin conexión - Modo offline activado', 'warning');
+    guardarDatosOffline();
+});
