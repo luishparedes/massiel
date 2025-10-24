@@ -844,7 +844,7 @@ function seleccionarMetodoPago(metodo) {
                 if (metodo === 'efectivo_bs') cambio = redondear2Decimales(recib - totalBs);
                 else {
                     const totalEnDolares = tasaBCVGuardada ? redondear2Decimales(totalBs / tasaBCVGuardada) : 0;
-                    cambio = redondear2Decimales(recib - totalEnDolares);
+                    cambio = redondear2Decimales(recid - totalEnDolares);
                 }
                 document.getElementById('cambioCalculado').value = cambio >= 0 ? cambio.toFixed(2) : `Faltan ${Math.abs(cambio).toFixed(2)}`;
             });
@@ -1072,7 +1072,7 @@ function generarPDFCostos() {
     doc.save(`lista_costos_${(new Date()).toISOString().slice(0,10)}.pdf`);
 }
 
-// ===== GENERAR REPORTE DIARIO (PDF) =====
+// ===== GENERAR REPORTE DIARIO (PDF) MEJORADO =====
 function generarReporteDiario() {
     if (!ventasDiarias.length) { showToast("No hay ventas registradas", 'warning'); return; }
 
@@ -1112,6 +1112,11 @@ function generarReporteDiario() {
     });
 
     const gananciaEstim = totalVentasBs - totalCostosBs;
+    
+    // ===== NUEVO: APLICAR FÓRMULA 50-30-20 =====
+    const reinvertir = redondear2Decimales(gananciaEstim * 0.50);
+    const gastosFijos = redondear2Decimales(gananciaEstim * 0.30);
+    const sueldo = redondear2Decimales(gananciaEstim * 0.20);
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'pt' });
@@ -1129,10 +1134,34 @@ function generarReporteDiario() {
     });
 
     const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 300;
+    
+    // ===== SECCIÓN MEJORADA: RESUMEN FINANCIERO =====
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text('RESUMEN FINANCIERO', 40, finalY + 20);
+    
     doc.setFontSize(11);
-    doc.text(`Total ventas (Bs): ${totalVentasBs.toFixed(2)}`, 40, finalY + 20);
-    doc.text(`Total costos estimados (Bs): ${totalCostosBs.toFixed(2)}`, 40, finalY + 38);
-    doc.text(`Ganancia estimada (Bs): ${gananciaEstim.toFixed(2)}`, 40, finalY + 56);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Total ventas (Bs): ${totalVentasBs.toFixed(2)}`, 40, finalY + 40);
+    doc.text(`Total costos estimados (Bs): ${totalCostosBs.toFixed(2)}`, 40, finalY + 58);
+    doc.text(`Ganancia estimada (Bs): ${gananciaEstim.toFixed(2)}`, 40, finalY + 76);
+    
+    // ===== NUEVA SECCIÓN: DISTRIBUCIÓN 50-30-20 =====
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text('DISTRIBUCIÓN RECOMENDADA (50-30-20)', 40, finalY + 104);
+    
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'normal');
+    doc.text(`💰 50% Para reinvertir: Bs ${reinvertir.toFixed(2)}`, 40, finalY + 124);
+    doc.text(`📊 30% Para gastos fijos: Bs ${gastosFijos.toFixed(2)}`, 40, finalY + 142);
+    doc.text(`💼 20% Para sueldo: Bs ${sueldo.toFixed(2)}`, 40, finalY + 160);
+    
+    // ===== NOTA EXPLICATIVA =====
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Nota: Esta distribución ayuda a mantener un negocio saludable, reinvirtiendo en inventario,', 40, finalY + 185);
+    doc.text('cubriendo gastos operativos y asegurando un ingreso personal sostenible.', 40, finalY + 198);
 
     doc.save(`reporte_diario_${(new Date()).toISOString().slice(0,10)}.pdf`);
 }
