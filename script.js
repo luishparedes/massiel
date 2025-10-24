@@ -1081,24 +1081,8 @@ function generarReporteDiario() {
     const ventasAUsar = ventasHoy.length ? ventasHoy : ventasDiarias;
 
     let totalVentasBs = 0;
-    let totalCostosBs = 0;
     const filas = ventasAUsar.map(v => {
         totalVentasBs += v.totalBolivar || 0;
-        const producto = productos[v.indexProducto] || productos.find(p => p.nombre === v.producto);
-        let costoDolar = 0;
-
-        if (producto) {
-            if (v.unidad === 'gramo') {
-                costoDolar = (v.cantidad / 1000) * (producto.costo / (producto.unidadesPorCaja || 1));
-            } else if (v.unidad === 'caja') {
-                costoDolar = v.cantidad * (producto.costo || 0);
-            } else {
-                costoDolar = v.cantidad * ((producto.costo || 0) / (producto.unidadesPorCaja || 1));
-            }
-        }
-
-        const costoBs = costoDolar * (tasaBCVGuardada || 1);
-        totalCostosBs += costoBs;
 
         return [
             v.fecha,
@@ -1106,17 +1090,15 @@ function generarReporteDiario() {
             v.producto,
             `${v.cantidad} ${v.unidad}`,
             `Bs ${ (v.totalBolivar || 0).toFixed(2) }`,
-            v.metodoPago,
-            `Bs ${ costoBs.toFixed(2) }`
+            v.metodoPago
         ];
     });
 
-    const gananciaEstim = totalVentasBs - totalCostosBs;
-    
-    // ===== NUEVO: APLICAR FÓRMULA 50-30-20 =====
-    const reinvertir = redondear2Decimales(gananciaEstim * 0.50);
-    const gastosFijos = redondear2Decimales(gananciaEstim * 0.30);
-    const sueldo = redondear2Decimales(gananciaEstim * 0.20);
+    // ===== FÓRMULA SIMPLIFICADA 50-30-20 =====
+    const llaveMaestra = redondear2Decimales(totalVentasBs / 100);
+    const reinvertir = redondear2Decimales(llaveMaestra * 50);
+    const gastosFijos = redondear2Decimales(llaveMaestra * 30);
+    const sueldo = redondear2Decimales(llaveMaestra * 20);
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'pt' });
@@ -1128,7 +1110,7 @@ function generarReporteDiario() {
 
     doc.autoTable({
         startY: 80,
-        head: [['Fecha','Hora','Producto','Cant.','Total (Bs)','Pago','Costo Bs']],
+        head: [['Fecha','Hora','Producto','Cant.','Total (Bs)','Pago']],
         body: filas,
         styles: { fontSize: 9 }
     });
@@ -1142,26 +1124,28 @@ function generarReporteDiario() {
     
     doc.setFontSize(11);
     doc.setFont(undefined, 'normal');
-    doc.text(`Total ventas (Bs): ${totalVentasBs.toFixed(2)}`, 40, finalY + 40);
-    doc.text(`Total costos estimados (Bs): ${totalCostosBs.toFixed(2)}`, 40, finalY + 58);
-    doc.text(`Ganancia estimada (Bs): ${gananciaEstim.toFixed(2)}`, 40, finalY + 76);
+    doc.text(`Total ingresos por ventas (Bs): ${totalVentasBs.toFixed(2)}`, 40, finalY + 40);
     
     // ===== NUEVA SECCIÓN: DISTRIBUCIÓN 50-30-20 =====
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
-    doc.text('DISTRIBUCIÓN RECOMENDADA (50-30-20)', 40, finalY + 104);
+    doc.text('DISTRIBUCIÓN RECOMENDADA (50-30-20)', 40, finalY + 70);
     
     doc.setFontSize(11);
     doc.setFont(undefined, 'normal');
-    doc.text(`💰 50% Para reinvertir: Bs ${reinvertir.toFixed(2)}`, 40, finalY + 124);
-    doc.text(`📊 30% Para gastos fijos: Bs ${gastosFijos.toFixed(2)}`, 40, finalY + 142);
-    doc.text(`💼 20% Para sueldo: Bs ${sueldo.toFixed(2)}`, 40, finalY + 160);
+    doc.text(`💰 50% Para reinvertir: Bs ${reinvertir.toFixed(2)}`, 40, finalY + 90);
+    doc.text(`📊 30% Para gastos fijos: Bs ${gastosFijos.toFixed(2)}`, 40, finalY + 108);
+    doc.text(`💼 20% Para sueldo: Bs ${sueldo.toFixed(2)}`, 40, finalY + 126);
+    
+    // ===== VERIFICACIÓN DE CÁLCULO =====
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Verificación: ${reinvertir.toFixed(2)} + ${gastosFijos.toFixed(2)} + ${sueldo.toFixed(2)} = ${(reinvertir + gastosFijos + sueldo).toFixed(2)}`, 40, finalY + 150);
     
     // ===== NOTA EXPLICATIVA =====
     doc.setFontSize(9);
-    doc.setTextColor(100, 100, 100);
-    doc.text('Nota: Esta distribución ayuda a mantener un negocio saludable, reinvirtiendo en inventario,', 40, finalY + 185);
-    doc.text('cubriendo gastos operativos y asegurando un ingreso personal sostenible.', 40, finalY + 198);
+    doc.text('Nota: Esta distribución ayuda a mantener un negocio saludable, reinvirtiendo en inventario,', 40, finalY + 170);
+    doc.text('cubriendo gastos operativos y asegurando un ingreso personal sostenible.', 40, finalY + 183);
 
     doc.save(`reporte_diario_${(new Date()).toISOString().slice(0,10)}.pdf`);
 }
