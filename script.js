@@ -1081,8 +1081,13 @@ function generarReporteDiario() {
     const ventasAUsar = ventasHoy.length ? ventasHoy : ventasDiarias;
 
     let totalVentasBs = 0;
+    let totalVentasDolares = 0;
     const filas = ventasAUsar.map(v => {
         totalVentasBs += v.totalBolivar || 0;
+        
+        // Calcular total en dólares usando la tasa BCV guardada
+        const totalDolar = tasaBCVGuardada > 0 ? (v.totalBolivar || 0) / tasaBCVGuardada : 0;
+        totalVentasDolares += totalDolar;
 
         return [
             v.fecha,
@@ -1090,12 +1095,13 @@ function generarReporteDiario() {
             v.producto,
             `${v.cantidad} ${v.unidad}`,
             `Bs ${ (v.totalBolivar || 0).toFixed(2) }`,
+            `$ ${ totalDolar.toFixed(2) }`,
             v.metodoPago
         ];
     });
 
-    // ===== FÓRMULA SIMPLIFICADA 50-30-20 =====
-    const llaveMaestra = redondear2Decimales(totalVentasBs / 100);
+    // ===== FÓRMULA SIMPLIFICADA 50-30-20 SOBRE INGRESOS EN DÓLARES =====
+    const llaveMaestra = redondear2Decimales(totalVentasDolares / 100);
     const reinvertir = redondear2Decimales(llaveMaestra * 50);
     const gastosFijos = redondear2Decimales(llaveMaestra * 30);
     const sueldo = redondear2Decimales(llaveMaestra * 20);
@@ -1107,10 +1113,11 @@ function generarReporteDiario() {
     doc.text(nombreEstablecimiento || 'Reporte Diario', 40, 40);
     doc.setFontSize(10);
     doc.text(`Fecha: ${ (new Date()).toLocaleDateString() }`, 40, 60);
+    doc.text(`Tasa BCV: ${tasaBCVGuardada}`, 40, 75);
 
     doc.autoTable({
-        startY: 80,
-        head: [['Fecha','Hora','Producto','Cant.','Total (Bs)','Pago']],
+        startY: 90,
+        head: [['Fecha','Hora','Producto','Cant.','Total (Bs)','Total ($)','Pago']],
         body: filas,
         styles: { fontSize: 9 }
     });
@@ -1124,28 +1131,29 @@ function generarReporteDiario() {
     
     doc.setFontSize(11);
     doc.setFont(undefined, 'normal');
-    doc.text(`Total ingresos por ventas (Bs): ${totalVentasBs.toFixed(2)}`, 40, finalY + 40);
+    doc.text(`Total ingresos en Bolívares: Bs ${totalVentasBs.toFixed(2)}`, 40, finalY + 40);
+    doc.text(`Total ingresos en Dólares: $ ${totalVentasDolares.toFixed(2)}`, 40, finalY + 58);
     
-    // ===== NUEVA SECCIÓN: DISTRIBUCIÓN 50-30-20 =====
+    // ===== NUEVA SECCIÓN: DISTRIBUCIÓN 50-30-20 EN DÓLARES =====
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
-    doc.text('DISTRIBUCIÓN RECOMENDADA (50-30-20)', 40, finalY + 70);
+    doc.text('DISTRIBUCIÓN RECOMENDADA (50-30-20) EN DÓLARES', 40, finalY + 85);
     
     doc.setFontSize(11);
     doc.setFont(undefined, 'normal');
-    doc.text(`💰 50% Para reinvertir: Bs ${reinvertir.toFixed(2)}`, 40, finalY + 90);
-    doc.text(`📊 30% Para gastos fijos: Bs ${gastosFijos.toFixed(2)}`, 40, finalY + 108);
-    doc.text(`💼 20% Para sueldo: Bs ${sueldo.toFixed(2)}`, 40, finalY + 126);
+    doc.text(`50% Para reinvertir: $ ${reinvertir.toFixed(2)}`, 40, finalY + 105);
+    doc.text(`30% Para gastos fijos: $ ${gastosFijos.toFixed(2)}`, 40, finalY + 123);
+    doc.text(`20% Para sueldo: $ ${sueldo.toFixed(2)}`, 40, finalY + 141);
     
     // ===== VERIFICACIÓN DE CÁLCULO =====
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
-    doc.text(`Verificación: ${reinvertir.toFixed(2)} + ${gastosFijos.toFixed(2)} + ${sueldo.toFixed(2)} = ${(reinvertir + gastosFijos + sueldo).toFixed(2)}`, 40, finalY + 150);
+    doc.text(`Verificación: ${reinvertir.toFixed(2)} + ${gastosFijos.toFixed(2)} + ${sueldo.toFixed(2)} = ${(reinvertir + gastosFijos + sueldo).toFixed(2)}`, 40, finalY + 165);
     
     // ===== NOTA EXPLICATIVA =====
     doc.setFontSize(9);
-    doc.text('Nota: Esta distribución ayuda a mantener un negocio saludable, reinvirtiendo en inventario,', 40, finalY + 170);
-    doc.text('cubriendo gastos operativos y asegurando un ingreso personal sostenible.', 40, finalY + 183);
+    doc.text('Nota: Esta distribución ayuda a mantener un negocio saludable, reinvirtiendo en inventario,', 40, finalY + 185);
+    doc.text('cubriendo gastos operativos y asegurando un ingreso personal sostenible.', 40, finalY + 198);
 
     doc.save(`reporte_diario_${(new Date()).toISOString().slice(0,10)}.pdf`);
 }
