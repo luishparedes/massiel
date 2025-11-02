@@ -9,134 +9,523 @@
 
     <title>Calculadora Mágica</title>
 
-    <!-- Librerías JS - Versiones específicas para compatibilidad -->
+    <!-- Librerías JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
     <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-    <div class="copyright-icon" onclick="toggleCopyrightNotice()">©</div>
-
-    <div class="copyright-notice" id="copyrightNotice">
-        <button class="close-btn" onclick="toggleCopyrightNotice()">×</button>
-        <strong>ADVERTENCIA:</strong> Este sistema está protegido por derechos de autor.
-        <strong>No revendas tu código de acceso</strong> o será bloqueado y perderás tu dinero.
-        Cualquier uso no autorizado será penalizado según las leyes aplicables.
-    </div>
-
-    <div class="calculator">
-        <h2>Calculadora Mágica</h2>
-
-        <!-- Sección para respaldo/restauración de datos -->
-        <section>
-            <h3>Respaldo y Restauración de Datos</h3>
-            <button onclick="descargarBackup()" class="backup-button">Descargar Respaldo</button>
-            <button onclick="document.getElementById('fileInput').click()" class="restore-button">Cargar Respaldo</button>
-            <input type="file" id="fileInput" accept=".json" style="display: none" onchange="cargarBackup(this.files)" />
-        </section>
-
-        <section>
-            <h3>Nombre del Establecimiento</h3>
-            <input type="text" id="nombreEstablecimiento" placeholder="Ej: Tienda La Bendición" />
-            <button onclick="guardarNombreEstablecimiento()">Guardar Nombre</button>
-        </section>
-
-        <section>
-            <h3>Tasa BCV</h3>
-            <input type="number" id="tasaBCV" placeholder="Tasa BCV" required />
-            <button onclick="actualizarTasaBCV()">Actualizar Tasa BCV</button>
-        </section>
-
-        <section>
-            <h3>Datos del Producto</h3>
-            <input type="text" id="producto" placeholder="Nombre del producto" required />
-            <input type="text" id="codigoBarras" placeholder="Código de barras (opcional)" />
-            <input type="number" id="costo" placeholder="Costo del producto (en $)" required />
-            <select id="descripcion" required>
-                <option value="">Selecciona una descripción</option>
-                <option value="viveres">Víveres</option>
-                <option value="bebidas">Bebidas</option>
-                <option value="licores">Licores</option>
-                <option value="enlatados">Enlatados</option>
-                <option value="plasticos">Plásticos</option>
-                <option value="papeleria">Papelería</option>
-                <option value="lacteos">Lácteos</option>
-                <option value="ferreteria">Ferretería</option>
-                <option value="agropecuaria">Agropecuaria</option>
-                <option value="frigorifico">Frigorífico</option>
-                <option value="pescaderia">Pescadería</option>
-                <option value="repuesto">Repuesto</option>
-                <option value="confiteria">Confitería</option>
-                <option value="ropa">Ropa</option>
-                <option value="calzados">Calzados</option>
-                <option value="charcuteria">Charcutería</option>
-                <option value="carnes">Carnes</option>
-                <option value="aseo_personal">Aseo Personal</option>
-                <option value="limpieza">Productos de Limpieza</option>
-                <option value="verduras">Verduras</option>
-                <option value="frutas">Frutas</option>
-                <option value="hortalizas">Hortalizas</option>
-                <option value="aliños">Aliños</option>
-                <option value="otros">Otros</option>
-            </select>
-        </section>
-
-        <section>
-            <h3>Precio de Venta</h3>
-            <input type="number" id="ganancia" placeholder="Porcentaje de ganancia" required />
-            <input type="number" id="unidadesPorCaja" placeholder="Unidades que trae la caja (ej: 1 para Queso en kg)" required />
-            <input type="number" id="unidadesExistentes" placeholder="Unidades existentes (ej: 50 si tienes 50 kg)" required />
-            <button onclick="calcularPrecioVenta()">Calcular Precio de Venta</button>
-            <p id="precioUnitario">Precio unitario: </p>
-        </section>
-
-        <button onclick="guardarProducto()">Guardar Producto</button>
-    </div>
-
-    <div id="listaProductos">
-        <input type="text" id="buscar" placeholder="Buscar producto" />
-        <button onclick="buscarProducto()">Buscar</button>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Producto</th>
-                    <th>Descripción</th>
-                    <th>Código Barras</th>
-                    <th>Existencias</th>
-                    <th>Ajustar Inventario</th>
-                    <th>Precio Unitario ($)</th>
-                    <th>Precio Unitario (Bs)</th>
-                    <th>Ganancia (%)</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-
-        <div class="action-buttons">
-            <button onclick="generarReporteDiario()" class="generar-pdf">Generar Reporte Diario</button>
-            <button onclick="mostrarListaCostos()" class="lista-costos">Mostrar Lista de Costos</button>
-            <button onclick="mostrarOpcionesPDF()" class="generar-pdf-categoria">PDF POR CATEGORÍA</button>
-            <button onclick="generarEtiquetasAnaqueles()" class="generar-etiquetas">ETIQUETAS ANAQUELES</button>
+    <!-- Barra de navegación superior -->
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle" onclick="toggleSidebar()">
+                <span class="material-icons">menu</span>
+            </button>
+            <div class="logo">
+                <span class="material-icons">calculate</span>
+                <span>Calculadora Mágica</span>
+            </div>
         </div>
+        <div class="nav-right">
+            <div class="establecimiento-info">
+                <span id="currentEstablecimiento">Sin nombre</span>
+            </div>
+            <button class="nav-icon" onclick="toggleCopyrightNotice()">
+                <span class="material-icons">copyright</span>
+            </button>
+        </div>
+    </nav>
 
-        <div id="listaCostosContainer" style="display: none;">
-            <div class="costos-header">
-                <h3>Lista de Costos de Productos</h3>
-                <div>
-                    <input type="text" id="buscarCostos" placeholder="Buscar en lista de costos" style="display:none" oninput="filtrarListaCostos()" />
-                    <button onclick="generarPDFCostos()" class="generar-pdf-costos">Convertir a PDF</button>
+    <!-- Barra lateral -->
+    <aside class="sidebar" id="sidebar">
+        <nav class="sidebar-nav">
+            <div class="nav-section">
+                <div class="nav-item active" onclick="showSection('inicio')">
+                    <span class="material-icons">home</span>
+                    <span>Inicio</span>
                 </div>
             </div>
-            <ul id="listaCostos"></ul>
+
+            <div class="nav-section">
+                <div class="nav-header">Gestión de Productos</div>
+                <div class="nav-item" onclick="showSection('agregar-producto')">
+                    <span class="material-icons">add_circle</span>
+                    <span>Agregar Producto</span>
+                </div>
+                <div class="nav-item" onclick="showSection('lista-productos')">
+                    <span class="material-icons">list_alt</span>
+                    <span>Lista de Productos</span>
+                </div>
+                <div class="nav-item" onclick="showSection('lista-costos')">
+                    <span class="material-icons">attach_money</span>
+                    <span>Lista de Costos</span>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-header">Ventas</div>
+                <div class="nav-item" onclick="showSection('carrito-ventas')">
+                    <span class="material-icons">shopping_cart</span>
+                    <span>Carrito de Ventas</span>
+                </div>
+                <div class="nav-item" onclick="showSection('escaner-rapido')">
+                    <span class="material-icons">qr_code_scanner</span>
+                    <span>Escáner Rápido</span>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-header">Reportes</div>
+                <div class="nav-item" onclick="mostrarModalReporte()">
+                    <span class="material-icons">summarize</span>
+                    <span>Reporte Diario</span>
+                </div>
+                <div class="nav-item" onclick="mostrarOpcionesPDF()">
+                    <span class="material-icons">picture_as_pdf</span>
+                    <span>PDF por Categoría</span>
+                </div>
+                <div class="nav-item" onclick="generarEtiquetasAnaqueles()">
+                    <span class="material-icons">local_offer</span>
+                    <span>Etiquetas Anaqueles</span>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-header">Configuración</div>
+                <div class="nav-item" onclick="showSection('configuracion')">
+                    <span class="material-icons">settings</span>
+                    <span>Configuración</span>
+                </div>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Contenido principal -->
+    <main class="main-content" id="mainContent">
+        <!-- Sección Inicio -->
+        <div id="inicio" class="content-section active">
+            <div class="welcome-card">
+                <h1>Bienvenido a Calculadora Mágica</h1>
+                <p>Sistema integral de gestión de ventas e inventario</p>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <span class="material-icons">inventory_2</span>
+                        <h3 id="totalProductos">0</h3>
+                        <p>Productos Registrados</p>
+                    </div>
+                    <div class="stat-card">
+                        <span class="material-icons">shopping_cart</span>
+                        <h3 id="ventasHoy">0</h3>
+                        <p>Ventas Hoy</p>
+                    </div>
+                    <div class="stat-card">
+                        <span class="material-icons">warning</span>
+                        <h3 id="inventarioBajo">0</h3>
+                        <p>Productos con Stock Bajo</p>
+                    </div>
+                    <div class="stat-card">
+                        <span class="material-icons">attach_money</span>
+                        <h3 id="tasaActual">0</h3>
+                        <p>Tasa BCV Actual</p>
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <h2>Acciones Rápidas</h2>
+                    <div class="action-buttons-grid">
+                        <button class="action-btn" onclick="showSection('agregar-producto')">
+                            <span class="material-icons">add</span>
+                            Agregar Producto
+                        </button>
+                        <button class="action-btn" onclick="showSection('carrito-ventas')">
+                            <span class="material-icons">shopping_cart</span>
+                            Nueva Venta
+                        </button>
+                        <button class="action-btn" onclick="mostrarModalReporte()">
+                            <span class="material-icons">summarize</span>
+                            Reporte Diario
+                        </button>
+                        <button class="action-btn" onclick="showSection('lista-costos')">
+                            <span class="material-icons">list</span>
+                            Lista de Costos
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección Agregar Producto -->
+        <div id="agregar-producto" class="content-section">
+            <div class="section-header">
+                <h2>Agregar Producto</h2>
+                <p>Complete la información del producto</p>
+            </div>
+
+            <div class="form-card">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Nombre del Producto</label>
+                        <input type="text" id="producto" class="form-input" placeholder="Ej: Arroz Mary" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Código de Barras</label>
+                        <input type="text" id="codigoBarras" class="form-input" placeholder="Opcional">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Categoría</label>
+                        <select id="descripcion" class="form-select" required>
+                            <option value="">Selecciona una categoría</option>
+                            <option value="viveres">Víveres</option>
+                            <option value="bebidas">Bebidas</option>
+                            <option value="licores">Licores</option>
+                            <option value="enlatados">Enlatados</option>
+                            <option value="plasticos">Plásticos</option>
+                            <option value="papeleria">Papelería</option>
+                            <option value="lacteos">Lácteos</option>
+                            <option value="ferreteria">Ferretería</option>
+                            <option value="agropecuaria">Agropecuaria</option>
+                            <option value="frigorifico">Frigorífico</option>
+                            <option value="pescaderia">Pescadería</option>
+                            <option value="repuesto">Repuesto</option>
+                            <option value="confiteria">Confitería</option>
+                            <option value="ropa">Ropa</option>
+                            <option value="calzados">Calzados</option>
+                            <option value="charcuteria">Charcutería</option>
+                            <option value="carnes">Carnes</option>
+                            <option value="aseo_personal">Aseo Personal</option>
+                            <option value="limpieza">Productos de Limpieza</option>
+                            <option value="verduras">Verduras</option>
+                            <option value="frutas">Frutas</option>
+                            <option value="hortalizas">Hortalizas</option>
+                            <option value="aliños">Aliños</option>
+                            <option value="otros">Otros</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Costo del Producto ($)</label>
+                        <input type="number" id="costo" class="form-input" placeholder="0.00" step="0.01" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Porcentaje de Ganancia</label>
+                        <input type="number" id="ganancia" class="form-input" placeholder="30" step="0.1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Unidades por Caja</label>
+                        <input type="number" id="unidadesPorCaja" class="form-input" placeholder="1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Unidades Existentes</label>
+                        <input type="number" id="unidadesExistentes" class="form-input" placeholder="0" required>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="calcularPrecioVenta()">
+                        <span class="material-icons">calculate</span>
+                        Calcular Precio
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="guardarProducto()">
+                        <span class="material-icons">save</span>
+                        Guardar Producto
+                    </button>
+                </div>
+
+                <div id="precioUnitario" class="price-result">
+                    <!-- Resultado del cálculo de precio -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección Lista de Productos -->
+        <div id="lista-productos" class="content-section">
+            <div class="section-header">
+                <h2>Lista de Productos</h2>
+                <p>Gestión completa del inventario</p>
+            </div>
+
+            <div class="toolbar">
+                <div class="search-box">
+                    <span class="material-icons">search</span>
+                    <input type="text" id="buscar" placeholder="Buscar producto..." oninput="buscarProducto()">
+                </div>
+                <button class="btn btn-primary" onclick="exportarProductos()">
+                    <span class="material-icons">download</span>
+                    Exportar
+                </button>
+            </div>
+
+            <div class="data-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Categoría</th>
+                            <th>Código</th>
+                            <th>Existencias</th>
+                            <th>Precio ($)</th>
+                            <th>Precio (Bs)</th>
+                            <th>Ganancia</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productosTableBody">
+                        <!-- Los productos se cargan aquí -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Sección Carrito de Ventas -->
+        <div id="carrito-ventas" class="content-section">
+            <div class="section-header">
+                <h2>Carrito de Ventas</h2>
+                <p>Gestión de ventas y punto de venta</p>
+            </div>
+
+            <div class="carrito-container">
+                <div class="scanner-section">
+                    <div class="scanner-input">
+                        <input type="text" id="codigoBarrasInput" 
+                               placeholder="Escanea o ingresa código de barras o nombre del producto"
+                               onkeydown="manejarEntradaEscaneo(event)">
+                        <button class="btn btn-primary" onclick="agregarPorCodigoBarras()">
+                            <span class="material-icons">add</span>
+                            Agregar
+                        </button>
+                    </div>
+                    <div id="sugerencias" class="sugerencias-lista"></div>
+                    <div class="scanner-status" id="scannerStatus">
+                        Esperando escaneo de código de barras...
+                    </div>
+                </div>
+
+                <div class="carrito-content">
+                    <div class="carrito-header">
+                        <h3>Productos en Carrito</h3>
+                        <div class="carrito-totales">
+                            <div class="total-item" id="totalCarritoBs">
+                                <span>Total Bs:</span>
+                                <strong>0,00</strong>
+                            </div>
+                            <div class="total-item" id="totalCarritoDolares">
+                                <span>Total $:</span>
+                                <strong>0,00</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="carrito-table-container">
+                        <table class="carrito-table">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Precio Unit. (Bs)</th>
+                                    <th>Cantidad</th>
+                                    <th>Unidad</th>
+                                    <th>Subtotal (Bs)</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="carritoBody">
+                                <!-- Items del carrito -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="carrito-actions">
+                        <button class="btn btn-success" onclick="finalizarVenta()" id="finalizarVenta">
+                            <span class="material-icons">point_of_sale</span>
+                            Finalizar Venta
+                        </button>
+                        <button class="btn btn-danger" onclick="limpiarCarrito()">
+                            <span class="material-icons">delete</span>
+                            Limpiar Carrito
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección Escáner Rápido -->
+        <div id="escaner-rapido" class="content-section">
+            <div class="section-header">
+                <h2>Escáner Rápido</h2>
+                <p>Consulta rápida de precios por código o nombre</p>
+            </div>
+
+            <div class="scanner-rapido-container">
+                <div class="scanner-rapido-input">
+                    <div class="search-box-large">
+                        <span class="material-icons">search</span>
+                        <input type="text" id="busquedaRapida" 
+                               placeholder="Ingresa código de barras o nombre del producto..."
+                               oninput="buscarProductoRapido()">
+                    </div>
+                </div>
+
+                <div id="resultadoBusqueda" class="resultado-busqueda">
+                    <div class="placeholder-message">
+                        <span class="material-icons">search</span>
+                        <p>Ingresa un código de barras o nombre de producto para buscar</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección Lista de Costos -->
+        <div id="lista-costos" class="content-section">
+            <div class="section-header">
+                <h2>Lista de Costos</h2>
+                <p>Resumen de costos y precios de productos</p>
+            </div>
+
+            <div class="toolbar">
+                <div class="search-box">
+                    <span class="material-icons">search</span>
+                    <input type="text" id="buscarCostos" placeholder="Buscar en costos..." oninput="filtrarListaCostos()">
+                </div>
+                <button class="btn btn-primary" onclick="generarPDFCostos()">
+                    <span class="material-icons">picture_as_pdf</span>
+                    Generar PDF
+                </button>
+            </div>
+
+            <div class="costos-list" id="listaCostosContainer">
+                <div class="costos-grid" id="listaCostos">
+                    <!-- Lista de costos se carga aquí -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección Configuración -->
+        <div id="configuracion" class="content-section">
+            <div class="section-header">
+                <h2>Configuración</h2>
+                <p>Configuración general del sistema</p>
+            </div>
+
+            <div class="config-grid">
+                <div class="config-card">
+                    <h3>Nombre del Establecimiento</h3>
+                    <div class="config-form">
+                        <input type="text" id="nombreEstablecimiento" class="form-input" placeholder="Ej: Tienda La Bendición">
+                        <button class="btn btn-primary" onclick="guardarNombreEstablecimiento()">
+                            <span class="material-icons">save</span>
+                            Guardar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="config-card">
+                    <h3>Tasa BCV</h3>
+                    <div class="config-form">
+                        <input type="number" id="tasaBCV" class="form-input" placeholder="Tasa BCV" step="0.0001">
+                        <button class="btn btn-primary" onclick="actualizarTasaBCV()">
+                            <span class="material-icons">update</span>
+                            Actualizar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="config-card">
+                    <h3>Respaldo de Datos</h3>
+                    <div class="config-actions">
+                        <button class="btn btn-secondary" onclick="descargarBackup()">
+                            <span class="material-icons">backup</span>
+                            Descargar Respaldo
+                        </button>
+                        <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()">
+                            <span class="material-icons">restore</span>
+                            Cargar Respaldo
+                        </button>
+                        <input type="file" id="fileInput" accept=".json" style="display: none" onchange="cargarBackup(this.files)">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal de Métodos de Pago -->
+    <div id="modalPago" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModalPago()">&times;</span>
+            <h3>Seleccionar Método de Pago</h3>
+
+            <div class="resumen-venta">
+                <h4>Resumen de Venta</h4>
+                <p id="resumenTotalBs">Total: Bs 0,00</p>
+                <p id="resumenTotalDolares">Total: $ 0,00</p>
+            </div>
+
+            <div class="metodos-pago">
+                <button onclick="seleccionarMetodoPago('efectivo_bs')">Efectivo Bs</button>
+                <button onclick="seleccionarMetodoPago('efectivo_dolares')">Efectivo $</button>
+                <button onclick="seleccionarMetodoPago('punto')">Punto</button>
+                <button onclick="seleccionarMetodoPago('pago_movil')">Pago Móvil</button>
+                <button onclick="seleccionarMetodoPago('biopago')">Biopago</button>
+            </div>
+
+            <div id="detallesPago" style="display: none; margin-top: 20px;">
+                <h4>Detalles del Pago</h4>
+                <div id="camposPago"></div>
+                <div class="modal-buttons">
+                    <button onclick="confirmarMetodoPago()" class="btn btn-success">Confirmar Pago</button>
+                    <button onclick="cancelarPago()" class="btn btn-danger">Cancelar</button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Modal para selección de categorías PDF -->
-    <div id="modalCategorias" class="modal" style="display: none;">
+    <!-- Modal Reporte Diario -->
+    <div id="modalReporte" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModalReporte()">&times;</span>
+            <h3>Generar Reporte Diario</h3>
+            
+            <div class="opciones-reporte">
+                <div class="opcion-reporte" onclick="generarReporteDiario('hoy')">
+                    <span class="material-icons">today</span>
+                    <div>
+                        <h4>Reporte de Hoy</h4>
+                        <p>Generar reporte con las ventas del día de hoy</p>
+                    </div>
+                </div>
+                
+                <div class="opcion-reporte" onclick="mostrarSelectorFecha()">
+                    <span class="material-icons">date_range</span>
+                    <div>
+                        <h4>Reporte por Fecha</h4>
+                        <p>Seleccionar una fecha específica para el reporte</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="selectorFecha" style="display: none; margin-top: 20px;">
+                <div class="form-group">
+                    <label class="form-label">Seleccionar Fecha:</label>
+                    <input type="date" id="fechaReporte" class="form-input" max="">
+                </div>
+                <button onclick="generarReportePorFecha()" class="btn btn-primary" style="width: 100%; margin-top: 15px;">
+                    Generar Reporte
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Categorías PDF -->
+    <div id="modalCategorias" class="modal">
         <div class="modal-content">
             <span class="close" onclick="cerrarModalCategorias()">&times;</span>
             <h3>Generar PDF por Categoría</h3>
@@ -170,8 +559,8 @@
         </div>
     </div>
 
-    <!-- Modal para selección de categorías etiquetas -->
-    <div id="modalEtiquetas" class="modal" style="display: none;">
+    <!-- Modal Etiquetas -->
+    <div id="modalEtiquetas" class="modal">
         <div class="modal-content">
             <span class="close" onclick="cerrarModalEtiquetas()">&times;</span>
             <h3>Generar Etiquetas para Anaqueles</h3>
@@ -205,83 +594,12 @@
         </div>
     </div>
 
-    <div class="carrito-ventas">
-        <h2>Carrito de Ventas</h2>
-
-        <div class="carrito-header">
-            <div class="scanner-input">
-                <input type="text" id="codigoBarrasInput" placeholder="Escanea o ingresa código de barras o nombre del producto" />
-                <button onclick="agregarPorCodigoBarras()">Agregar Producto</button>
-
-                <div id="sugerencias" class="sugerencias-lista" aria-live="polite"></div>
-            </div>
-
-            <div class="scanner-status" id="scannerStatus">
-                Esperando escaneo de código de barras...
-            </div>
-
-            <div class="carrito-totales">
-                <div class="carrito-total" id="totalCarritoBs">
-                    Total: Bs 0,00
-                </div>
-                <div class="carrito-total" id="totalCarritoDolares">
-                    Total: $ 0,00
-                </div>
-            </div>
-        </div>
-
-        <table class="carrito-table">
-            <thead>
-                <tr>
-                    <th>Producto</th>
-                    <th>Precio Unitario (Bs)</th>
-                    <th>Cantidad</th>
-                    <th>Unidad</th>
-                    <th>Subtotal (Bs)</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody id="carritoBody"></tbody>
-        </table>
-
-        <div class="finalizar-venta">
-           <button id="finalizarVenta" onclick="finalizarVenta()">Finalizar venta</button>
-        </div>
-    </div>
-
-    <div id="modalPago" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="cerrarModalPago()">&times;</span>
-            <h3>Seleccionar Método de Pago</h3>
-
-            <div class="resumen-venta">
-                <h4>Resumen de Venta</h4>
-                <p id="resumenTotalBs">Total: Bs 0,00</p>
-                <p id="resumenTotalDolares">Total: $ 0,00</p>
-            </div>
-
-            <div class="metodos-pago">
-                <button onclick="seleccionarMetodoPago('efectivo_bs')">Efectivo Bs</button>
-                <button onclick="seleccionarMetodoPago('efectivo_dolares')">Efectivo $</button>
-                <button onclick="seleccionarMetodoPago('punto')">Punto</button>
-                <button onclick="seleccionarMetodoPago('pago_movil')">Pago Móvil</button>
-                <button onclick="seleccionarMetodoPago('biopago')">Biopago</button>
-            </div>
-
-            <div id="detallesPago" style="display: none; margin-top: 20px;">
-                <h4>Detalles del Pago</h4>
-                <div id="camposPago"></div>
-                <div class="modal-buttons">
-                    <button onclick="confirmarMetodoPago()">Confirmar Pago</button>
-                    <button onclick="cancelarPago()" class="btn-cancelar">Cancelar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="floating-nav">
-        <button class="go-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">↑</button>
-        <button class="go-bottom" onclick="window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'})">↓</button>
+    <!-- Aviso de copyright -->
+    <div class="copyright-notice" id="copyrightNotice">
+        <button class="close-btn" onclick="toggleCopyrightNotice()">×</button>
+        <strong>ADVERTENCIA:</strong> Este sistema está protegido por derechos de autor.
+        <strong>No revendas tu código de acceso</strong> o será bloqueado y perderás tu dinero.
+        Cualquier uso no autorizado será penalizado según las leyes aplicables.
     </div>
 
     <!-- Toast container -->
