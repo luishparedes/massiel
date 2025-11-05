@@ -37,10 +37,15 @@
             <input type="file" id="fileInput" accept=".json" style="display: none" onchange="cargarBackup(this.files)" />
         </section>
 
-        <section>
+         <section>
             <h3>Nombre del Establecimiento</h3>
             <input type="text" id="nombreEstablecimiento" placeholder="Ej: Tienda La Bendición" />
             <button onclick="guardarNombreEstablecimiento()">Guardar Nombre</button>
+        </section>
+
+        <section>
+            <h3>Gestión de Clave de Seguridad</h3>
+            <button onclick="mostrarModalCambiarClave()" class="backup-button">Cambiar Clave de Seguridad</button>
         </section>
 
         <section>
@@ -286,6 +291,55 @@
 
     <!-- Toast container -->
     <div id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
+   <!-- Modal para clave de seguridad -->
+    <div id="modalClave" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModalClave()">&times;</span>
+            <h3>Clave de Seguridad Requerida</h3>
+            <p>Para editar productos, ingrese la clave de seguridad:</p>
+            <input type="password" id="claveSeguridad" placeholder="Ingrese la clave" class="input-movil" />
+            <div class="modal-buttons" style="margin-top: 15px;">
+                <button onclick="verificarClave()">Verificar Clave</button>
+                <button onclick="cerrarModalClave()" class="btn-cancelar">Cancelar</button>
+            </div>
+            <p style="font-size: 12px; color: #666; margin-top: 10px;">
+                Si olvidó la clave actual, contacte al administrador del sistema.
+            </p>
+        </div>
+    </div>
+  
+   <!-- Modal para cambiar clave -->
+    <div id="modalCambiarClave" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModalCambiarClave()">&times;</span>
+            <h3>Cambiar Clave de Seguridad</h3>
+            
+            <div class="campo-pago">
+                <label>Clave actual:</label>
+                <input type="password" id="claveActual" placeholder="Ingrese clave actual" class="input-movil" />
+            </div>
+            
+            <div class="campo-pago">
+                <label>Nueva clave:</label>
+                <input type="password" id="nuevaClave" placeholder="Ingrese nueva clave" class="input-movil" />
+            </div>
+            
+            <div class="campo-pago">
+                <label>Confirmar nueva clave:</label>
+                <input type="password" id="confirmarClave" placeholder="Confirme nueva clave" class="input-movil" />
+            </div>
+            
+            <div class="modal-buttons" style="margin-top: 15px;">
+                <button onclick="cambiarClave()">Cambiar Clave</button>
+                <button onclick="cerrarModalCambiarClave()" class="btn-cancelar">Cancelar</button>
+            </div>
+            
+            <p style="font-size: 12px; color: #666; margin-top: 10px;">
+                Si olvidó la clave actual, contacte al administrador del sistema.
+            </p>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>
