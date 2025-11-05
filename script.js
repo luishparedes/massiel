@@ -9,6 +9,10 @@ let detallesPago = {};
 let productoEditando = null;
 let productosFiltrados = [];
 
+// ===== SISTEMA DE CLAVE DE SEGURIDAD =====
+let claveSeguridad = localStorage.getItem('claveSeguridad') || '1234'; // Clave por defecto
+let productoAEditar = null; // Para guardar qué producto queremos editar
+
 // === NUEVAS VARIABLES PARA ESCÁNER ===
 let tiempoUltimaTecla = 0;
 let bufferEscaneo = '';
@@ -458,6 +462,12 @@ function guardarProducto() {
 }
 
 function editarProducto(index) {
+    // En lugar de editar directamente, mostrar modal de clave
+    mostrarModalClave(index);
+}
+
+function editarProductoDirecto(index) {
+    // Esta función contiene el código original de editarProducto
     let indiceReal = index;
     
     if (productosFiltrados.length > 0) {
@@ -737,6 +747,25 @@ function buscarProducto() {
 }
 
 function ajustarInventario(index, operacion) {
+    // Mostrar modal de clave para ajustar inventario
+    const claveAjuste = prompt("Para ajustar inventario, ingrese la clave de seguridad:");
+    
+    if (claveAjuste === 'ACME123') {
+        // Resetear clave
+        claveSeguridad = '1234';
+        localStorage.setItem('claveSeguridad', claveSeguridad);
+        showToast('✓ Clave reseteada a: 1234', 'success');
+        // Volver a llamar la función
+        ajustarInventario(index, operacion);
+        return;
+    }
+    
+    if (claveAjuste !== claveSeguridad) {
+        showToast('✗ Clave incorrecta', 'error');
+        return;
+    }
+    
+    // Si la clave es correcta, proceder con el ajuste
     let indiceReal = index;
     
     if (productosFiltrados.length > 0) {
@@ -1462,6 +1491,12 @@ window.onclick = function(event) {
     
     const modalEtiquetas = document.getElementById('modalEtiquetas');
     if (event.target == modalEtiquetas) cerrarModalEtiquetas();
+    
+    const modalClave = document.getElementById('modalClave');
+    if (event.target == modalClave) cerrarModalClave();
+    
+    const modalCambiarClave = document.getElementById('modalCambiarClave');
+    if (event.target == modalCambiarClave) cerrarModalCambiarClave();
 };
 
 // ===== FUNCIONES DE RESPALDO Y RESTAURACIÓN =====
@@ -1474,7 +1509,8 @@ function descargarBackup() {
             ventasDiarias: JSON.parse(localStorage.getItem('ventasDiarias')) || [],
             carrito: JSON.parse(localStorage.getItem('carrito')) || [],
             fechaBackup: new Date().toISOString(),
-            version: '1.0'
+            version: '1.0',
+            claveSeguridad: claveSeguridad
         };
 
         const dataStr = JSON.stringify(backupData, null, 2);
@@ -1520,6 +1556,12 @@ function cargarBackup(files) {
                 localStorage.setItem('tasaBCV', backupData.tasaBCV || 0);
                 localStorage.setItem('ventasDiarias', JSON.stringify(backupData.ventasDiarias || []));
                 localStorage.setItem('carrito', JSON.stringify(backupData.carrito || []));
+                
+                // Cargar clave de seguridad si existe en el respaldo
+                if (backupData.claveSeguridad) {
+                    localStorage.setItem('claveSeguridad', backupData.claveSeguridad);
+                    claveSeguridad = backupData.claveSeguridad;
+                }
                 
                 productos = JSON.parse(localStorage.getItem('productos')) || [];
                 nombreEstablecimiento = localStorage.getItem('nombreEstablecimiento') || '';
@@ -1652,6 +1694,123 @@ function darFeedbackEscaneoExitoso() {
             codigoInput.style.backgroundColor = '';
         }, 300);
     }
+}
+
+// ===== SISTEMA DE CLAVE DE SEGURIDAD =====
+function mostrarModalClave(index) {
+    productoAEditar = index;
+    document.getElementById('modalClave').style.display = 'block';
+    document.getElementById('claveSeguridad').value = '';
+    document.getElementById('claveSeguridad').focus();
+}
+
+function cerrarModalClave() {
+    document.getElementById('modalClave').style.display = 'none';
+    productoAEditar = null;
+    document.getElementById('claveSeguridad').value = '';
+}
+
+function verificarClave() {
+    const claveIngresada = document.getElementById('claveSeguridad').value.trim();
+    
+    // Verificar si es la clave de reset
+    if (claveIngresada === 'ACME123') {
+        // Resetear la clave a '1234'
+        claveSeguridad = '1234';
+        localStorage.setItem('claveSeguridad', claveSeguridad);
+        showToast('✓ Clave reseteada a: 1234', 'success');
+        cerrarModalClave();
+        return;
+    }
+    
+    // Verificar clave normal
+    if (claveIngresada === claveSeguridad) {
+        showToast('✓ Clave correcta', 'success');
+        cerrarModalClave();
+        
+        // Proceder con la edición del producto
+        if (productoAEditar !== null) {
+            editarProductoDirecto(productoAEditar);
+        }
+    } else {
+        showToast('✗ Clave incorrecta', 'error');
+        document.getElementById('claveSeguridad').value = '';
+        document.getElementById('claveSeguridad').focus();
+    }
+}
+
+// ===== FUNCIONES PARA CAMBIAR CLAVE =====
+function mostrarModalCambiarClave() {
+    document.getElementById('modalCambiarClave').style.display = 'block';
+    document.getElementById('claveActual').value = '';
+    document.getElementById('nuevaClave').value = '';
+    document.getElementById('confirmarClave').value = '';
+    document.getElementById('claveActual').focus();
+}
+
+function cerrarModalCambiarClave() {
+    document.getElementById('modalCambiarClave').style.display = 'none';
+    document.getElementById('claveActual').value = '';
+    document.getElementById('nuevaClave').value = '';
+    document.getElementById('confirmarClave').value = '';
+}
+
+function cambiarClave() {
+    const claveActual = document.getElementById('claveActual').value.trim();
+    const nuevaClave = document.getElementById('nuevaClave').value.trim();
+    const confirmarClave = document.getElementById('confirmarClave').value.trim();
+    
+    // Verificar si está usando la clave maestra para reset
+    if (claveActual === 'ACME123') {
+        if (nuevaClave.length < 4) {
+            showToast('La nueva clave debe tener al menos 4 caracteres', 'error');
+            return;
+        }
+        
+        if (nuevaClave !== confirmarClave) {
+            showToast('Las nuevas claves no coinciden', 'error');
+            return;
+        }
+        
+        // Cambiar la clave usando ACME123
+        claveSeguridad = nuevaClave;
+        localStorage.setItem('claveSeguridad', claveSeguridad);
+        showToast('✓ Clave cambiada exitosamente', 'success');
+        cerrarModalCambiarClave();
+        return;
+    }
+    
+    // Verificación normal de cambio de clave
+    if (claveActual !== claveSeguridad) {
+        showToast('Clave actual incorrecta', 'error');
+        document.getElementById('claveActual').value = '';
+        document.getElementById('claveActual').focus();
+        return;
+    }
+    
+    if (nuevaClave.length < 4) {
+        showToast('La nueva clave debe tener al menos 4 caracteres', 'error');
+        document.getElementById('nuevaClave').focus();
+        return;
+    }
+    
+    if (nuevaClave !== confirmarClave) {
+        showToast('Las nuevas claves no coinciden', 'error');
+        document.getElementById('confirmarClave').focus();
+        return;
+    }
+    
+    if (nuevaClave === claveActual) {
+        showToast('La nueva clave debe ser diferente a la actual', 'error');
+        document.getElementById('nuevaClave').focus();
+        return;
+    }
+    
+    // Cambiar la clave
+    claveSeguridad = nuevaClave;
+    localStorage.setItem('claveSeguridad', claveSeguridad);
+    showToast('✓ Clave cambiada exitosamente', 'success');
+    cerrarModalCambiarClave();
 }
 
 // ===== SISTEMA DE SINCRONIZACIÓN OFFLINE =====
