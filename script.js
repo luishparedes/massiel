@@ -11,7 +11,6 @@ let productosFiltrados = [];
 
 // ===== SISTEMA DE CLAVE DE SEGURIDAD =====
 let claveSeguridad = localStorage.getItem('claveSeguridad') || '1234'; // Clave por defecto
-let productoAEditar = null; // Para guardar qué producto queremos editar
 
 // === NUEVAS VARIABLES PARA ESCÁNER ===
 let tiempoUltimaTecla = 0;
@@ -462,12 +461,25 @@ function guardarProducto() {
 }
 
 function editarProducto(index) {
-    // En lugar de editar directamente, mostrar modal de clave
-    mostrarModalClave(index);
-}
-
-function editarProductoDirecto(index) {
-    // Esta función contiene el código original de editarProducto
+    // Pedir clave directamente (igual que el botón de ajustar inventario)
+    const claveIngresada = prompt("Para editar el producto, ingrese la clave de seguridad:");
+    
+    if (claveIngresada === 'ACME123') {
+        // Resetear la clave a '1234'
+        claveSeguridad = '1234';
+        localStorage.setItem('claveSeguridad', claveSeguridad);
+        showToast('✓ Clave reseteada a: 1234', 'success');
+        // Volver a llamar la función
+        editarProducto(index);
+        return;
+    }
+    
+    if (claveIngresada !== claveSeguridad) {
+        showToast('✗ Clave incorrecta', 'error');
+        return;
+    }
+    
+    // Si la clave es correcta, proceder con la edición
     let indiceReal = index;
     
     if (productosFiltrados.length > 0) {
@@ -1492,9 +1504,6 @@ window.onclick = function(event) {
     const modalEtiquetas = document.getElementById('modalEtiquetas');
     if (event.target == modalEtiquetas) cerrarModalEtiquetas();
     
-    const modalClave = document.getElementById('modalClave');
-    if (event.target == modalClave) cerrarModalClave();
-    
     const modalCambiarClave = document.getElementById('modalCambiarClave');
     if (event.target == modalCambiarClave) cerrarModalCambiarClave();
 };
@@ -1693,49 +1702,6 @@ function darFeedbackEscaneoExitoso() {
         setTimeout(() => {
             codigoInput.style.backgroundColor = '';
         }, 300);
-    }
-}
-
-// ===== SISTEMA DE CLAVE DE SEGURIDAD =====
-function mostrarModalClave(index) {
-    productoAEditar = index;
-    document.getElementById('modalClave').style.display = 'block';
-    document.getElementById('claveSeguridad').value = '';
-    document.getElementById('claveSeguridad').focus();
-}
-
-function cerrarModalClave() {
-    document.getElementById('modalClave').style.display = 'none';
-    productoAEditar = null;
-    document.getElementById('claveSeguridad').value = '';
-}
-
-function verificarClave() {
-    const claveIngresada = document.getElementById('claveSeguridad').value.trim();
-    
-    // Verificar si es la clave de reset
-    if (claveIngresada === 'ACME123') {
-        // Resetear la clave a '1234'
-        claveSeguridad = '1234';
-        localStorage.setItem('claveSeguridad', claveSeguridad);
-        showToast('✓ Clave reseteada a: 1234', 'success');
-        cerrarModalClave();
-        return;
-    }
-    
-    // Verificar clave normal
-    if (claveIngresada === claveSeguridad) {
-        showToast('✓ Clave correcta', 'success');
-        cerrarModalClave();
-        
-        // Proceder con la edición del producto
-        if (productoAEditar !== null) {
-            editarProductoDirecto(productoAEditar);
-        }
-    } else {
-        showToast('✗ Clave incorrecta', 'error');
-        document.getElementById('claveSeguridad').value = '';
-        document.getElementById('claveSeguridad').focus();
     }
 }
 
