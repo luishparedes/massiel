@@ -16,34 +16,61 @@ let claveSeguridad = localStorage.getItem('claveSeguridad') || '1234'; // Clave 
 let tiempoUltimaTecla = 0;
 let bufferEscaneo = '';
 
-// ===== PROTECCIÓN CONTRA ACCESO DIRECTO =====
+// ===== PROTECCIÓN CONTRA ACCESO DIRECTO MEJORADA =====
 (function() {
     const SESSION_KEY = 'calculadora_magica_session';
+    const PORTAL_KEY = 'portal_access_granted';
     const URL_REDIRECCION_PORTAL = "http://portal.calculadoramagica.lat/";
     
+    // Detectar si es dispositivo móvil
+    const esMovil = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    // Verificar si ya tiene acceso válido desde el portal
+    const accesoPortal = sessionStorage.getItem(PORTAL_KEY);
     const sessionValida = sessionStorage.getItem(SESSION_KEY);
     
-    if (!sessionValida) {
+    // Si no tiene acceso desde el portal y no tiene sesión válida
+    if (!accesoPortal && !sessionValida) {
         const referrer = document.referrer;
         const vieneDePortal = referrer && referrer.includes('portal.calculadoramagica.lat');
         const vieneDeClientes = referrer && referrer.includes('clientes.calculadoramagica.lat');
+        const noHayReferrer = !referrer || referrer === '';
         
-        if (!vieneDePortal && !vieneDeClientes && referrer !== '') {
-            console.log('Acceso directo detectado, redirigiendo al portal...');
-            window.location.href = URL_REDIRECCION_PORTAL;
-            return;
+        // Para móviles: ser más permisivo pero mantener seguridad
+        if (esMovil) {
+            // En móviles, si no hay referrer podría ser acceso directo
+            if (noHayReferrer) {
+                console.log('Acceso directo móvil detectado, redirigiendo al portal...');
+                window.location.href = URL_REDIRECCION_PORTAL;
+                return;
+            }
+        } else {
+            // Para desktop: lógica estricta original
+            if (!vieneDePortal && !vieneDeClientes && !noHayReferrer) {
+                console.log('Acceso directo desktop detectado, redirigiendo al portal...');
+                window.location.href = URL_REDIRECCION_PORTAL;
+                return;
+            }
         }
-        
-        sessionStorage.setItem(SESSION_KEY, 'activa_' + Date.now());
+    }
+    
+    // Marcar sesión como válida
+    sessionStorage.setItem(SESSION_KEY, 'activa_' + Date.now());
+    
+    // Para prevenir accesos directos en recargas, verificar parámetros de URL
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('access') && urlParams.get('access') === 'portal') {
+        sessionStorage.setItem(PORTAL_KEY, 'true');
     }
 })();
 
 // ===== SISTEMA DE REDIRECCIÓN POR INACTIVIDAD MEJORADO =====
-const TIEMPO_INACTIVIDAD = 4 * 60 * 1000;
+const TIEMPO_INACTIVIDAD = 4 * 60 * 1000; // 4 minutos
 const URL_REDIRECCION = "http://portal.calculadoramagica.lat/";
 
 let temporizadorInactividad;
 let ultimaActividad = Date.now();
+let redireccionEnCurso = false;
 
 function registrarActividad() {
     ultimaActividad = Date.now();
@@ -53,10 +80,16 @@ function registrarActividad() {
 function verificarInactividad() {
     const tiempoTranscurrido = Date.now() - ultimaActividad;
     
-    if (tiempoTranscurrido >= TIEMPO_INACTIVIDAD) {
+    if (tiempoTranscurrido >= TIEMPO_INACTIVIDAD && !redireccionEnCurso) {
         console.log('Redirigiendo por inactividad después de', Math.round(tiempoTranscurrido / 1000), 'segundos');
+        redireccionEnCurso = true;
+        
+        // Limpiar todas las sesiones y datos temporales
         sessionStorage.removeItem('calculadora_magica_session');
+        sessionStorage.removeItem('portal_access_granted');
         localStorage.removeItem('ultimaActividad');
+        
+        // Redirigir al portal
         window.location.href = URL_REDIRECCION;
         return;
     }
@@ -72,14 +105,19 @@ function reiniciarTemporizador() {
     }
     
     temporizadorInactividad = setTimeout(() => {
-        console.log('Temporizador de inactividad ejecutado');
-        sessionStorage.removeItem('calculadora_magica_session');
-        localStorage.removeItem('ultimaActividad');
-        window.location.href = URL_REDIRECCION;
+        if (!redireccionEnCurso) {
+            console.log('Temporizador de inactividad ejecutado');
+            redireccionEnCurso = true;
+            sessionStorage.removeItem('calculadora_magica_session');
+            sessionStorage.removeItem('portal_access_granted');
+            localStorage.removeItem('ultimaActividad');
+            window.location.href = URL_REDIRECCION;
+        }
     }, TIEMPO_INACTIVIDAD);
 }
 
-['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click', 'input'].forEach(evento => {
+// Eventos de actividad mejorados
+['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click', 'input', 'touchmove', 'touchend'].forEach(evento => {
     document.addEventListener(evento, registrarActividad, { passive: true });
 });
 
@@ -92,6 +130,7 @@ function inicializarSistemaInactividad() {
         if (tiempoTranscurrido >= TIEMPO_INACTIVIDAD) {
             console.log('Sesión expirada al cargar. Redirigiendo...');
             sessionStorage.removeItem('calculadora_magica_session');
+            sessionStorage.removeItem('portal_access_granted');
             localStorage.removeItem('ultimaActividad');
             window.location.href = URL_REDIRECCION;
             return;
@@ -102,44 +141,101 @@ function inicializarSistemaInactividad() {
     verificarInactividad();
 }
 
-// ===== PROTECCIÓN CONTRA F12 Y HERRAMIENTAS DE DESARROLLO =====
+// ===== PROTECCIÓN CONTRA F12 Y HERRAMIENTAS DE DESARROLLO MEJORADA =====
 (function() {
+    // Detectar si es dispositivo móvil
+    const esMovil = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
     function mostrarAdvertenciaSeguridad() {
         console.log('%c⚠️ ACCESO RESTRINGIDO ⚠️', 'color: red; font-size: 20px; font-weight: bold;');
         console.log('El uso de herramientas de desarrollo está restringido en esta aplicación.');
-        alert('⚠️ Acceso restringido\nEl uso de F12 y herramientas de desarrollo no está permitido en esta aplicación.');
+        
+        // En móviles, no mostrar alertas que interrumpan la experiencia
+        if (!esMovil) {
+            // Solo mostrar alerta en desktop
+            const alerta = document.createElement('div');
+            alerta.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: #ff6b6b;
+                color: white;
+                padding: 20px;
+                border-radius: 10px;
+                z-index: 10000;
+                text-align: center;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                font-family: Arial, sans-serif;
+                max-width: 300px;
+            `;
+            alerta.innerHTML = `
+                <h3 style="margin: 0 0 10px 0;">⚠️ Acceso Restringido</h3>
+                <p style="margin: 0; font-size: 14px;">El uso de F12 y herramientas de desarrollo no está permitido.</p>
+            `;
+            document.body.appendChild(alerta);
+            
+            // Remover la alerta después de 3 segundos
+            setTimeout(() => {
+                if (document.body.contains(alerta)) {
+                    document.body.removeChild(alerta);
+                }
+            }, 3000);
+        }
     }
     
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'F12' || e.keyCode === 123 ||
-            (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.keyCode === 73)) ||
-            (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.keyCode === 74)) ||
-            (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.keyCode === 67)) ||
-            (e.ctrlKey && (e.key === 'U' || e.keyCode === 85))) {
+    // Solo aplicar protección de teclado en desktop
+    if (!esMovil) {
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F12' || e.keyCode === 123 ||
+                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.keyCode === 73)) ||
+                (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.keyCode === 74)) ||
+                (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.keyCode === 67)) ||
+                (e.ctrlKey && (e.key === 'U' || e.keyCode === 85)) ||
+                (e.ctrlKey && e.shiftKey && e.key === 'C') ||
+                (e.ctrlKey && e.shiftKey && e.key === 'J') ||
+                (e.ctrlKey && e.shiftKey && e.key === 'I')) {
+                e.preventDefault();
+                mostrarAdvertenciaSeguridad();
+                return false;
+            }
+        });
+        
+        document.addEventListener('contextmenu', function(e) {
             e.preventDefault();
             mostrarAdvertenciaSeguridad();
             return false;
-        }
-    });
-    
-    document.addEventListener('contextmenu', function(e) {
-        e.preventDefault();
-        mostrarAdvertenciaSeguridad();
-        return false;
-    });
-    
-    function detectarDevTools() {
-        const umbral = 160;
-        const inicio = performance.now();
-        debugger;
-        const fin = performance.now();
+        });
         
-        if (fin - inicio > umbral) {
-            mostrarAdvertenciaSeguridad();
+        // Detección de DevTools mejorada
+        function detectarDevTools() {
+            const umbral = 160;
+            const inicio = performance.now();
+            debugger;
+            const fin = performance.now();
+            
+            if (fin - inicio > umbral) {
+                mostrarAdvertenciaSeguridad();
+            }
         }
+        
+        // Ejecutar detección periódicamente
+        setInterval(detectarDevTools, 1000);
+        
+        // Detectar cambio de tamaño de ventana (posible DevTools)
+        let anchoOriginal = window.innerWidth;
+        let altoOriginal = window.innerHeight;
+        
+        window.addEventListener('resize', function() {
+            // Si el cambio de tamaño es significativo, podría ser DevTools
+            if (Math.abs(window.innerWidth - anchoOriginal) > 100 || 
+                Math.abs(window.innerHeight - altoOriginal) > 100) {
+                mostrarAdvertenciaSeguridad();
+            }
+            anchoOriginal = window.innerWidth;
+            altoOriginal = window.innerHeight;
+        });
     }
-    
-    setInterval(detectarDevTools, 1000);
 })();
 
 // ===== FUNCIÓN PARA REDONDEAR A 2 DECIMALES =====
@@ -161,22 +257,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ===== CONFIGURACIÓN ESPECÍFICA PARA MÓVILES =====
 function configurarEventosMoviles() {
+    const esMovil = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (!esMovil) return;
+    
+    // Configuración optimizada para móviles
     document.addEventListener('touchstart', function(e) {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
-            document.body.style.zoom = '100%';
+            // Mejorar la experiencia táctil en inputs
+            setTimeout(() => {
+                e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
         }
-    });
+    }, { passive: true });
     
-    document.addEventListener('touchmove', function(e) {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
-            e.preventDefault();
-        }
-    }, { passive: false });
-    
+    // Viewport optimizado para móviles
     const viewport = document.querySelector('meta[name="viewport"]');
     if (viewport) {
-        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes');
     }
+    
+    // Prevenir zoom no deseado en elementos interactivos
+    document.addEventListener('touchmove', function(e) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
+            // Permitir scroll normal en inputs
+        }
+    }, { passive: true });
 }
 
 // ===== UTILIDADES / TOASTS =====
