@@ -16,7 +16,7 @@ let claveSeguridad = localStorage.getItem('claveSeguridad') || '1234'; // Clave 
 let tiempoUltimaTecla = 0;
 let bufferEscaneo = '';
 
-// ===== PROTECCIÓN CONTRA ACCESO DIRECTO MEJORADA =====
+// ===== PROTECCIÓN CONTRA ACCESO DIRECTO MEJORADA PARA MÓVILES =====
 (function() {
     const SESSION_KEY = 'calculadora_magica_session';
     const PORTAL_KEY = 'portal_access_granted';
@@ -36,10 +36,10 @@ let bufferEscaneo = '';
         const vieneDeClientes = referrer && referrer.includes('clientes.calculadoramagica.lat');
         const noHayReferrer = !referrer || referrer === '';
         
-        // Para móviles: ser más permisivo pero mantener seguridad
+        // Para móviles: ser más permisivo
         if (esMovil) {
-            // En móviles, si no hay referrer podría ser acceso directo
-            if (noHayReferrer) {
+            // En móviles, solo redirigir si claramente no viene del portal
+            if (noHayReferrer && !vieneDePortal && !vieneDeClientes) {
                 console.log('Acceso directo móvil detectado, redirigiendo al portal...');
                 window.location.href = URL_REDIRECCION_PORTAL;
                 return;
@@ -116,7 +116,7 @@ function reiniciarTemporizador() {
     }, TIEMPO_INACTIVIDAD);
 }
 
-// Eventos de actividad mejorados
+// Eventos de actividad mejorados para móviles
 ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click', 'input', 'touchmove', 'touchend'].forEach(evento => {
     document.addEventListener(evento, registrarActividad, { passive: true });
 });
@@ -141,215 +141,42 @@ function inicializarSistemaInactividad() {
     verificarInactividad();
 }
 
-// ===== PROTECCIÓN CONTRA F12 Y HERRAMIENTAS DE DESARROLLO MEJORADA =====
+// ===== PROTECCIÓN MEJORADA PARA MÓVILES - SIN BLOQUEO F12 =====
 (function() {
     // Detectar si es dispositivo móvil de forma más precisa
     const esMovil = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const esTablet = /iPad|Android.*(?:Tablet|Pad)/i.test(navigator.userAgent);
     const esDispositivoTactil = esMovil || esTablet;
     
-    // Configuración de seguridad adaptable
-    const configSeguridad = {
-        // En móviles: protección mínima para no interferir con funcionalidad
-        proteccionTeclado: !esDispositivoTactil,
-        proteccionClicDerecho: !esDispositivoTactil,
-        deteccionDevTools: !esDispositivoTactil,
-        mostrarAlertasVisuales: !esDispositivoTactil,
-        frecuenciaDeteccion: esDispositivoTactil ? 5000 : 1000 // Menos frecuente en móviles
-    };
+    // En móviles: desactivar completamente las protecciones F12
+    if (esDispositivoTactil) {
+        console.log('%c📱 Modo móvil activado - Protecciones F12 deshabilitadas', 'color: green; font-size: 14px;');
+        return; // Salir completamente de la protección en móviles
+    }
     
-    function mostrarAdvertenciaSeguridad(tipo) {
-        // En móviles, solo log en consola sin interrumpir
-        if (esDispositivoTactil) {
-            console.log('%c🔒 Acceso de seguridad detectado', 'color: orange; font-size: 14px;');
-            return;
-        }
-        
-        // En desktop: comportamiento original mejorado
-        console.log('%c⚠️ ACCESO RESTRINGIDO ⚠️', 'color: red; font-size: 20px; font-weight: bold;');
+    // Solo en desktop: protección básica no intrusiva
+    function mostrarAdvertenciaSeguridad() {
+        console.log('%c⚠️ ACCESO RESTRINGIDO ⚠️', 'color: red; font-size: 16px; font-weight: bold;');
         console.log('El uso de herramientas de desarrollo está restringido en esta aplicación.');
-        
-        if (configSeguridad.mostrarAlertasVisuales) {
-            const alerta = document.createElement('div');
-            alerta.style.cssText = `
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background: #ff6b6b;
-                color: white;
-                padding: 20px;
-                border-radius: 10px;
-                z-index: 10000;
-                text-align: center;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-                font-family: Arial, sans-serif;
-                max-width: 300px;
-                animation: fadeInOut 3s ease-in-out;
-            `;
-            alerta.innerHTML = `
-                <h3 style="margin: 0 0 10px 0;">⚠️ Acceso Restringido</h3>
-                <p style="margin: 0; font-size: 14px;">El uso de F12 y herramientas de desarrollo no está permitido.</p>
-            `;
-            
-            // Agregar estilos de animación
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes fadeInOut {
-                    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-                    20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-                    80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-                    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-                }
-            `;
-            document.head.appendChild(style);
-            
-            document.body.appendChild(alerta);
-            
-            // Remover automáticamente después de la animación
-            setTimeout(() => {
-                if (document.body.contains(alerta)) {
-                    document.body.removeChild(alerta);
-                }
-                if (document.head.contains(style)) {
-                    document.head.removeChild(style);
-                }
-            }, 3000);
-        }
     }
     
     // Protección de teclado solo en desktop
-    if (configSeguridad.proteccionTeclado) {
-        document.addEventListener('keydown', function(e) {
-            // Combinaciones de teclas para herramientas de desarrollo
-            const combinacionesBloqueadas = [
-                e.key === 'F12' || e.keyCode === 123,
-                e.ctrlKey && e.shiftKey && (e.key === 'I' || e.keyCode === 73),
-                e.ctrlKey && e.shiftKey && (e.key === 'J' || e.keyCode === 74),
-                e.ctrlKey && e.shiftKey && (e.key === 'C' || e.keyCode === 67),
-                e.ctrlKey && (e.key === 'U' || e.keyCode === 85)
-            ];
-            
-            if (combinacionesBloqueadas.some(cond => cond)) {
-                e.preventDefault();
-                e.stopPropagation();
-                mostrarAdvertenciaSeguridad('teclado');
-                return false;
-            }
-        }, true);
-    }
-    
-    // Protección de clic derecho solo en desktop
-    if (configSeguridad.proteccionClicDerecho) {
-        document.addEventListener('contextmenu', function(e) {
+    document.addEventListener('keydown', function(e) {
+        // Solo F12 en desktop
+        if (e.key === 'F12' || e.keyCode === 123) {
             e.preventDefault();
             e.stopPropagation();
-            mostrarAdvertenciaSeguridad('contextmenu');
+            mostrarAdvertenciaSeguridad();
             return false;
-        }, true);
-    }
-    
-    // Detección de DevTools mejorada y menos agresiva
-    if (configSeguridad.deteccionDevTools) {
-        let deteccionesConsecutivas = 0;
-        const maxDetecciones = 3;
-        
-        function detectarDevTools() {
-            try {
-                const umbral = esDispositivoTactil ? 200 : 160; // Umbral más alto en móviles
-                const inicio = performance.now();
-                
-                // Usar debugger de forma no intrusiva
-                try {
-                    debugger;
-                } catch (e) {
-                    // Ignorar errores de debugger
-                }
-                
-                const fin = performance.now();
-                
-                if (fin - inicio > umbral) {
-                    deteccionesConsecutivas++;
-                    
-                    // Solo mostrar advertencia después de múltiples detecciones
-                    if (deteccionesConsecutivas >= maxDetecciones) {
-                        mostrarAdvertenciaSeguridad('devtools');
-                        deteccionesConsecutivas = 0; // Resetear contador
-                    }
-                } else {
-                    // Resetear contador si no hay detección
-                    if (deteccionesConsecutivas > 0) {
-                        deteccionesConsecutivas--;
-                    }
-                }
-            } catch (error) {
-                // Silenciar errores en la detección
-                console.debug('Detección de seguridad: ', error.message);
-            }
         }
-        
-        // Ejecutar detección con frecuencia reducida
-        setInterval(detectarDevTools, configSeguridad.frecuenciaDeteccion);
-        
-        // Detectar cambio de tamaño de ventana (menos sensible en móviles)
-        if (!esDispositivoTactil) {
-            let anchoOriginal = window.innerWidth;
-            let altoOriginal = window.innerHeight;
-            let resizeTimer;
-            
-            window.addEventListener('resize', function() {
-                clearTimeout(resizeTimer);
-                resizeTimer = setTimeout(() => {
-                    const cambioAncho = Math.abs(window.innerWidth - anchoOriginal);
-                    const cambioAlto = Math.abs(window.innerHeight - altoOriginal);
-                    
-                    // Umbral más alto para evitar falsos positivos
-                    if (cambioAncho > 150 || cambioAlto > 150) {
-                        mostrarAdvertenciaSeguridad('resize');
-                    }
-                    
-                    anchoOriginal = window.innerWidth;
-                    altoOriginal = window.innerHeight;
-                }, 500);
-            });
-        }
-    }
+    }, true);
     
-    // Protección adicional contra consola en móviles (no intrusiva)
-    if (esDispositivoTactil) {
-        // Override seguro de console methods para logging
-        const originalConsole = {
-            log: console.log,
-            warn: console.warn,
-            error: console.error,
-            debug: console.debug
-        };
-        
-        // Solo override en modo producción
-        if (window.location.hostname !== 'localhost' && window.location.protocol !== 'file:') {
-            console.log = function(...args) {
-                originalConsole.log.apply(console, ['[App Segura]:', ...args]);
-            };
-            
-            console.warn = function(...args) {
-                originalConsole.warn.apply(console, ['[Advertencia App]:', ...args]);
-            };
-        }
-    }
-    
-    // Mejorar experiencia táctil en móviles
-    if (esDispositivoTactil) {
-        document.addEventListener('touchstart', function() {
-            // Mejorar respuesta táctil sin afectar funcionalidad
-        }, { passive: true });
-        
-        // Prevenir zoom no deseado en inputs
-        document.addEventListener('touchmove', function(e) {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
-                // Permitir scroll normal
-            }
-        }, { passive: true });
-    }
+    // Protección mínima de clic derecho solo en desktop
+    document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+    }, true);
     
 })();
 
@@ -361,7 +188,7 @@ function redondear2Decimales(numero) {
 
 // ===== INICIALIZACIÓN =====
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Calculadora iniciada correctamente');
+    console.log('Calculadora iniciada correctamente - Modo móvil optimizado');
     inicializarSistemaInactividad();
     cargarDatosIniciales();
     actualizarLista();
@@ -375,6 +202,8 @@ function configurarEventosMoviles() {
     const esMovil = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
     if (!esMovil) return;
+    
+    console.log('Configurando eventos optimizados para móviles');
     
     // Configuración optimizada para móviles
     document.addEventListener('touchstart', function(e) {
@@ -397,6 +226,11 @@ function configurarEventosMoviles() {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
             // Permitir scroll normal en inputs
         }
+    }, { passive: true });
+    
+    // Mejorar rendimiento en móviles
+    document.addEventListener('touchstart', function() {
+        // Optimizar respuesta táctil
     }, { passive: true });
 }
 
