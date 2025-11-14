@@ -101,6 +101,15 @@
     </div>
 
     <div id="listaProductos">
+        <!-- NUEVO: Ganancia total estimada -->
+        <div class="ganancia-total-container">
+            <div class="ganancia-total">
+                <span>Ganancia total estimada:</span>
+                <span id="gananciaTotalUSD">$0.00</span>
+                <span id="gananciaTotalBS">/ Bs 0.00</span>
+            </div>
+        </div>
+
         <input type="text" id="buscar" placeholder="Buscar producto" />
         <button onclick="buscarProducto()">Buscar</button>
 
@@ -131,6 +140,14 @@
         <div id="listaCostosContainer" style="display: none;">
             <div class="costos-header">
                 <h3>Lista de Costos de Productos</h3>
+                <!-- NUEVO: Total invertido -->
+                <div class="total-invertido-container">
+                    <div class="total-invertido">
+                        <strong>Total invertido:</strong>
+                        <span id="totalInvertidoUSD">X USD</span>
+                        <span id="totalInvertidoBS">/ X Bs</span>
+                    </div>
+                </div>
                 <div>
                     <input type="text" id="buscarCostos" placeholder="Buscar en lista de costos" style="display:none" oninput="filtrarListaCostos()" />
                     <button onclick="generarPDFCostos()" class="generar-pdf-costos">Convertir a PDF</button>
@@ -180,6 +197,14 @@
         <div class="modal-content">
             <span class="close" onclick="cerrarModalEtiquetas()">&times;</span>
             <h3>Generar Etiquetas para Anaqueles</h3>
+            <!-- NUEVO: Selector de moneda para etiquetas -->
+            <div class="selector-moneda-etiquetas">
+                <label>Mostrar precios en:</label>
+                <select id="monedaEtiquetas" onchange="actualizarMonedaEtiquetas()">
+                    <option value="VES">Bolívares (VES)</option>
+                    <option value="USD">Dólares (USD)</option>
+                </select>
+            </div>
             <div class="categorias-lista">
                 <button onclick="generarEtiquetasPorCategoria('todos')" class="categoria-btn">TODOS LOS PRODUCTOS</button>
                 <button onclick="generarEtiquetasPorCategoria('viveres')" class="categoria-btn">VÍVERES</button>
@@ -276,6 +301,8 @@
             <div id="detallesPago" style="display: none; margin-top: 20px;">
                 <h4>Detalles del Pago</h4>
                 <div id="camposPago"></div>
+                <!-- NUEVO: Mensaje de falta o cambio -->
+                <div id="mensajePago" class="mensaje-pago" style="display: none;"></div>
                 <div class="modal-buttons">
                     <button onclick="confirmarMetodoPago()">Confirmar Pago</button>
                     <button onclick="cancelarPago()" class="btn-cancelar">Cancelar</button>
