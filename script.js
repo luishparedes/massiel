@@ -8,6 +8,7 @@ let métodoPagoSeleccionado = null;
 let detallesPago = {};
 let productoEditando = null;
 let productosFiltrados = [];
+let monedaEtiquetas = localStorage.getItem('monedaEtiquetas') || 'VES'; // Nueva variable para moneda de etiquetas
 
 // ===== SISTEMA DE CLAVE DE SEGURIDAD =====
 let claveSeguridad = localStorage.getItem('claveSeguridad') || '1234'; // Clave por defecto
@@ -195,6 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
     actualizarCarrito();
     configurarEventos();
     configurarEventosMoviles();
+    actualizarGananciaTotal(); // Nueva función para mostrar ganancia total
 });
 
 // ===== CONFIGURACIÓN ESPECÍFICA PARA MÓVILES =====
@@ -396,8 +398,11 @@ if (codigoInputElem) {
 function cargarDatosIniciales() {
     const nombreElem = document.getElementById('nombreEstablecimiento');
     const tasaElem = document.getElementById('tasaBCV');
+    const monedaEtiquetasElem = document.getElementById('monedaEtiquetas');
+    
     if (nombreElem) nombreElem.value = nombreEstablecimiento;
     if (tasaElem) tasaElem.value = tasaBCVGuardada || '';
+    if (monedaEtiquetasElem) monedaEtiquetasElem.value = monedaEtiquetas;
 }
 
 function calcularPrecioVenta() {
@@ -502,6 +507,7 @@ function guardarProducto() {
 
     localStorage.setItem('productos', JSON.stringify(productos));
     actualizarLista();
+    actualizarGananciaTotal(); // Actualizar ganancia total al guardar producto
 
     document.getElementById('producto').value = '';
     document.getElementById('codigoBarras').value = '';
@@ -860,6 +866,7 @@ function ajustarInventario(index, operacion) {
 
     localStorage.setItem('productos', JSON.stringify(productos));
     actualizarLista();
+    actualizarGananciaTotal(); // Actualizar ganancia total al ajustar inventario
     showToast(`Inventario de ${producto.nombre} actualizado: ${producto.unidadesExistentes} unidades`, 'success');
 }
 
@@ -886,6 +893,7 @@ function eliminarProducto(index) {
         productos.splice(indiceReal, 1);
         localStorage.setItem('productos', JSON.stringify(productos));
         actualizarLista();
+        actualizarGananciaTotal(); // Actualizar ganancia total al eliminar producto
         showToast(`Producto eliminado: ${producto.nombre}`, 'success');
     }
 }
@@ -904,6 +912,7 @@ function finalizarVenta() {
     metodoPagoSeleccionado = null;
     document.getElementById('detallesPago').style.display = 'none';
     document.getElementById('camposPago').innerHTML = '';
+    document.getElementById('mensajePago').style.display = 'none';
 }
 
 function cerrarModalPago() {
@@ -916,9 +925,10 @@ function seleccionarMetodoPago(metodo) {
     metodoPagoSeleccionado = metodo;
     const detallesDiv = document.getElementById('camposPago');
     const totalBs = carrito.reduce((sum, i) => sum + i.subtotal, 0);
+    const totalDolares = carrito.reduce((sum, i) => sum + i.subtotalDolar, 0);
     detallesDiv.innerHTML = '';
 
-    detallesPago = { metodo, totalBs };
+    detallesPago = { metodo, totalBs, totalDolares };
 
     if (metodo === 'efectivo_bs' || metodo === 'efectivo_dolares') {
         detallesDiv.innerHTML = `
@@ -931,19 +941,28 @@ function seleccionarMetodoPago(metodo) {
                 <input type="text" id="cambioCalculado" readonly placeholder="0.00" class="input-movil" />
             </div>
         `;
+        
+        // Configurar evento para limpiar mensaje cuando se borre el campo
         setTimeout(() => {
             const input = document.getElementById('montoRecibido');
             if (!input) return;
-            input.addEventListener('input', () => {
-                const recib = parseFloat(input.value) || 0;
-                let cambio = 0;
-                if (metodo === 'efectivo_bs') cambio = redondear2Decimales(recib - totalBs);
-                else {
-                    const totalEnDolares = tasaBCVGuardada ? redondear2Decimales(totalBs / tasaBCVGuardada) : 0;
-                    cambio = redondear2Decimales(recid - totalEnDolares);
+            
+            // Limpiar mensaje cuando se borre el campo
+            input.addEventListener('input', function() {
+                if (this.value === '') {
+                    document.getElementById('mensajePago').style.display = 'none';
+                    document.getElementById('cambioCalculado').value = '';
+                } else {
+                    const recib = parseFloat(this.value) || 0;
+                    calcularFaltaOCambio(recib, metodo, totalBs, totalDolares);
                 }
-                document.getElementById('cambioCalculado').value = cambio >= 0 ? cambio.toFixed(2) : `Faltan ${Math.abs(cambio).toFixed(2)}`;
             });
+            
+            // Calcular inicialmente si hay valor
+            if (input.value) {
+                const recib = parseFloat(input.value) || 0;
+                calcularFaltaOCambio(recid, metodo, totalBs, totalDolares);
+            }
         }, 100);
     } else if (metodo === 'punto' || metodo === 'biopago') {
         detallesDiv.innerHTML = `
@@ -970,6 +989,81 @@ function seleccionarMetodoPago(metodo) {
     }
 
     document.getElementById('detallesPago').style.display = 'block';
+}
+
+// ===== NUEVA FUNCIÓN: CALCULAR FALTA O CAMBIO =====
+function calcularFaltaOCambio(montoRecibido, metodo, totalBs, totalDolares) {
+    const mensajeDiv = document.getElementById('mensajePago');
+    const cambioInput = document.getElementById('cambioCalculado');
+    
+    if (!mensajeDiv || !cambioInput) return;
+    
+    let falta = 0;
+    let cambio = 0;
+    let mensaje = '';
+    let tipo = '';
+    
+    if (metodo === 'efectivo_bs') {
+        // Pago en bolívares
+        if (montoRecibido < totalBs) {
+            falta = redondear2Decimales(totalBs - montoRecibido);
+            const faltaUSD = redondear2Decimales(falta / tasaBCVGuardada);
+            mensaje = `Faltan Bs ${falta.toFixed(2)} ($${faltaUSD.toFixed(2)})`;
+            tipo = 'falta';
+        } else {
+            cambio = redondear2Decimales(montoRecibido - totalBs);
+            mensaje = `Cambio: Bs ${cambio.toFixed(2)}`;
+            tipo = 'cambio';
+        }
+        cambioInput.value = montoRecibido >= totalBs ? cambio.toFixed(2) : `-${falta.toFixed(2)}`;
+    } else if (metodo === 'efectivo_dolares') {
+        // Pago en dólares
+        if (montoRecibido < totalDolares) {
+            falta = redondear2Decimales(totalDolares - montoRecibido);
+            const faltaBS = redondear2Decimales(falta * tasaBCVGuardada);
+            mensaje = `Faltan $ ${falta.toFixed(2)} (Bs ${faltaBS.toFixed(2)})`;
+            tipo = 'falta';
+        } else {
+            cambio = redondear2Decimales(montoRecibido - totalDolares);
+            const cambioBS = redondear2Decimales(cambio * tasaBCVGuardada);
+            mensaje = `Cambio: $ ${cambio.toFixed(2)} (Bs ${cambioBS.toFixed(2)})`;
+            tipo = 'cambio';
+        }
+        cambioInput.value = montoRecibido >= totalDolares ? cambio.toFixed(2) : `-${falta.toFixed(2)}`;
+    }
+    
+    // Mostrar mensaje
+    mensajeDiv.textContent = mensaje;
+    mensajeDiv.className = `mensaje-pago ${tipo}`;
+    mensajeDiv.style.display = 'block';
+}
+
+// ===== NUEVA FUNCIÓN: PAGO COMBINADO =====
+function procesarPagoCombinado() {
+    const montoUSD = parseFloat(document.getElementById('montoUSD')?.value) || 0;
+    const montoVES = parseFloat(document.getElementById('montoVES')?.value) || 0;
+    const totalBs = carrito.reduce((sum, i) => sum + i.subtotal, 0);
+    const totalDolares = carrito.reduce((sum, i) => sum + i.subtotalDolar, 0);
+    
+    // Convertir todo a dólares para cálculo
+    const montoVESenUSD = montoVES / tasaBCVGuardada;
+    const totalPagadoUSD = montoUSD + montoVESenUSD;
+    
+    const mensajeDiv = document.getElementById('mensajePago');
+    
+    if (totalPagadoUSD < totalDolares) {
+        const faltaUSD = redondear2Decimales(totalDolares - totalPagadoUSD);
+        const faltaBS = redondear2Decimales(faltaUSD * tasaBCVGuardada);
+        mensajeDiv.textContent = `Faltan $ ${faltaUSD.toFixed(2)} / Bs ${faltaBS.toFixed(2)}`;
+        mensajeDiv.className = 'mensaje-pago falta';
+    } else {
+        const cambioUSD = redondear2Decimales(totalPagadoUSD - totalDolares);
+        const cambioBS = redondear2Decimales(cambioUSD * tasaBCVGuardada);
+        mensajeDiv.textContent = `Cambio: $ ${cambioUSD.toFixed(2)} / Bs ${cambioBS.toFixed(2)}`;
+        mensajeDiv.className = 'mensaje-pago cambio';
+    }
+    
+    mensajeDiv.style.display = 'block';
 }
 
 function confirmarMetodoPago() {
@@ -1054,6 +1148,7 @@ function confirmarMetodoPago() {
     localStorage.setItem('carrito', JSON.stringify(carrito));
     actualizarCarrito();
     actualizarLista();
+    actualizarGananciaTotal(); // Actualizar ganancia total después de venta
     
     cerrarModalPago();
 
@@ -1089,6 +1184,7 @@ function actualizarTasaBCV() {
 
     localStorage.setItem('productos', JSON.stringify(productos));
     actualizarLista();
+    actualizarGananciaTotal(); // Actualizar ganancia total al cambiar tasa
 
     showToast(`Tasa BCV actualizada a: ${nuevaTasa}`, 'success');
 }
@@ -1108,6 +1204,7 @@ function mostrarListaCostos() {
         container.style.display = 'block';
         if (buscarCostosInput) buscarCostosInput.style.display = 'inline-block';
         llenarListaCostos();
+        actualizarTotalInvertido(); // Nueva función para calcular total invertido
     } else {
         container.style.display = 'none';
         if (buscarCostosInput) buscarCostosInput.style.display = 'none';
@@ -1138,6 +1235,53 @@ function filtrarListaCostos() {
         li.innerHTML = `<span>${p.nombre} (${p.descripcion})</span><span>$${(p.costo / (p.unidadesPorCaja || 1)).toFixed(2)} / Bs${( (p.precioUnitarioBolivar).toFixed(2) )}</span>`;
         lista.appendChild(li);
     });
+}
+
+// ===== NUEVA FUNCIÓN: ACTUALIZAR TOTAL INVERTIDO =====
+function actualizarTotalInvertido() {
+    let totalInvertidoUSD = 0;
+    let totalInvertidoBS = 0;
+    
+    productos.forEach(producto => {
+        totalInvertidoUSD += producto.costo || 0;
+        totalInvertidoBS += (producto.costo || 0) * tasaBCVGuardada;
+    });
+    
+    const totalInvertidoUSDElem = document.getElementById('totalInvertidoUSD');
+    const totalInvertidoBSElem = document.getElementById('totalInvertidoBS');
+    
+    if (totalInvertidoUSDElem) {
+        totalInvertidoUSDElem.textContent = `$${redondear2Decimales(totalInvertidoUSD).toFixed(2)} USD`;
+    }
+    
+    if (totalInvertidoBSElem) {
+        totalInvertidoBSElem.textContent = `/ Bs ${redondear2Decimales(totalInvertidoBS).toFixed(2)}`;
+    }
+}
+
+// ===== NUEVA FUNCIÓN: ACTUALIZAR GANANCIA TOTAL =====
+function actualizarGananciaTotal() {
+    let gananciaTotalUSD = 0;
+    let gananciaTotalBS = 0;
+    
+    productos.forEach(producto => {
+        const gananciaPorUnidadUSD = producto.precioUnitarioDolar - (producto.costo / (producto.unidadesPorCaja || 1));
+        const gananciaPorUnidadBS = producto.precioUnitarioBolivar - ((producto.costo / (producto.unidadesPorCaja || 1)) * tasaBCVGuardada);
+        
+        gananciaTotalUSD += gananciaPorUnidadUSD * (producto.unidadesExistentes || 0);
+        gananciaTotalBS += gananciaPorUnidadBS * (producto.unidadesExistentes || 0);
+    });
+    
+    const gananciaTotalUSDElem = document.getElementById('gananciaTotalUSD');
+    const gananciaTotalBSElem = document.getElementById('gananciaTotalBS');
+    
+    if (gananciaTotalUSDElem) {
+        gananciaTotalUSDElem.textContent = `$${redondear2Decimales(gananciaTotalUSD).toFixed(2)}`;
+    }
+    
+    if (gananciaTotalBSElem) {
+        gananciaTotalBSElem.textContent = `/ Bs ${redondear2Decimales(gananciaTotalBS).toFixed(2)}`;
+    }
 }
 
 // ===== GENERAR PDF COSTOS =====
@@ -1356,6 +1500,15 @@ function cerrarModalEtiquetas() {
     document.getElementById('modalEtiquetas').style.display = 'none';
 }
 
+// ===== NUEVA FUNCIÓN: ACTUALIZAR MONEDA DE ETIQUETAS =====
+function actualizarMonedaEtiquetas() {
+    const selector = document.getElementById('monedaEtiquetas');
+    if (selector) {
+        monedaEtiquetas = selector.value;
+        localStorage.setItem('monedaEtiquetas', monedaEtiquetas);
+    }
+}
+
 function generarEtiquetasPorCategoria(categoria) {
     if (!productos.length) { 
         showToast("No hay productos para generar etiquetas", 'warning'); 
@@ -1453,10 +1606,16 @@ function generarEtiquetasPorCategoria(categoria) {
             producto.nombre.substring(0, 25) + '...' : producto.nombre;
         doc.text(nombreProducto, x + 2, y + 10);
 
+        // ===== NUEVA LÓGICA: MOSTRAR PRECIO EN LA MONEDA SELECCIONADA =====
         doc.setFontSize(14);
         doc.setTextColor(220, 0, 0);
         doc.setFont(undefined, 'bold');
-        doc.text(`Bs ${producto.precioUnitarioBolivar.toFixed(2)}`, x + 2, y + 20);
+        
+        if (monedaEtiquetas === 'USD') {
+            doc.text(`$ ${producto.precioUnitarioDolar.toFixed(2)}`, x + 2, y + 20);
+        } else {
+            doc.text(`Bs ${producto.precioUnitarioBolivar.toFixed(2)}`, x + 2, y + 20);
+        }
 
         doc.setFontSize(7);
         doc.setTextColor(100, 100, 100);
@@ -1574,7 +1733,8 @@ function descargarBackup() {
             carrito: JSON.parse(localStorage.getItem('carrito')) || [],
             fechaBackup: new Date().toISOString(),
             version: '1.0',
-            claveSeguridad: claveSeguridad
+            claveSeguridad: claveSeguridad,
+            monedaEtiquetas: monedaEtiquetas // Guardar también la moneda de etiquetas
         };
 
         const dataStr = JSON.stringify(backupData, null, 2);
@@ -1627,6 +1787,12 @@ function cargarBackup(files) {
                     claveSeguridad = backupData.claveSeguridad;
                 }
                 
+                // Cargar moneda de etiquetas si existe en el respaldo
+                if (backupData.monedaEtiquetas) {
+                    localStorage.setItem('monedaEtiquetas', backupData.monedaEtiquetas);
+                    monedaEtiquetas = backupData.monedaEtiquetas;
+                }
+                
                 productos = JSON.parse(localStorage.getItem('productos')) || [];
                 nombreEstablecimiento = localStorage.getItem('nombreEstablecimiento') || '';
                 tasaBCVGuardada = parseFloat(localStorage.getItem('tasaBCV')) || 0;
@@ -1636,6 +1802,7 @@ function cargarBackup(files) {
                 cargarDatosIniciales();
                 actualizarLista();
                 actualizarCarrito();
+                actualizarGananciaTotal();
                 
                 showToast('Respaldo cargado exitosamente', 'success');
             }
