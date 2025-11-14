@@ -380,3 +380,137 @@ p { margin: 12px 0; color: #333; line-height: 1.5; }
         grid-template-columns: 1fr;
     }
 }
+
+/* ===== NUEVOS ESTILOS PARA LAS MEJORAS ===== */
+
+/* Selector de moneda para etiquetas */
+.selector-moneda-etiquetas {
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #f5f5f5;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.selector-moneda-etiquetas label {
+    font-weight: bold;
+    color: #333;
+}
+
+.selector-moneda-etiquetas select {
+    width: auto;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    background-color: white;
+}
+
+/* Total invertido en lista de costos */
+.total-invertido-container {
+    margin-bottom: 15px;
+    padding: 12px;
+    background-color: #e8f5e9;
+    border-radius: 8px;
+    border-left: 4px solid #4CAF50;
+}
+
+.total-invertido {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.1rem;
+}
+
+.total-invertido strong {
+    color: #2e7d32;
+}
+
+#totalInvertidoUSD {
+    color: #1976d2;
+    font-weight: bold;
+}
+
+#totalInvertidoBS {
+    color: #d32f2f;
+    font-weight: bold;
+}
+
+/* Ganancia total estimada */
+.ganancia-total-container {
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #fff3e0;
+    border-radius: 8px;
+    border-left: 4px solid #ff9800;
+}
+
+.ganancia-total {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    color: #333;
+}
+
+.ganancia-total span:first-child {
+    font-weight: bold;
+    color: #e65100;
+}
+
+#gananciaTotalUSD {
+    color: #1976d2;
+    font-weight: bold;
+}
+
+#gananciaTotalBS {
+    color: #d32f2f;
+    font-weight: bold;
+}
+
+/* Mensaje de pago (falta/cambio) */
+.mensaje-pago {
+    margin-top: 15px;
+    padding: 12px;
+    border-radius: 6px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.mensaje-pago.falta {
+    background-color: #ffebee;
+    color: #c62828;
+    border: 1px solid #ffcdd2;
+}
+
+.mensaje-pago.cambio {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+}
+
+/* Mejoras responsive para nuevos elementos */
+@media (max-width: 768px) {
+    .total-invertido {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    .ganancia-total {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    .selector-moneda-etiquetas {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .selector-moneda-etiquetas select {
+        width: 100%;
+    }
+}
