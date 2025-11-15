@@ -1635,65 +1635,275 @@ function generarEtiquetasPorCategoria(categoria) {
     showToast(`Etiquetas generadas para: ${tituloCategoria}`, 'success');
 }
 
-// ===== Imprimir ticket térmico =====
+// ===== Imprimir ticket térmico MEJORADO =====
 function imprimirTicketTermico(detalles) {
     try {
-        const printWindow = window.open('', '_blank', 'toolbar=0,location=0,menubar=0');
+        const printWindow = window.open('', '_blank', 'width=340,height=500,toolbar=0,location=0,menubar=0');
         if (!printWindow) {
             showToast('No se pudo abrir la ventana de impresión. Verifica bloqueadores de popups.', 'error');
             return;
         }
 
+        // Obtener fecha y hora actual
+        const ahora = new Date();
+        const fecha = ahora.toLocaleDateString();
+        const hora = ahora.toLocaleTimeString();
+        
+        // Calcular total en dólares
+        const totalDolares = detalles.totalBs / tasaBCVGuardada;
+        
         let itemsHtml = '';
         (detalles.items || []).forEach(it => {
-            const nombre = it.nombre.length > 20 ? it.nombre.slice(0, 20) + '...' : it.nombre;
+            // Limitar longitud del nombre para que quepa en el ticket
+            const nombre = it.nombre.length > 18 ? it.nombre.slice(0, 18) + '...' : it.nombre;
             const cantidad = it.unidad === 'gramo' ? `${it.cantidad} g` : `${it.cantidad}`;
+            const precioUnitario = it.precioUnitarioBolivar.toFixed(2);
             const subtotal = (it.subtotal || 0).toFixed(2);
-            itemsHtml += `<div><span style="float:left">${nombre} x${cantidad}</span><span style="float:right">Bs ${subtotal}</span><div style="clear:both"></div></div>`;
+            
+            itemsHtml += `
+                <div class="item-line">
+                    <div class="item-header">
+                        <span class="item-nombre">${nombre}</span>
+                        <span class="item-cantidad">x${cantidad}</span>
+                    </div>
+                    <div class="item-detalle">
+                        <span>Bs ${precioUnitario} c/u</span>
+                        <span class="item-subtotal">Bs ${subtotal}</span>
+                    </div>
+                </div>
+            `;
         });
 
-        const cambioTexto = detalles.cambio !== undefined ? `<div>Cambio: Bs ${detalles.cambio.toFixed(2)}</div>` : '';
-        const montoRecibidoTexto = detalles.montoRecibido !== undefined ? `<div>Recibido: ${detalles.montoRecibido}</div>` : '';
+        // Texto para cambio y monto recibido
+        const cambioTexto = detalles.cambio !== undefined ? `
+            <div class="linea-total">
+                <span>Cambio:</span>
+                <span>Bs ${detalles.cambio.toFixed(2)}</span>
+            </div>
+        ` : '';
+        
+        const montoRecibidoTexto = detalles.montoRecibido !== undefined ? `
+            <div class="linea-total">
+                <span>Recibido:</span>
+                <span>Bs ${detalles.montoRecibido.toFixed(2)}</span>
+            </div>
+        ` : '';
+
+        // Determinar método de pago en texto legible
+        let metodoPagoTexto = '';
+        switch(detalles.metodo) {
+            case 'efectivo_bs':
+                metodoPagoTexto = 'EFECTIVO BS';
+                break;
+            case 'efectivo_dolares':
+                metodoPagoTexto = 'EFECTIVO $';
+                break;
+            case 'punto':
+                metodoPagoTexto = 'PUNTO DE VENTA';
+                break;
+            case 'biopago':
+                metodoPagoTexto = 'BIOPAGO';
+                break;
+            case 'pago_movil':
+                metodoPagoTexto = 'PAGO MÓVIL';
+                break;
+            default:
+                metodoPagoTexto = detalles.metodo || 'NO ESPECIFICADO';
+        }
 
         const content = `
         <!doctype html>
         <html>
         <head>
             <meta charset="utf-8"/>
-            <title>Ticket</title>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Ticket de Venta</title>
+            <meta name="viewport" content="width=340, initial-scale=1.0">
             <style>
-                body { font-family: monospace; padding: 6px; margin: 0; }
-                .ticket { width: 280px; max-width: 100%; }
-                .ticket h2 { text-align:center; font-size: 16px; margin:6px 0; }
-                .line { border-top: 1px dashed #000; margin:6px 0; }
-                .items div { margin-bottom:6px; font-size:12px; }
-                .totals { margin-top:8px; font-weight:bold; font-size:13px; }
-                .small { font-size:11px; color:#333; }
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+                body { 
+                    font-family: 'Courier New', monospace; 
+                    padding: 8px; 
+                    margin: 0; 
+                    background: white;
+                    font-size: 12px;
+                    line-height: 1.2;
+                }
+                .ticket { 
+                    width: 300px;
+                    max-width: 100%;
+                    margin: 0 auto;
+                }
+                .header { 
+                    text-align: center; 
+                    margin-bottom: 8px;
+                    padding-bottom: 6px;
+                    border-bottom: 1px dashed #000;
+                }
+                .nombre-establecimiento {
+                    font-size: 16px;
+                    font-weight: bold;
+                    margin-bottom: 3px;
+                }
+                .fecha-hora {
+                    font-size: 11px;
+                    color: #555;
+                    margin-bottom: 2px;
+                }
+                .linea-separadora {
+                    border-top: 1px dashed #000;
+                    margin: 6px 0;
+                    clear: both;
+                }
+                .items-container {
+                    margin: 8px 0;
+                }
+                .item-line {
+                    margin-bottom: 6px;
+                    padding-bottom: 4px;
+                    border-bottom: 1px dotted #eee;
+                }
+                .item-header {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 2px;
+                }
+                .item-nombre {
+                    font-weight: bold;
+                    flex: 1;
+                }
+                .item-cantidad {
+                    font-weight: bold;
+                }
+                .item-detalle {
+                    display: flex;
+                    justify-content: space-between;
+                    font-size: 10px;
+                    color: #666;
+                }
+                .item-subtotal {
+                    font-weight: bold;
+                    color: #000;
+                }
+                .totales {
+                    margin: 10px 0;
+                    padding: 8px 0;
+                    border-top: 2px solid #000;
+                    border-bottom: 2px solid #000;
+                }
+                .linea-total {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 4px;
+                }
+                .total-principal {
+                    font-size: 14px;
+                    font-weight: bold;
+                    margin: 6px 0;
+                }
+                .referencia-dolares {
+                    background: #f0f0f0;
+                    padding: 6px;
+                    margin: 8px 0;
+                    text-align: center;
+                    border: 1px dashed #333;
+                    font-weight: bold;
+                }
+                .metodo-pago {
+                    text-align: center;
+                    margin: 8px 0;
+                    padding: 4px;
+                    background: #000;
+                    color: white;
+                    font-weight: bold;
+                }
+                .footer {
+                    text-align: center;
+                    margin-top: 12px;
+                    padding-top: 8px;
+                    border-top: 1px dashed #000;
+                    font-weight: bold;
+                }
                 @media print {
-                    body { padding: 0; }
-                    .ticket { width: 58mm; }
+                    body { 
+                        padding: 0; 
+                        margin: 0;
+                    }
+                    .ticket { 
+                        width: 76mm !important;
+                        max-width: 76mm !important;
+                        margin: 0 !important;
+                        padding: 5px !important;
+                    }
+                    .no-print { display: none !important; }
                 }
             </style>
         </head>
         <body>
             <div class="ticket">
-                <h2>${nombreEstablecimiento || 'Calculadora Mágica'}</h2>
-                <div class="small">Fecha: ${detalles.fecha}</div>
-                <div class="line"></div>
-                <div class="items">
+                <!-- ENCABEZADO -->
+                <div class="header">
+                    <div class="nombre-establecimiento">${nombreEstablecimiento || 'CALCULADORA MÁGICA'}</div>
+                    <div class="fecha-hora">Fecha: ${fecha}</div>
+                    <div class="fecha-hora">Hora: ${hora}</div>
+                </div>
+                
+                <!-- PRODUCTOS -->
+                <div class="items-container">
                     ${itemsHtml}
                 </div>
-                <div class="line"></div>
-                <div class="totals">TOTAL: Bs ${detalles.totalBs.toFixed(2)}</div>
-                ${montoRecibidoTexto}
-                ${cambioTexto}
-                <div class="line"></div>
-                <div class="small">Método: ${detalles.metodo}</div>
-                <div class="small">Gracias por su compra</div>
+                
+                <div class="linea-separadora"></div>
+                
+                <!-- TOTALES -->
+                <div class="totales">
+                    <div class="total-principal linea-total">
+                        <span>TOTAL Bs:</span>
+                        <span>Bs ${detalles.totalBs.toFixed(2)}</span>
+                    </div>
+                    ${montoRecibidoTexto}
+                    ${cambioTexto}
+                </div>
+                
+                <!-- REFERENCIA EN DÓLARES -->
+                <div class="referencia-dolares">
+                    <div>REFERENCIA: $ ${totalDolares.toFixed(2)}</div>
+                    <div style="font-size: 10px; margin-top: 2px;">(Tasa BCV: Bs ${tasaBCVGuardada})</div>
+                </div>
+                
+                <!-- MÉTODO DE PAGO -->
+                <div class="metodo-pago">
+                    ${metodoPagoTexto}
+                </div>
+                
+                <!-- PIE DE PÁGINA -->
+                <div class="footer">
+                    ¡Gracias por su compra!
+                </div>
+                
+                <!-- BOTÓN SOLO PARA VISTA PREVIA -->
+                <div class="no-print" style="text-align: center; margin-top: 15px;">
+                    <button onclick="window.print()" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        Imprimir Ticket
+                    </button>
+                    <button onclick="window.close()" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">
+                        Cerrar
+                    </button>
+                </div>
             </div>
+            
             <script>
-                setTimeout(function(){ window.print(); setTimeout(()=>window.close(), 300); }, 300);
+                // Auto-imprimir y cerrar después de 1 segundo
+                setTimeout(function(){ 
+                    window.print(); 
+                    setTimeout(() => {
+                        // No cerrar automáticamente para permitir verificación
+                        console.log('Impresión enviada a la impresora térmica');
+                    }, 1000);
+                }, 1000);
             </script>
         </body>
         </html>`;
@@ -1701,8 +1911,9 @@ function imprimirTicketTermico(detalles) {
         printWindow.document.open();
         printWindow.document.write(content);
         printWindow.document.close();
+
     } catch (err) {
-        console.error(err);
+        console.error('Error al preparar impresión del ticket:', err);
         showToast('Error al preparar impresión del ticket', 'error');
     }
 }
