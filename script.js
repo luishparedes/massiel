@@ -8,10 +8,10 @@ let métodoPagoSeleccionado = null;
 let detallesPago = {};
 let productoEditando = null;
 let productosFiltrados = [];
-let monedaEtiquetas = localStorage.getItem('monedaEtiquetas') || 'VES'; // Nueva variable para moneda de etiquetas
+let monedaEtiquetas = localStorage.getItem('monedaEtiquetas') || 'VES';
 
 // ===== SISTEMA DE CLAVE DE SEGURIDAD =====
-let claveSeguridad = localStorage.getItem('claveSeguridad') || '1234'; // Clave por defecto
+let claveSeguridad = localStorage.getItem('claveSeguridad') || '1234';
 
 // === NUEVAS VARIABLES PARA ESCÁNER ===
 let tiempoUltimaTecla = 0;
@@ -23,30 +23,24 @@ let bufferEscaneo = '';
     const PORTAL_KEY = 'portal_access_granted';
     const URL_REDIRECCION_PORTAL = "http://portal.calculadoramagica.lat/";
     
-    // Detectar si es dispositivo móvil
     const esMovil = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
-    // Verificar si ya tiene acceso válido desde el portal
     const accesoPortal = sessionStorage.getItem(PORTAL_KEY);
     const sessionValida = sessionStorage.getItem(SESSION_KEY);
     
-    // Si no tiene acceso desde el portal y no tiene sesión válida
     if (!accesoPortal && !sessionValida) {
         const referrer = document.referrer;
         const vieneDePortal = referrer && referrer.includes('portal.calculadoramagica.lat');
         const vieneDeClientes = referrer && referrer.includes('clientes.calculadoramagica.lat');
         const noHayReferrer = !referrer || referrer === '';
         
-        // Para móviles: ser más permisivo
         if (esMovil) {
-            // En móviles, solo redirigir si claramente no viene del portal
             if (noHayReferrer && !vieneDePortal && !vieneDeClientes) {
                 console.log('Acceso directo móvil detectado, redirigiendo al portal...');
                 window.location.href = URL_REDIRECCION_PORTAL;
                 return;
             }
         } else {
-            // Para desktop: lógica estricta original
             if (!vieneDePortal && !vieneDeClientes && !noHayReferrer) {
                 console.log('Acceso directo desktop detectado, redirigiendo al portal...');
                 window.location.href = URL_REDIRECCION_PORTAL;
@@ -55,10 +49,8 @@ let bufferEscaneo = '';
         }
     }
     
-    // Marcar sesión como válida
     sessionStorage.setItem(SESSION_KEY, 'activa_' + Date.now());
     
-    // Para prevenir accesos directos en recargas, verificar parámetros de URL
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('access') && urlParams.get('access') === 'portal') {
         sessionStorage.setItem(PORTAL_KEY, 'true');
@@ -66,7 +58,7 @@ let bufferEscaneo = '';
 })();
 
 // ===== SISTEMA DE REDIRECCIÓN POR INACTIVIDAD MEJORADO =====
-const TIEMPO_INACTIVIDAD = 4 * 60 * 1000; // 4 minutos
+const TIEMPO_INACTIVIDAD = 4 * 60 * 1000;
 const URL_REDIRECCION = "http://portal.calculadoramagica.lat/";
 
 let temporizadorInactividad;
@@ -85,12 +77,10 @@ function verificarInactividad() {
         console.log('Redirigiendo por inactividad después de', Math.round(tiempoTranscurrido / 1000), 'segundos');
         redireccionEnCurso = true;
         
-        // Limpiar todas las sesiones y datos temporales
         sessionStorage.removeItem('calculadora_magica_session');
         sessionStorage.removeItem('portal_access_granted');
         localStorage.removeItem('ultimaActividad');
         
-        // Redirigir al portal
         window.location.href = URL_REDIRECCION;
         return;
     }
@@ -117,7 +107,6 @@ function reiniciarTemporizador() {
     }, TIEMPO_INACTIVIDAD);
 }
 
-// Eventos de actividad mejorados para móviles
 ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click', 'input', 'touchmove', 'touchend'].forEach(evento => {
     document.addEventListener(evento, registrarActividad, { passive: true });
 });
@@ -144,26 +133,21 @@ function inicializarSistemaInactividad() {
 
 // ===== PROTECCIÓN MEJORADA PARA MÓVILES - SIN BLOQUEO F12 =====
 (function() {
-    // Detectar si es dispositivo móvil de forma más precisa
     const esMovil = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const esTablet = /iPad|Android.*(?:Tablet|Pad)/i.test(navigator.userAgent);
     const esDispositivoTactil = esMovil || esTablet;
     
-    // En móviles: desactivar completamente las protecciones F12
     if (esDispositivoTactil) {
         console.log('%c📱 Modo móvil activado - Protecciones F12 deshabilitadas', 'color: green; font-size: 14px;');
-        return; // Salir completamente de la protección en móviles
+        return;
     }
     
-    // Solo en desktop: protección básica no intrusiva
     function mostrarAdvertenciaSeguridad() {
         console.log('%c⚠️ ACCESO RESTRINGIDO ⚠️', 'color: red; font-size: 16px; font-weight: bold;');
         console.log('El uso de herramientas de desarrollo está restringido en esta aplicación.');
     }
     
-    // Protección de teclado solo en desktop
     document.addEventListener('keydown', function(e) {
-        // Solo F12 en desktop
         if (e.key === 'F12' || e.keyCode === 123) {
             e.preventDefault();
             e.stopPropagation();
@@ -172,7 +156,6 @@ function inicializarSistemaInactividad() {
         }
     }, true);
     
-    // Protección mínima de clic derecho solo en desktop
     document.addEventListener('contextmenu', function(e) {
         e.preventDefault();
         e.stopPropagation();
@@ -196,7 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
     actualizarCarrito();
     configurarEventos();
     configurarEventosMoviles();
-    actualizarGananciaTotal(); // Nueva función para mostrar ganancia total
+    actualizarGananciaTotal();
 });
 
 // ===== CONFIGURACIÓN ESPECÍFICA PARA MÓVILES =====
@@ -207,32 +190,25 @@ function configurarEventosMoviles() {
     
     console.log('Configurando eventos optimizados para móviles');
     
-    // Configuración optimizada para móviles
     document.addEventListener('touchstart', function(e) {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
-            // Mejorar la experiencia táctil en inputs
             setTimeout(() => {
                 e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 100);
         }
     }, { passive: true });
     
-    // Viewport optimizado para móviles
     const viewport = document.querySelector('meta[name="viewport"]');
     if (viewport) {
         viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes');
     }
     
-    // Prevenir zoom no deseado en elementos interactivos
     document.addEventListener('touchmove', function(e) {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
-            // Permitir scroll normal en inputs
         }
     }, { passive: true });
     
-    // Mejorar rendimiento en móviles
     document.addEventListener('touchstart', function() {
-        // Optimizar respuesta táctil
     }, { passive: true });
 }
 
@@ -507,7 +483,7 @@ function guardarProducto() {
 
     localStorage.setItem('productos', JSON.stringify(productos));
     actualizarLista();
-    actualizarGananciaTotal(); // Actualizar ganancia total al guardar producto
+    actualizarGananciaTotal();
 
     document.getElementById('producto').value = '';
     document.getElementById('codigoBarras').value = '';
@@ -522,15 +498,12 @@ function guardarProducto() {
 }
 
 function editarProducto(index) {
-    // Pedir clave directamente (igual que el botón de ajustar inventario)
     const claveIngresada = prompt("Para editar el producto, ingrese la clave de seguridad:");
     
     if (claveIngresada === 'ACME123') {
-        // Resetear la clave a '1234'
         claveSeguridad = '1234';
         localStorage.setItem('claveSeguridad', claveSeguridad);
         showToast('✓ Clave reseteada a: 1234', 'success');
-        // Volver a llamar la función
         editarProducto(index);
         return;
     }
@@ -540,7 +513,6 @@ function editarProducto(index) {
         return;
     }
     
-    // Si la clave es correcta, proceder con la edición
     let indiceReal = index;
     
     if (productosFiltrados.length > 0) {
@@ -820,15 +792,12 @@ function buscarProducto() {
 }
 
 function ajustarInventario(index, operacion) {
-    // Mostrar modal de clave para ajustar inventario
     const claveAjuste = prompt("Para ajustar inventario, ingrese la clave de seguridad:");
     
     if (claveAjuste === 'ACME123') {
-        // Resetear clave
         claveSeguridad = '1234';
         localStorage.setItem('claveSeguridad', claveSeguridad);
         showToast('✓ Clave reseteada a: 1234', 'success');
-        // Volver a llamar la función
         ajustarInventario(index, operacion);
         return;
     }
@@ -838,7 +807,6 @@ function ajustarInventario(index, operacion) {
         return;
     }
     
-    // Si la clave es correcta, proceder con el ajuste
     let indiceReal = index;
     
     if (productosFiltrados.length > 0) {
@@ -866,7 +834,7 @@ function ajustarInventario(index, operacion) {
 
     localStorage.setItem('productos', JSON.stringify(productos));
     actualizarLista();
-    actualizarGananciaTotal(); // Actualizar ganancia total al ajustar inventario
+    actualizarGananciaTotal();
     showToast(`Inventario de ${producto.nombre} actualizado: ${producto.unidadesExistentes} unidades`, 'success');
 }
 
@@ -893,7 +861,7 @@ function eliminarProducto(index) {
         productos.splice(indiceReal, 1);
         localStorage.setItem('productos', JSON.stringify(productos));
         actualizarLista();
-        actualizarGananciaTotal(); // Actualizar ganancia total al eliminar producto
+        actualizarGananciaTotal();
         showToast(`Producto eliminado: ${producto.nombre}`, 'success');
     }
 }
@@ -942,12 +910,10 @@ function seleccionarMetodoPago(metodo) {
             </div>
         `;
         
-        // Configurar evento para limpiar mensaje cuando se borre el campo
         setTimeout(() => {
             const input = document.getElementById('montoRecibido');
             if (!input) return;
             
-            // Limpiar mensaje cuando se borre el campo
             input.addEventListener('input', function() {
                 if (this.value === '') {
                     document.getElementById('mensajePago').style.display = 'none';
@@ -958,7 +924,6 @@ function seleccionarMetodoPago(metodo) {
                 }
             });
             
-            // Calcular inicialmente si hay valor
             if (input.value) {
                 const recib = parseFloat(input.value) || 0;
                 calcularFaltaOCambio(recid, metodo, totalBs, totalDolares);
@@ -1004,7 +969,6 @@ function calcularFaltaOCambio(montoRecibido, metodo, totalBs, totalDolares) {
     let tipo = '';
     
     if (metodo === 'efectivo_bs') {
-        // Pago en bolívares
         if (montoRecibido < totalBs) {
             falta = redondear2Decimales(totalBs - montoRecibido);
             const faltaUSD = redondear2Decimales(falta / tasaBCVGuardada);
@@ -1017,7 +981,6 @@ function calcularFaltaOCambio(montoRecibido, metodo, totalBs, totalDolares) {
         }
         cambioInput.value = montoRecibido >= totalBs ? cambio.toFixed(2) : `-${falta.toFixed(2)}`;
     } else if (metodo === 'efectivo_dolares') {
-        // Pago en dólares
         if (montoRecibido < totalDolares) {
             falta = redondear2Decimales(totalDolares - montoRecibido);
             const faltaBS = redondear2Decimales(falta * tasaBCVGuardada);
@@ -1032,37 +995,8 @@ function calcularFaltaOCambio(montoRecibido, metodo, totalBs, totalDolares) {
         cambioInput.value = montoRecibido >= totalDolares ? cambio.toFixed(2) : `-${falta.toFixed(2)}`;
     }
     
-    // Mostrar mensaje
     mensajeDiv.textContent = mensaje;
     mensajeDiv.className = `mensaje-pago ${tipo}`;
-    mensajeDiv.style.display = 'block';
-}
-
-// ===== NUEVA FUNCIÓN: PAGO COMBINADO =====
-function procesarPagoCombinado() {
-    const montoUSD = parseFloat(document.getElementById('montoUSD')?.value) || 0;
-    const montoVES = parseFloat(document.getElementById('montoVES')?.value) || 0;
-    const totalBs = carrito.reduce((sum, i) => sum + i.subtotal, 0);
-    const totalDolares = carrito.reduce((sum, i) => sum + i.subtotalDolar, 0);
-    
-    // Convertir todo a dólares para cálculo
-    const montoVESenUSD = montoVES / tasaBCVGuardada;
-    const totalPagadoUSD = montoUSD + montoVESenUSD;
-    
-    const mensajeDiv = document.getElementById('mensajePago');
-    
-    if (totalPagadoUSD < totalDolares) {
-        const faltaUSD = redondear2Decimales(totalDolares - totalPagadoUSD);
-        const faltaBS = redondear2Decimales(faltaUSD * tasaBCVGuardada);
-        mensajeDiv.textContent = `Faltan $ ${faltaUSD.toFixed(2)} / Bs ${faltaBS.toFixed(2)}`;
-        mensajeDiv.className = 'mensaje-pago falta';
-    } else {
-        const cambioUSD = redondear2Decimales(totalPagadoUSD - totalDolares);
-        const cambioBS = redondear2Decimales(cambioUSD * tasaBCVGuardada);
-        mensajeDiv.textContent = `Cambio: $ ${cambioUSD.toFixed(2)} / Bs ${cambioBS.toFixed(2)}`;
-        mensajeDiv.className = 'mensaje-pago cambio';
-    }
-    
     mensajeDiv.style.display = 'block';
 }
 
@@ -1085,7 +1019,7 @@ function confirmarMetodoPago() {
     } else if (metodoPagoSeleccionado === 'efectivo_dolares') {
         const recib = parseFloat(document.getElementById('montoRecibido').value) || 0;
         const totalEnDolares = tasaBCVGuardada ? redondear2Decimales(totalBs / tasaBCVGuardada) : 0;
-        if (recib < totalEnDolares) { 
+        if (recid < totalEnDolares) { 
             showToast("Monto recibido menor al total", 'error'); 
             return; 
         }
@@ -1148,11 +1082,12 @@ function confirmarMetodoPago() {
     localStorage.setItem('carrito', JSON.stringify(carrito));
     actualizarCarrito();
     actualizarLista();
-    actualizarGananciaTotal(); // Actualizar ganancia total después de venta
+    actualizarGananciaTotal();
     
     cerrarModalPago();
 
-    imprimirTicketTermico(detallesPago);
+    // ===== NUEVA FUNCIÓN: IMPRIMIR TICKET TÉRMICO =====
+    imprimirTicketTermicoESC_POS(detallesPago);
 }
 
 function cancelarPago() {
@@ -1184,7 +1119,7 @@ function actualizarTasaBCV() {
 
     localStorage.setItem('productos', JSON.stringify(productos));
     actualizarLista();
-    actualizarGananciaTotal(); // Actualizar ganancia total al cambiar tasa
+    actualizarGananciaTotal();
 
     showToast(`Tasa BCV actualizada a: ${nuevaTasa}`, 'success');
 }
@@ -1204,7 +1139,7 @@ function mostrarListaCostos() {
         container.style.display = 'block';
         if (buscarCostosInput) buscarCostosInput.style.display = 'inline-block';
         llenarListaCostos();
-        actualizarTotalInvertido(); // Nueva función para calcular total invertido
+        actualizarTotalInvertido();
     } else {
         container.style.display = 'none';
         if (buscarCostosInput) buscarCostosInput.style.display = 'none';
@@ -1325,7 +1260,6 @@ function generarReporteDiario() {
     const filas = ventasAUsar.map(v => {
         totalVentasBs += v.totalBolivar || 0;
         
-        // Calcular total en dólares usando la tasa BCV guardada
         const totalDolar = tasaBCVGuardada > 0 ? (v.totalBolivar || 0) / tasaBCVGuardada : 0;
         totalVentasDolares += totalDolar;
 
@@ -1340,7 +1274,6 @@ function generarReporteDiario() {
         ];
     });
 
-    // ===== FÓRMULA SIMPLIFICADA 50-30-20 SOBRE INGRESOS EN DÓLARES =====
     const llaveMaestra = redondear2Decimales(totalVentasDolares / 100);
     const reinvertir = redondear2Decimales(llaveMaestra * 50);
     const gastosFijos = redondear2Decimales(llaveMaestra * 30);
@@ -1364,7 +1297,6 @@ function generarReporteDiario() {
 
     const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 300;
     
-    // ===== SECCIÓN MEJORADA: RESUMEN FINANCIERO =====
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
     doc.text('RESUMEN FINANCIERO', 40, finalY + 20);
@@ -1374,7 +1306,6 @@ function generarReporteDiario() {
     doc.text(`Total ingresos en Bolívares: Bs ${totalVentasBs.toFixed(2)}`, 40, finalY + 40);
     doc.text(`Total ingresos en Dólares: $ ${totalVentasDolares.toFixed(2)}`, 40, finalY + 58);
     
-    // ===== NUEVA SECCIÓN: DISTRIBUCIÓN 50-30-20 EN DÓLARES =====
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
     doc.text('DISTRIBUCIÓN RECOMENDADA (50-30-20) EN DÓLARES', 40, finalY + 85);
@@ -1385,12 +1316,10 @@ function generarReporteDiario() {
     doc.text(`30% Para gastos fijos: $ ${gastosFijos.toFixed(2)}`, 40, finalY + 123);
     doc.text(`20% Para sueldo: $ ${sueldo.toFixed(2)}`, 40, finalY + 141);
     
-    // ===== VERIFICACIÓN DE CÁLCULO =====
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
     doc.text(`Verificación: ${reinvertir.toFixed(2)} + ${gastosFijos.toFixed(2)} + ${sueldo.toFixed(2)} = ${(reinvertir + gastosFijos + sueldo).toFixed(2)}`, 40, finalY + 165);
     
-    // ===== NOTA EXPLICATIVA =====
     doc.setFontSize(9);
     doc.text('Nota: Esta distribución ayuda a mantener un negocio saludable, reinvirtiendo en inventario,', 40, finalY + 185);
     doc.text('cubriendo gastos operativos y asegurando un ingreso personal sostenible.', 40, finalY + 198);
@@ -1606,7 +1535,6 @@ function generarEtiquetasPorCategoria(categoria) {
             producto.nombre.substring(0, 25) + '...' : producto.nombre;
         doc.text(nombreProducto, x + 2, y + 10);
 
-        // ===== NUEVA LÓGICA: MOSTRAR PRECIO EN LA MONEDA SELECCIONADA =====
         doc.setFontSize(14);
         doc.setTextColor(220, 0, 0);
         doc.setFont(undefined, 'bold');
@@ -1635,214 +1563,113 @@ function generarEtiquetasPorCategoria(categoria) {
     showToast(`Etiquetas generadas para: ${tituloCategoria}`, 'success');
 }
 
-// ===== Imprimir ticket térmico - VERSIÓN QUE SIEMPRE FUNCIONE =====
-function imprimirTicketTermico(detalles) {
-    try {
-        console.log('🔍 Debug - Estado actual:');
-        console.log('- detalles:', detalles);
-        console.log('- carrito:', carrito);
-        console.log('- productos:', productos);
-        console.log('- tasaBCVGuardada:', tasaBCVGuardada);
-        
-        // 1. CREAR DETALLES COMPLETAMENTE SEGUROS
-        let detallesFinales = {
-            items: [],
-            totalBs: 0,
-            metodo: 'efectivo_bs',
-            cambio: 0,
-            montoRecibido: 0,
-            fecha: new Date().toLocaleString()
+// ===== FUNCIÓN CORREGIDA: IMPRIMIR TICKET TÉRMICO ESC/POS =====
+function iniciarQZ() {
+    qz.security.setCertificatePromise(function(resolve, reject) {
+        // Certificado automático (para pruebas)
+        resolve("-----BEGIN CERTIFICATE-----\nMIIB...TU_CERTIFICADO_AQUI...\n-----END CERTIFICATE-----");
+    });
+
+    qz.security.setSignaturePromise(function(toSign) {
+        return function(resolve, reject) {
+            // Firma automática (solo para pruebas)
+            resolve("SIGNATURE");
         };
-        
-        // 2. COMBINAR DETALLES CON CARRIO - LO QUE ESTÉ DISPONIBLE
-        if (detalles && typeof detalles === 'object') {
-            detallesFinales = { ...detallesFinales, ...detalles };
-        }
-        
-        // 3. SI NO HAY ITEMS EN DETALLES, USAR CARRITO
-        if (!detallesFinales.items || !Array.isArray(detallesFinales.items) || detallesFinales.items.length === 0) {
-            if (carrito && Array.isArray(carrito) && carrito.length > 0) {
-                console.log('✅ Usando carrito actual');
-                detallesFinales.items = [...carrito];
-            } else {
-                console.log('⚠️ Creando item de respaldo');
-                // CREAR UN ITEM DE RESPALDO PARA QUE SIEMPRE HAYA ALGO
-                detallesFinales.items = [{
-                    nombre: 'VENTA GENERAL',
-                    cantidad: 1,
-                    unidad: 'unidad',
-                    precioUnitarioBolivar: detallesFinales.totalBs || 10,
-                    subtotal: detallesFinales.totalBs || 10
-                }];
-            }
-        }
-        
-        // 4. CALCULAR TOTAL SI ES CERO
-        if (!detallesFinales.totalBs || detallesFinales.totalBs <= 0) {
-            detallesFinales.totalBs = detallesFinales.items.reduce((total, item) => {
-                return total + (Number(item.subtotal) || 0);
-            }, 0);
-            
-            // Si sigue siendo cero, poner un valor mínimo
-            if (detallesFinales.totalBs <= 0) {
-                detallesFinales.totalBs = 1;
-            }
-        }
-        
-        console.log('✅ Detalles finales para impresión:', detallesFinales);
+    });
+}
 
-        const printWindow = window.open('', '_blank', 'width=350,height=400,toolbar=0,location=0,menubar=0');
-        if (!printWindow) {
-            showToast('No se pudo abrir ventana de impresión', 'error');
-            return;
-        }
+// Obtener lista de impresoras
+async function obtenerImpresoras() {
+    return await qz.printers.find();
+}
 
-        // 5. GENERAR CONTENIDO DEL TICKET
-        const ahora = new Date();
-        const fecha = ahora.toLocaleDateString();
-        const hora = ahora.toLocaleTimeString();
-        const nombreTienda = nombreEstablecimiento || 'MI TIENDA';
-        const totalDolares = tasaBCVGuardada > 0 ? detallesFinales.totalBs / tasaBCVGuardada : 0;
-        
-        let itemsHtml = '';
-        detallesFinales.items.forEach((it, index) => {
-            const item = {
-                nombre: it.nombre || `Producto ${index + 1}`,
-                cantidad: it.cantidad || 1,
-                unidad: it.unidad || 'unidad',
-                precioUnitarioBolivar: it.precioUnitarioBolivar || it.subtotal || 0,
-                subtotal: it.subtotal || 0,
-                ...it
-            };
-            
-            const nombre = item.nombre.length > 20 ? item.nombre.substring(0, 20) + '...' : item.nombre;
-            const cantidad = item.unidad === 'gramo' ? `${item.cantidad}g` : item.cantidad;
-            const precio = item.precioUnitarioBolivar.toFixed(2);
-            const subtotal = item.subtotal.toFixed(2);
-            
-            itemsHtml += `
-                <div class="item-line">
-                    <div class="item-nombre">${nombre}</div>
-                    <div class="item-detalle">
-                        <span>${cantidad} x Bs ${precio}</span>
-                        <span class="item-subtotal">Bs ${subtotal}</span>
-                    </div>
-                </div>
-            `;
+// Seleccionar automáticamente una impresora térmica
+async function obtenerImpresoraTermica() {
+    let impresoras = await obtenerImpresoras();
+    let termica = impresoras.find(p =>
+        p.toLowerCase().includes("xp") ||
+        p.toLowerCase().includes("epson") ||
+        p.toLowerCase().includes("pos") ||
+        p.toLowerCase().includes("thermal")
+    );
+    return termica || impresoras[0]; // fallback
+}
+
+// ------------------------------
+// FUNCIÓN PARA IMPRIMIR TICKET TÉRMICO ESC/POS
+// ------------------------------
+async function imprimirTicketTermico(detalles) {
+    try {
+        iniciarQZ();
+        await qz.websocket.connect();
+
+        const impresora = await obtenerImpresoraTermica();
+        if (!impresora) throw new Error("No se encontró impresora térmica");
+
+        let config = qz.configs.create(impresora);
+
+        let ahora = new Date();
+        let fecha = ahora.toLocaleDateString();
+        let hora = ahora.toLocaleTimeString();
+
+        // Construir el cuerpo del ticket ESC/POS
+        let ticket = [];
+
+        // Inicializar impresora
+        ticket.push('\x1B\x40'); // ESC @
+
+        // Nombre del negocio (centrado)
+        ticket.push('\x1B\x61\x01'); // Center
+        ticket.push('\x1B\x21\x30'); // Double size
+        ticket.push((detalles.nombreTienda || "MI NEGOCIO") + "\n");
+        ticket.push('\x1B\x21\x00'); // normal
+
+        // Fecha y hora
+        ticket.push('\x1B\x61\x00'); // left
+        ticket.push(`Fecha: ${fecha}   Hora: ${hora}\n`);
+        ticket.push("----------------------------------------\n");
+
+        // Productos
+        detalles.items.forEach(item => {
+            let nombre = item.nombre.substring(0, 30);
+            let cantidad = item.cantidad;
+            let subtotal = item.subtotal.toFixed(2);
+
+            ticket.push(`${nombre}\n`);
+            ticket.push(`   ${cantidad} x ${item.precioUnitarioBolivar.toFixed(2)} = ${subtotal}\n`);
         });
 
-        const cambio = Number(detallesFinales.cambio) || 0;
-        const montoRecibido = Number(detallesFinales.montoRecibido) || 0;
-        
-        const cambioTexto = cambio !== 0 ? `
-            <div class="linea-total">
-                <span>Cambio:</span>
-                <span>Bs ${Math.abs(cambio).toFixed(2)}</span>
-            </div>
-        ` : '';
-        
-        const montoRecibidoTexto = montoRecibido !== 0 ? `
-            <div class="linea-total">
-                <span>Recibido:</span>
-                <span>Bs ${montoRecibido.toFixed(2)}</span>
-            </div>
-        ` : '';
+        ticket.push("----------------------------------------\n");
 
-        let metodoPagoTexto = 'EFECTIVO';
-        if (detallesFinales.metodo) {
-            const metodo = String(detallesFinales.metodo).toLowerCase();
-            switch(metodo) {
-                case 'efectivo_bs': metodoPagoTexto = 'EFECTIVO BS'; break;
-                case 'efectivo_dolares': metodoPagoTexto = 'EFECTIVO $'; break;
-                case 'punto': metodoPagoTexto = 'PUNTO DE VENTA'; break;
-                case 'biopago': metodoPagoTexto = 'BIOPAGO'; break;
-                case 'pago_movil': metodoPagoTexto = 'PAGO MÓVIL'; break;
-                default: metodoPagoTexto = 'EFECTIVO';
-            }
-        }
+        // Total en bolívares
+        ticket.push('\x1B\x21\x20'); // negrita y un poco más grande
+        ticket.push(`TOTAL Bs: ${detalles.totalBs.toFixed(2)}\n`);
+        ticket.push('\x1B\x21\x00');
 
-        const content = `
-        <!doctype html>
-        <html>
-        <head>
-            <meta charset="utf-8"/>
-            <title>Ticket de Venta</title>
-            <meta name="viewport" content="width=80mm, initial-scale=1.0">
-            <style>
-                * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Courier New', monospace; }
-                body { padding: 5px; margin: 0; background: white; font-size: 12px; line-height: 1.2; width: 80mm; max-width: 80mm; }
-                .ticket { width: 80mm; max-width: 80mm; margin: 0 auto; }
-                .header { text-align: center; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px dashed #000; }
-                .nombre-establecimiento { font-size: 16px; font-weight: bold; margin-bottom: 3px; }
-                .fecha-hora { font-size: 11px; color: #555; }
-                .linea-separadora { border-top: 1px dashed #000; margin: 6px 0; clear: both; }
-                .items-container { margin: 8px 0; }
-                .item-line { margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px dotted #eee; }
-                .item-nombre { font-weight: bold; margin-bottom: 2px; }
-                .item-detalle { display: flex; justify-content: space-between; font-size: 11px; color: #666; }
-                .item-subtotal { font-weight: bold; color: #000; }
-                .totales { margin: 10px 0; padding: 8px 0; border-top: 2px solid #000; border-bottom: 2px solid #000; }
-                .linea-total { display: flex; justify-content: space-between; margin-bottom: 4px; }
-                .total-principal { font-size: 14px; font-weight: bold; margin: 6px 0; }
-                .referencia-dolares { background: #f0f0f0; padding: 5px; margin: 6px 0; text-align: center; border: 1px dashed #333; font-weight: bold; font-size: 11px; }
-                .metodo-pago { text-align: center; margin: 8px 0; padding: 4px; background: #000; color: white; font-weight: bold; }
-                .footer { text-align: center; margin-top: 10px; padding-top: 6px; border-top: 1px dashed #000; font-weight: bold; }
-                @media print {
-                    body { padding: 0 !important; margin: 0 !important; width: 80mm !important; max-width: 80mm !important; }
-                    .ticket { width: 80mm !important; max-width: 80mm !important; margin: 0 !important; padding: 5px !important; }
-                }
-            </style>
-        </head>
-        <body>
-            <div class="ticket">
-                <div class="header">
-                    <div class="nombre-establecimiento">${nombreTienda}</div>
-                    <div class="fecha-hora">${fecha} ${hora}</div>
-                </div>
-                
-                <div class="items-container">${itemsHtml}</div>
-                
-                <div class="linea-separadora"></div>
-                
-                <div class="totales">
-                    <div class="total-principal linea-total">
-                        <span>TOTAL:</span>
-                        <span>Bs ${detallesFinales.totalBs.toFixed(2)}</span>
-                    </div>
-                    ${montoRecibidoTexto}
-                    ${cambioTexto}
-                </div>
-                
-                <div class="referencia-dolares">
-                    <div>REF: $ ${totalDolares.toFixed(2)}</div>
-                </div>
-                
-                <div class="metodo-pago">${metodoPagoTexto}</div>
-                
-                <div class="footer">¡Gracias por su compra!</div>
-            </div>
-            
-            <script>
-                setTimeout(function() {
-                    window.print();
-                    setTimeout(function() { 
-                        window.close(); 
-                    }, 500);
-                }, 300);
-            </script>
-        </body>
-        </html>`;
+        // Referencia en dólares (sin decir "dólares")
+        let referencia = detalles.referencia || 0;
+        ticket.push(`REFERENCIA: ${referencia.toFixed(2)}\n`);
 
-        printWindow.document.open();
-        printWindow.document.write(content);
-        printWindow.document.close();
+        // Método de pago
+        ticket.push("----------------------------------------\n");
+        ticket.push(`PAGO: ${detalles.metodoPago.toUpperCase()}\n`);
 
-        console.log('🎉 Ticket impreso exitosamente!');
-        showToast('Ticket enviado a impresión', 'success');
+        // Pie de página
+        ticket.push("\n¡Gracias por su compra!\n\n");
+
+        // Corte de papel
+        ticket.push('\x1D\x56\x00');
+
+        // Enviar a impresión
+        await qz.print(config, ticket);
+        await qz.websocket.disconnect();
+
+        console.log("Ticket impreso correctamente");
+        showToast("Ticket impreso correctamente", "success");
 
     } catch (err) {
-        console.error('💥 Error fatal:', err);
-        showToast('Error: ' + err.message, 'error');
+        console.error("Error al imprimir:", err);
+        showToast("Error al imprimir: " + err, "error");
     }
 }
 
@@ -1858,7 +1685,7 @@ function descargarBackup() {
             fechaBackup: new Date().toISOString(),
             version: '1.0',
             claveSeguridad: claveSeguridad,
-            monedaEtiquetas: monedaEtiquetas // Guardar también la moneda de etiquetas
+            monedaEtiquetas: monedaEtiquetas
         };
 
         const dataStr = JSON.stringify(backupData, null, 2);
@@ -1905,13 +1732,11 @@ function cargarBackup(files) {
                 localStorage.setItem('ventasDiarias', JSON.stringify(backupData.ventasDiarias || []));
                 localStorage.setItem('carrito', JSON.stringify(backupData.carrito || []));
                 
-                // Cargar clave de seguridad si existe en el respaldo
                 if (backupData.claveSeguridad) {
                     localStorage.setItem('claveSeguridad', backupData.claveSeguridad);
                     claveSeguridad = backupData.claveSeguridad;
                 }
                 
-                // Cargar moneda de etiquetas si existe en el respaldo
                 if (backupData.monedaEtiquetas) {
                     localStorage.setItem('monedaEtiquetas', backupData.monedaEtiquetas);
                     monedaEtiquetas = backupData.monedaEtiquetas;
@@ -2072,7 +1897,6 @@ function cambiarClave() {
     const nuevaClave = document.getElementById('nuevaClave').value.trim();
     const confirmarClave = document.getElementById('confirmarClave').value.trim();
     
-    // Verificar si está usando la clave maestra para reset
     if (claveActual === 'ACME123') {
         if (nuevaClave.length < 4) {
             showToast('La nueva clave debe tener al menos 4 caracteres', 'error');
@@ -2084,7 +1908,6 @@ function cambiarClave() {
             return;
         }
         
-        // Cambiar la clave usando ACME123
         claveSeguridad = nuevaClave;
         localStorage.setItem('claveSeguridad', claveSeguridad);
         showToast('✓ Clave cambiada exitosamente', 'success');
@@ -2092,7 +1915,6 @@ function cambiarClave() {
         return;
     }
     
-    // Verificación normal de cambio de clave
     if (claveActual !== claveSeguridad) {
         showToast('Clave actual incorrecta', 'error');
         document.getElementById('claveActual').value = '';
@@ -2118,7 +1940,6 @@ function cambiarClave() {
         return;
     }
     
-    // Cambiar la clave
     claveSeguridad = nuevaClave;
     localStorage.setItem('claveSeguridad', claveSeguridad);
     showToast('✓ Clave cambiada exitosamente', 'success');
@@ -2148,7 +1969,6 @@ function cargarDatosOffline() {
     if (datosGuardados) {
         const datos = JSON.parse(datosGuardados);
         
-        // Solo cargar si los datos offline son más recientes
         const timestampOffline = datos.timestamp || 0;
         const timestampActual = localStorage.getItem('ultimaSincronizacion') || 0;
         
@@ -2159,7 +1979,6 @@ function cargarDatosOffline() {
             ventasDiarias = datos.ventasDiarias || ventasDiarias;
             carrito = datos.carrito || carrito;
             
-            // Actualizar localStorage
             localStorage.setItem('productos', JSON.stringify(productos));
             localStorage.setItem('nombreEstablecimiento', nombreEstablecimiento);
             localStorage.setItem('tasaBCV', tasaBCVGuardada.toString());
