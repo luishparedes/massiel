@@ -1635,271 +1635,134 @@ function generarEtiquetasPorCategoria(categoria) {
     showToast(`Etiquetas generadas para: ${tituloCategoria}`, 'success');
 }
 
-// ===== Imprimir ticket térmico MEJORADO =====
+// ===== Imprimir ticket térmico UNIVERSAL =====
 function imprimirTicketTermico(detalles) {
     try {
-        const printWindow = window.open('', '_blank', 'width=350,height=400,toolbar=0,location=0,menubar=0');
-        if (!printWindow) {
-            showToast('No se pudo abrir la ventana de impresión. Verifica bloqueadores de popups.', 'error');
-            return;
-        }
 
-        // Obtener fecha y hora actual
-        const ahora = new Date();
-        const fecha = ahora.toLocaleDateString();
-        const hora = ahora.toLocaleTimeString();
-        
-        // Calcular total en dólares
-        const totalDolares = detalles.totalBs / tasaBCVGuardada;
-        
+        // Crear iframe oculto
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        document.body.appendChild(iframe);
+
+        const doc = iframe.contentWindow.document;
+
+        const fecha = new Date().toLocaleDateString();
+        const hora = new Date().toLocaleTimeString();
+        const totalDolares = (detalles.totalBs / tasaBCVGuardada).toFixed(2);
+
         let itemsHtml = '';
         (detalles.items || []).forEach(it => {
-            // Limitar longitud del nombre para impresoras térmicas
-            const nombre = it.nombre.length > 20 ? it.nombre.slice(0, 20) + '...' : it.nombre;
-            const cantidad = it.unidad === 'gramo' ? `${it.cantidad}g` : `${it.cantidad}`;
+            const nombre = it.nombre.length > 20 ? it.nombre.slice(0,20)+"..." : it.nombre;
             const subtotal = (it.subtotal || 0).toFixed(2);
-            
+            const cantidad = it.unidad === 'gramo' ? `${it.cantidad}g` : it.cantidad;
+
             itemsHtml += `
-                <div class="item-line">
-                    <div class="item-nombre">${nombre}</div>
-                    <div class="item-detalle">
+                <div style="margin-bottom:4px;">
+                    <div style="font-weight:bold;">${nombre}</div>
+                    <div style="display:flex;justify-content:space-between;font-size:11px;">
                         <span>${cantidad} x Bs ${it.precioUnitarioBolivar.toFixed(2)}</span>
-                        <span class="item-subtotal">Bs ${subtotal}</span>
+                        <span><b>Bs ${subtotal}</b></span>
                     </div>
                 </div>
             `;
         });
 
-        // Texto para cambio y monto recibido
-        const cambioTexto = detalles.cambio !== undefined ? `
-            <div class="linea-total">
-                <span>Cambio:</span>
-                <span>Bs ${detalles.cambio.toFixed(2)}</span>
-            </div>
-        ` : '';
-        
-        const montoRecibidoTexto = detalles.montoRecibido !== undefined ? `
-            <div class="linea-total">
-                <span>Recibido:</span>
-                <span>Bs ${detalles.montoRecibido.toFixed(2)}</span>
-            </div>
-        ` : '';
+        let metodoPagoTexto = {
+            efectivo_bs: "EFECTIVO BS",
+            efectivo_dolares: "EFECTIVO $",
+            punto: "PUNTO DE VENTA",
+            biopago: "BIOPAGO",
+            pago_movil: "PAGO MÓVIL",
+        }[detalles.metodo] || "EFECTIVO";
 
-        // Determinar método de pago en texto legible
-        let metodoPagoTexto = '';
-        switch(detalles.metodo) {
-            case 'efectivo_bs':
-                metodoPagoTexto = 'EFECTIVO BS';
-                break;
-            case 'efectivo_dolares':
-                metodoPagoTexto = 'EFECTIVO $';
-                break;
-            case 'punto':
-                metodoPagoTexto = 'PUNTO DE VENTA';
-                break;
-            case 'biopago':
-                metodoPagoTexto = 'BIOPAGO';
-                break;
-            case 'pago_movil':
-                metodoPagoTexto = 'PAGO MÓVIL';
-                break;
-            default:
-                metodoPagoTexto = detalles.metodo || 'EFECTIVO';
-        }
-
-        const content = `
-        <!doctype html>
+        const html = `
         <html>
         <head>
             <meta charset="utf-8"/>
-            <title>Ticket de Venta</title>
-            <meta name="viewport" content="width=80mm, initial-scale=1.0">
             <style>
-                * {
-                    margin: 0;
-                    padding: 0;
-                    box-sizing: border-box;
+                body {
                     font-family: 'Courier New', monospace;
-                }
-                body { 
-                    padding: 5px; 
-                    margin: 0; 
-                    background: white;
                     font-size: 12px;
-                    line-height: 1.2;
                     width: 80mm;
-                    max-width: 80mm;
-                }
-                .ticket { 
-                    width: 80mm;
-                    max-width: 80mm;
-                    margin: 0 auto;
-                }
-                .header { 
-                    text-align: center; 
-                    margin-bottom: 8px;
-                    padding-bottom: 5px;
-                    border-bottom: 1px dashed #000;
-                }
-                .nombre-establecimiento {
-                    font-size: 16px;
-                    font-weight: bold;
-                    margin-bottom: 3px;
-                }
-                .fecha-hora {
-                    font-size: 11px;
-                    color: #555;
-                }
-                .linea-separadora {
-                    border-top: 1px dashed #000;
-                    margin: 6px 0;
-                    clear: both;
-                }
-                .items-container {
-                    margin: 8px 0;
-                }
-                .item-line {
-                    margin-bottom: 6px;
-                    padding-bottom: 4px;
-                    border-bottom: 1px dotted #eee;
-                }
-                .item-nombre {
-                    font-weight: bold;
-                    margin-bottom: 2px;
-                }
-                .item-detalle {
-                    display: flex;
-                    justify-content: space-between;
-                    font-size: 11px;
-                    color: #666;
-                }
-                .item-subtotal {
-                    font-weight: bold;
-                    color: #000;
-                }
-                .totales {
-                    margin: 10px 0;
-                    padding: 8px 0;
-                    border-top: 2px solid #000;
-                    border-bottom: 2px solid #000;
-                }
-                .linea-total {
-                    display: flex;
-                    justify-content: space-between;
-                    margin-bottom: 4px;
-                }
-                .total-principal {
-                    font-size: 14px;
-                    font-weight: bold;
-                    margin: 6px 0;
-                }
-                .referencia-dolares {
-                    background: #f0f0f0;
+                    margin: 0;
                     padding: 5px;
-                    margin: 6px 0;
-                    text-align: center;
-                    border: 1px dashed #333;
-                    font-weight: bold;
-                    font-size: 11px;
-                }
-                .metodo-pago {
-                    text-align: center;
-                    margin: 8px 0;
-                    padding: 4px;
-                    background: #000;
-                    color: white;
-                    font-weight: bold;
-                }
-                .footer {
-                    text-align: center;
-                    margin-top: 10px;
-                    padding-top: 6px;
-                    border-top: 1px dashed #000;
-                    font-weight: bold;
                 }
                 @media print {
-                    body { 
-                        padding: 0 !important; 
-                        margin: 0 !important;
-                        width: 80mm !important;
-                        max-width: 80mm !important;
-                    }
-                    .ticket { 
-                        width: 80mm !important;
-                        max-width: 80mm !important;
-                        margin: 0 !important;
-                        padding: 5px !important;
-                    }
-                    .no-print { 
-                        display: none !important; 
-                    }
-                    .item-line {
-                        page-break-inside: avoid;
+                    body {
+                        width: 80mm;
+                        margin: 0;
+                        padding: 0;
                     }
                 }
             </style>
         </head>
         <body>
-            <div class="ticket">
-                <!-- ENCABEZADO -->
-                <div class="header">
-                    <div class="nombre-establecimiento">${nombreEstablecimiento || 'TIENDA'}</div>
-                    <div class="fecha-hora">${fecha} ${hora}</div>
-                </div>
-                
-                <!-- PRODUCTOS -->
-                <div class="items-container">
-                    ${itemsHtml}
-                </div>
-                
-                <div class="linea-separadora"></div>
-                
-                <!-- TOTALES -->
-                <div class="totales">
-                    <div class="total-principal linea-total">
-                        <span>TOTAL:</span>
-                        <span>Bs ${detalles.totalBs.toFixed(2)}</span>
-                    </div>
-                    ${montoRecibidoTexto}
-                    ${cambioTexto}
-                </div>
-                
-                <!-- REFERENCIA EN DÓLARES (SIMPLIFICADA) -->
-                <div class="referencia-dolares">
-                    <div>REF: $ ${totalDolares.toFixed(2)}</div>
-                </div>
-                
-                <!-- MÉTODO DE PAGO -->
-                <div class="metodo-pago">
-                    ${metodoPagoTexto}
-                </div>
-                
-                <!-- PIE DE PÁGINA -->
-                <div class="footer">
-                    ¡Gracias por su compra!
-                </div>
+
+            <div style="text-align:center;font-weight:bold;font-size:16px;">
+                ${nombreEstablecimiento || "TIENDA"}
             </div>
-            
-            <script>
-                // Auto-imprimir inmediatamente
-                setTimeout(function() {
-                    window.print();
-                    // Cerrar después de imprimir
-                    setTimeout(function() {
-                        window.close();
-                    }, 500);
-                }, 300);
-            </script>
+
+            <div style="text-align:center;font-size:11px;margin-bottom:10px;">
+                ${fecha} ${hora}
+            </div>
+
+            ${itemsHtml}
+
+            <hr>
+
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:bold;">
+                <span>TOTAL:</span>
+                <span>Bs ${detalles.totalBs.toFixed(2)}</span>
+            </div>
+
+            ${detalles.montoRecibido !== undefined ? `
+            <div style="display:flex;justify-content:space-between;">
+                <span>Recibido:</span>
+                <span>Bs ${detalles.montoRecibido.toFixed(2)}</span>
+            </div>` : ""}
+
+            ${detalles.cambio !== undefined ? `
+            <div style="display:flex;justify-content:space-between;">
+                <span>Cambio:</span>
+                <span>Bs ${detalles.cambio.toFixed(2)}</span>
+            </div>` : ""}
+
+            <div style="text-align:center;border:1px dashed #000;padding:5px;margin:10px 0;">
+                REF $ ${totalDolares}
+            </div>
+
+            <div style="text-align:center;background:#000;color:#fff;padding:4px;font-weight:bold;">
+                ${metodoPagoTexto}
+            </div>
+
+            <div style="text-align:center;margin-top:10px;font-size:12px;">
+                ¡Gracias por su compra!
+            </div>
+
         </body>
         </html>`;
 
-        printWindow.document.open();
-        printWindow.document.write(content);
-        printWindow.document.close();
+        doc.open();
+        doc.write(html);
+        doc.close();
 
-    } catch (err) {
-        console.error('Error en impresión:', err);
-        showToast('Error al preparar impresión: ' + err.message, 'error');
+        setTimeout(() => {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+
+            setTimeout(() => {
+                document.body.removeChild(iframe);
+            }, 500);
+        }, 300);
+
+    } catch (error) {
+        console.error(error);
+        showToast("Error al imprimir ticket térmico", "error");
     }
 }
 
