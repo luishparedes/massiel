@@ -596,21 +596,6 @@ function agregarPorCodigoBarras() {
     procesarEscaneo(codigo);
 }
 
-// Normalizador para evitar errores después de restaurar
-function normalizarItemCarrito(item) {
-    if (!item) return null;
-
-    return {
-        nombre: item.nombre || "",
-        descripcion: item.descripcion || "",
-        unidad: item.unidad || "unidad",
-        cantidad: Number(item.cantidad) || 0,
-        precioUnitarioBolivar: Number(item.precioUnitarioBolivar) || 0,
-        subtotal: Number(item.subtotal) || 0,
-        subtotalDolar: Number(item.subtotalDolar) || 0
-    };
-}
-
 function actualizarCarrito() {
     const carritoBody = document.getElementById('carritoBody');
     const totalCarritoBs = document.getElementById('totalCarritoBs');
@@ -618,13 +603,7 @@ function actualizarCarrito() {
 
     if (!carritoBody) return;
 
-    // Limpieza eficiente
     carritoBody.innerHTML = '';
-
-    // Normalizar el carrito después de restaurar
-    carrito = carrito
-        .map(normalizarItemCarrito)
-        .filter(item => item !== null && !isNaN(item.subtotal));
 
     if (carrito.length === 0) {
         carritoBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">El carrito está vacío</td></tr>';
@@ -637,17 +616,10 @@ function actualizarCarrito() {
     let totalDolares = 0;
 
     carrito.forEach((item, index) => {
+        totalBs += item.subtotal;
+        totalDolares += item.subtotalDolar;
 
-        // Evita NaN si el respaldo viene dañado
-        const subtotalSeguro = Number(item.subtotal) || 0;
-        const subtotalDolarSeguro = Number(item.subtotalDolar) || 0;
-
-        totalBs += subtotalSeguro;
-        totalDolares += subtotalDolarSeguro;
-
-        const cantidadMostrada = item.unidad === 'gramo'
-            ? `${item.cantidad} g`
-            : item.cantidad;
+        const cantidadMostrada = item.unidad === 'gramo' ? `${item.cantidad} g` : item.cantidad;
 
         const botonMas = item.unidad === 'gramo'
             ? `<button onclick="ingresarGramos(${index})" class="btn-carrito">+</button>`
@@ -668,7 +640,7 @@ function actualizarCarrito() {
                     <option value="gramo" ${item.unidad === 'gramo' ? 'selected' : ''}>Gramo</option>
                 </select>
             </td>
-            <td>Bs ${subtotalSeguro.toFixed(2)}</td>
+            <td>Bs ${item.subtotal.toFixed(2)}</td>
             <td>
                 <button class="btn-eliminar-carrito" onclick="eliminarDelCarrito(${index})">Eliminar</button>
             </td>
@@ -684,28 +656,14 @@ function actualizarCantidadCarrito(index, cambio) {
     const item = carrito[index];
     if (!item) return;
 
-    // Normalización por seguridad (corrige problemas tras restaurar respaldo)
-    item.cantidad = Number(item.cantidad) || 0;
-    cambio = Number(cambio) || 0;
-
     item.cantidad += cambio;
 
-    // Evitar cantidades negativas o NaN
-    if (isNaN(item.cantidad) || item.cantidad <= 0) {
+    if (item.cantidad <= 0) {
         eliminarDelCarrito(index);
         return;
     }
 
-    // Evita NaN por restauraciones corruptas
-    if (typeof calcularSubtotalSegonUnidad === "function") {
-        calcularSubtotalSegonUnidad(item);
-    } else {
-        console.warn("calcularSubtotalSegonUnidad no está definida");
-    }
-
-    // Protección anti-NaN en el carrito
-    item.subtotal = Number(item.subtotal) || 0;
-    item.subtotalDolar = Number(item.subtotalDolar) || 0;
+    calcularSubtotalSegonUnidad(item);
 
     localStorage.setItem('carrito', JSON.stringify(carrito));
     actualizarCarrito();
