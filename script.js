@@ -17,6 +17,42 @@ let claveSeguridad = localStorage.getItem('claveSeguridad') || '1234';
 let tiempoUltimaTecla = 0;
 let bufferEscaneo = '';
 
+// ===== SEGURIDAD ADICIONAL =====
+// --- Anti-spam / rate limit básico ---
+let ultimaPeticion = 0;
+const MIN_INTERVALO_MS = 80; // evita spam extremo sin afectar el uso normal
+
+function permitirEjecucion() {
+    const ahora = Date.now();
+    if (ahora - ultimaPeticion < MIN_INTERVALO_MS) {
+        console.warn("Rate limit: petición bloqueada para evitar spam o bugs.");
+        return false;
+    }
+    ultimaPeticion = ahora;
+    return true;
+}
+
+// Ejemplo de función segura (puedes usar permitirEjecucion() en otras funciones críticas)
+// if (!permitirEjecucion()) return;
+
+// --- Escudo anti-crash ---
+window.onerror = function (msg, url, lineNo, colNo, error) {
+    console.error("ERROR CAPTURADO:", msg, lineNo, colNo);
+    // No detiene la app: solo registra
+    return true; 
+};
+
+// --- Validación defensiva del localStorage ---
+try {
+    if (localStorage.length > 500) { 
+        console.warn("Posible sabotaje: localStorage excesivo. Se limpia parcialmente.");
+        localStorage.clear();
+    }
+} catch (e) {
+    console.error("Error monitoreando localStorage:", e);
+}
+// ===== FIN SEGURIDAD ADICIONAL =====
+
 // ===== PROTECCIÓN CONTRA ACCESO DIRECTO MEJORADA PARA MÓVILES =====
 (function() {
     const SESSION_KEY = 'calculadora_magica_session';
