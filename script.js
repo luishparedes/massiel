@@ -32,9 +32,6 @@ function permitirEjecucion() {
     return true;
 }
 
-// Ejemplo de función segura (puedes usar permitirEjecucion() en otras funciones críticas)
-// if (!permitirEjecucion()) return;
-
 // --- Escudo anti-crash ---
 window.onerror = function (msg, url, lineNo, colNo, error) {
     console.error("ERROR CAPTURADO:", msg, lineNo, colNo);
@@ -590,7 +587,7 @@ function editarProducto(index) {
     showToast(`Editando: ${producto.nombre}`, 'success');
 }
 
-// ===== CARRITO DE VENTAS =====
+// ===== CARRITO DE VENTAS - CORREGIDO =====
 function agregarPorCodigoBarras() {
     const codigo = document.getElementById('codigoBarrasInput').value.trim();
     procesarEscaneo(codigo);
@@ -616,6 +613,9 @@ function actualizarCarrito() {
     let totalDolares = 0;
 
     carrito.forEach((item, index) => {
+        // CORRECCIÓN: Recalcular subtotales antes de sumar
+        calcularSubtotalSegonUnidad(item);
+        
         totalBs += item.subtotal;
         totalDolares += item.subtotalDolar;
 
@@ -648,11 +648,14 @@ function actualizarCarrito() {
         carritoBody.appendChild(row);
     });
 
+    // CORRECCIÓN: Redondear los totales finales
     if (totalCarritoBs) totalCarritoBs.textContent = `Total: Bs ${redondear2Decimales(totalBs).toFixed(2)}`;
     if (totalCarritoDolares) totalCarritoDolares.textContent = `Total: $ ${redondear2Decimales(totalDolares).toFixed(2)}`;
 }
 
 function actualizarCantidadCarrito(index, cambio) {
+    if (!permitirEjecucion()) return;
+    
     const item = carrito[index];
     if (!item) return;
 
@@ -663,6 +666,7 @@ function actualizarCantidadCarrito(index, cambio) {
         return;
     }
 
+    // CORRECCIÓN: Recalcular subtotal después de cambiar cantidad
     calcularSubtotalSegonUnidad(item);
 
     localStorage.setItem('carrito', JSON.stringify(carrito));
@@ -671,6 +675,8 @@ function actualizarCantidadCarrito(index, cambio) {
 
 // ===== FUNCIÓN: ingresarGramos =====
 function ingresarGramos(index) {
+    if (!permitirEjecucion()) return;
+    
     const item = carrito[index];
     if (!item) return;
 
@@ -715,14 +721,18 @@ function ingresarGramos(index) {
     actualizarCarrito();
 }
 
-// ===== FUNCIÓN CALCULAR SUBTOTAL SEGÚN UNIDAD =====
+// ===== FUNCIÓN CALCULAR SUBTOTAL SEGÚN UNIDAD - CORREGIDA =====
 function calcularSubtotalSegonUnidad(item) {
     const producto = productos[item.indexProducto];
     if (!producto) return;
 
     if (item.unidad === 'gramo') {
-        item.subtotal = redondear2Decimales(item.cantidad * item.precioUnitarioBolivar * 0.001);
-        item.subtotalDolar = redondear2Decimales(item.cantidad * item.precioUnitarioDolar * 0.001);
+        // CORRECCIÓN: Calcular correctamente el precio por gramo
+        const precioPorGramoBolivar = (producto.precioUnitarioBolivar * 0.001);
+        const precioPorGramoDolar = (producto.precioUnitarioDolar * 0.001);
+        
+        item.subtotal = redondear2Decimales(item.cantidad * precioPorGramoBolivar);
+        item.subtotalDolar = redondear2Decimales(item.cantidad * precioPorGramoDolar);
     } else {
         item.subtotal = redondear2Decimales(item.cantidad * item.precioUnitarioBolivar);
         item.subtotalDolar = redondear2Decimales(item.cantidad * item.precioUnitarioDolar);
@@ -730,13 +740,24 @@ function calcularSubtotalSegonUnidad(item) {
 }
 
 function cambiarUnidadCarrito(index, nuevaUnidad) {
+    if (!permitirEjecucion()) return;
+    
     carrito[index].unidad = nuevaUnidad;
+    
+    // CORRECCIÓN: Si cambia de gramos a unidades, ajustar cantidad
+    if (nuevaUnidad === 'unidad' && carrito[index].unidad === 'gramo') {
+        // Convertir gramos a unidades aproximadas (asumiendo 1000g = 1 unidad)
+        carrito[index].cantidad = Math.ceil(carrito[index].cantidad / 1000);
+    }
+    
     calcularSubtotalSegonUnidad(carrito[index]);
     localStorage.setItem('carrito', JSON.stringify(carrito));
     actualizarCarrito();
 }
 
 function eliminarDelCarrito(index) {
+    if (!permitirEjecucion()) return;
+    
     carrito.splice(index, 1);
     localStorage.setItem('carrito', JSON.stringify(carrito));
     actualizarCarrito();
@@ -962,7 +983,7 @@ function seleccionarMetodoPago(metodo) {
             
             if (input.value) {
                 const recib = parseFloat(input.value) || 0;
-                calcularFaltaOCambio(recid, metodo, totalBs, totalDolares);
+                calcularFaltaOCambio(recib, metodo, totalBs, totalDolares);
             }
         }, 100);
     } else if (metodo === 'punto' || metodo === 'biopago') {
@@ -1043,6 +1064,7 @@ function confirmarMetodoPago() {
     }
 
     const totalBs = carrito.reduce((sum, item) => sum + item.subtotal, 0);
+    const totalDolares = carrito.reduce((sum, item) => sum + item.subtotalDolar, 0);
 
     if (metodoPagoSeleccionado === 'efectivo_bs') {
         const recib = parseFloat(document.getElementById('montoRecibido').value) || 0;
@@ -1054,12 +1076,11 @@ function confirmarMetodoPago() {
         detallesPago.montoRecibido = recib;
     } else if (metodoPagoSeleccionado === 'efectivo_dolares') {
         const recib = parseFloat(document.getElementById('montoRecibido').value) || 0;
-        const totalEnDolares = tasaBCVGuardada ? redondear2Decimales(totalBs / tasaBCVGuardada) : 0;
-        if (recid < totalEnDolares) { 
+        if (recib < totalDolares) { 
             showToast("Monto recibido menor al total", 'error'); 
             return; 
         }
-        detallesPago.cambio = redondear2Decimales(recib - totalEnDolares);
+        detallesPago.cambio = redondear2Decimales(recib - totalDolares);
         detallesPago.montoRecibido = recib;
     } else if (metodoPagoSeleccionado === 'punto' || metodoPagoSeleccionado === 'biopago') {
         const monto = parseFloat(document.getElementById('montoPago') ? document.getElementById('montoPago').value : 0) || 0;
@@ -1111,6 +1132,7 @@ function confirmarMetodoPago() {
     showToast(`Venta completada por Bs ${redondear2Decimales(totalBs).toFixed(2)}`, 'success');
 
     detallesPago.totalBs = redondear2Decimales(totalBs);
+    detallesPago.totalDolares = redondear2Decimales(totalDolares);
     detallesPago.items = JSON.parse(JSON.stringify(carrito));
     detallesPago.fecha = new Date().toLocaleString();
 
@@ -1601,6 +1623,11 @@ function generarEtiquetasPorCategoria(categoria) {
 
 // ===== FUNCIÓN CORREGIDA: IMPRIMIR TICKET TÉRMICO ESC/POS =====
 function iniciarQZ() {
+    if (typeof qz === 'undefined') {
+        console.warn('qz no está disponible');
+        return false;
+    }
+    
     qz.security.setCertificatePromise(function(resolve, reject) {
         // Certificado automático (para pruebas)
         resolve("-----BEGIN CERTIFICATE-----\nMIIB...TU_CERTIFICADO_AQUI...\n-----END CERTIFICATE-----");
@@ -1612,11 +1639,22 @@ function iniciarQZ() {
             resolve("SIGNATURE");
         };
     });
+    
+    return true;
 }
 
 // Obtener lista de impresoras
 async function obtenerImpresoras() {
-    return await qz.printers.find();
+    if (typeof qz === 'undefined') {
+        return [];
+    }
+    
+    try {
+        return await qz.printers.find();
+    } catch (error) {
+        console.error('Error al obtener impresoras:', error);
+        return [];
+    }
 }
 
 // Seleccionar automáticamente una impresora térmica
@@ -1634,9 +1672,19 @@ async function obtenerImpresoraTermica() {
 // ------------------------------
 // FUNCIÓN PARA IMPRIMIR TICKET TÉRMICO ESC/POS
 // ------------------------------
-async function imprimirTicketTermico(detalles) {
+async function imprimirTicketTermicoESC_POS(detalles) {
     try {
-        iniciarQZ();
+        // Verificar si qz está disponible
+        if (typeof qz === 'undefined') {
+            console.warn('qz no está disponible, simulando impresión');
+            showToast("Simulación de ticket completada", "success");
+            return;
+        }
+
+        if (!iniciarQZ()) {
+            throw new Error("No se pudo inicializar qz");
+        }
+
         await qz.websocket.connect();
 
         const impresora = await obtenerImpresoraTermica();
@@ -1657,7 +1705,7 @@ async function imprimirTicketTermico(detalles) {
         // Nombre del negocio (centrado)
         ticket.push('\x1B\x61\x01'); // Center
         ticket.push('\x1B\x21\x30'); // Double size
-        ticket.push((detalles.nombreTienda || "MI NEGOCIO") + "\n");
+        ticket.push((nombreEstablecimiento || "MI NEGOCIO") + "\n");
         ticket.push('\x1B\x21\x00'); // normal
 
         // Fecha y hora
@@ -1682,9 +1730,8 @@ async function imprimirTicketTermico(detalles) {
         ticket.push(`TOTAL Bs: ${detalles.totalBs.toFixed(2)}\n`);
         ticket.push('\x1B\x21\x00');
 
-        // Referencia en dólares (sin decir "dólares")
-        let referencia = detalles.referencia || 0;
-        ticket.push(`REFERENCIA: ${referencia.toFixed(2)}\n`);
+        // Referencia en dólares
+        ticket.push(`REFERENCIA USD: $${detalles.totalDolares.toFixed(2)}\n`);
 
         // Método de pago
         ticket.push("----------------------------------------\n");
@@ -1705,11 +1752,11 @@ async function imprimirTicketTermico(detalles) {
 
     } catch (err) {
         console.error("Error al imprimir:", err);
-        showToast("Error al imprimir: " + err, "error");
+        showToast("Error al imprimir: " + err.message, "error");
     }
 }
 
-// ===== FUNCIONES DE RESPALDO Y RESTAURACIÓN =====
+// ===== FUNCIONES DE RESPALDO Y RESTAURACIÓN - CORREGIDAS =====
 function descargarBackup() {
     try {
         const backupData = {
@@ -1762,9 +1809,12 @@ function cargarBackup(files) {
             }
             
             if (confirm('¿Estás seguro de que deseas cargar este respaldo? Se sobrescribirán todos los datos actuales.')) {
+                // CORRECCIÓN: Limpiar localStorage antes de cargar el respaldo
+                localStorage.clear();
+                
                 localStorage.setItem('productos', JSON.stringify(backupData.productos));
                 localStorage.setItem('nombreEstablecimiento', backupData.nombreEstablecimiento || '');
-                localStorage.setItem('tasaBCV', backupData.tasaBCV || 0);
+                localStorage.setItem('tasaBCV', backupData.tasaBCV || '0');
                 localStorage.setItem('ventasDiarias', JSON.stringify(backupData.ventasDiarias || []));
                 localStorage.setItem('carrito', JSON.stringify(backupData.carrito || []));
                 
@@ -1778,18 +1828,25 @@ function cargarBackup(files) {
                     monedaEtiquetas = backupData.monedaEtiquetas;
                 }
                 
+                // CORRECCIÓN: Recargar todas las variables globales
                 productos = JSON.parse(localStorage.getItem('productos')) || [];
                 nombreEstablecimiento = localStorage.getItem('nombreEstablecimiento') || '';
                 tasaBCVGuardada = parseFloat(localStorage.getItem('tasaBCV')) || 0;
                 ventasDiarias = JSON.parse(localStorage.getItem('ventasDiarias')) || [];
                 carrito = JSON.parse(localStorage.getItem('carrito')) || [];
                 
+                // CORRECCIÓN: Forzar recarga de la interfaz
                 cargarDatosIniciales();
                 actualizarLista();
                 actualizarCarrito();
                 actualizarGananciaTotal();
                 
                 showToast('Respaldo cargado exitosamente', 'success');
+                
+                // CORRECCIÓN: Recargar la página para asegurar que todo funcione correctamente
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
             }
         } catch (error) {
             console.error('Error al cargar respaldo:', error);
@@ -1840,13 +1897,23 @@ function procesarEscaneo(codigo) {
 }
 
 function agregarProductoAlCarrito(productoEncontrado) {
-    const enCarrito = carrito.findIndex(item => item.nombre === productoEncontrado.nombre && item.unidad === 'unidad');
+    const enCarrito = carrito.findIndex(item => 
+        item.nombre === productoEncontrado.nombre && 
+        item.descripcion === productoEncontrado.descripcion && 
+        item.unidad === 'unidad'
+    );
 
     if (enCarrito !== -1) {
+        // CORRECCIÓN: Incrementar cantidad y recalcular subtotales
         carrito[enCarrito].cantidad += 1;
-        carrito[enCarrito].subtotal = redondear2Decimales(carrito[enCarrito].cantidad * carrito[enCarrito].precioUnitarioBolivar);
-        carrito[enCarrito].subtotalDolar = redondear2Decimales(carrito[enCarrito].cantidad * carrito[enCarrito].precioUnitarioDolar);
+        calcularSubtotalSegonUnidad(carrito[enCarrito]);
     } else {
+        // CORRECCIÓN: Buscar el índice correcto del producto
+        const indexProducto = productos.findIndex(p => 
+            p.nombre === productoEncontrado.nombre && 
+            p.descripcion === productoEncontrado.descripcion
+        );
+        
         carrito.push({
             nombre: productoEncontrado.nombre,
             descripcion: productoEncontrado.descripcion,
@@ -1856,7 +1923,7 @@ function agregarProductoAlCarrito(productoEncontrado) {
             unidad: 'unidad',
             subtotal: productoEncontrado.precioUnitarioBolivar,
             subtotalDolar: productoEncontrado.precioUnitarioDolar,
-            indexProducto: productos.findIndex(p => p.nombre === productoEncontrado.nombre)
+            indexProducto: indexProducto
         });
     }
 
@@ -2045,4 +2112,40 @@ window.addEventListener('online', function() {
 window.addEventListener('offline', function() {
     showToast('Sin conexión - Modo offline activado', 'warning');
     guardarDatosOffline();
+});
+
+// ===== INICIALIZACIÓN ADICIONAL PARA CORREGIR PROBLEMAS =====
+function inicializarCarrito() {
+    // CORRECCIÓN: Asegurar que el carrito esté limpio si hay problemas
+    try {
+        const carritoGuardado = localStorage.getItem('carrito');
+        if (carritoGuardado) {
+            carrito = JSON.parse(carritoGuardado);
+            
+            // CORRECCIÓN: Validar y corregir cada item del carrito
+            carrito = carrito.filter(item => {
+                if (!item || !item.nombre || !item.precioUnitarioBolivar) {
+                    return false;
+                }
+                
+                // CORRECCIÓN: Recalcular subtotales para items existentes
+                if (item.subtotal === undefined || isNaN(item.subtotal)) {
+                    calcularSubtotalSegonUnidad(item);
+                }
+                
+                return true;
+            });
+            
+            localStorage.setItem('carrito', JSON.stringify(carrito));
+        }
+    } catch (error) {
+        console.error('Error al inicializar carrito:', error);
+        carrito = [];
+        localStorage.setItem('carrito', JSON.stringify(carrito));
+    }
+}
+
+// Ejecutar inicialización adicional al cargar
+document.addEventListener('DOMContentLoaded', function() {
+    inicializarCarrito();
 });
