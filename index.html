@@ -3,58 +3,22 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-
-    <!-- Seguridad de caché -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
     <meta http-equiv="Pragma" content="no-cache"/>
     <meta http-equiv="Expires" content="0"/>
 
     <title>Calculadora Mágica</title>
 
-    <!-- 🔒 Content Security Policy (CSP) -->
-    <meta http-equiv="Content-Security-Policy"
-          content="
-            default-src 'self';
-            img-src 'self' data:;
-            style-src 'self' 'unsafe-inline';
-            script-src 'self' https://cdnjs.cloudflare.com;
-            connect-src 'self' https://localhost:8181;
-            object-src 'none';
-            base-uri 'self';
-            form-action 'self';
-            frame-ancestors 'none';
-            upgrade-insecure-requests;
-          ">
-
-    <!-- Librerías JS - Ahora con Subresource Integrity (SRI) -->
-    <script 
-        src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
-        integrity="sha512-c5dHxu4nnJIX6rW5OZDDmzreUTu3G5zuOLVhB4tiDlHcdAcXobHByRv8e8iVHv6oDtCUXWEIjv7++o2VYx7Yig=="
-        crossorigin="anonymous">
-    </script>
-
-    <script 
-        src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"
-        integrity="sha512-sOwGp6x1SAnm69dmW4Egu5QWQ+AWW0g5XqXrVICicFXh7f7zVoBZJx7ZOTMfYIr240svYlQqa0rpmp+V7KQ1+A=="
-        crossorigin="anonymous">
-    </script>
-
-    <script 
-        src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"
-        integrity="sha512-5x4bEwPVpIuK1wB5BvFdN/DsBG2k1tDZJr2QDZ4qBUAUG9+rBHOeJpXis7KnT7Vn5SGz3vBvBiKxTh4fHxJQ=="
-        crossorigin="anonymous">
-    </script>
-
+    <!-- Librerías JS - Versiones específicas para compatibilidad -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
     <!-- QZ-Tray para impresión térmica ESC/POS -->
-    <script 
-        src="https://cdnjs.cloudflare.com/ajax/libs/qz-tray/2.1.0/qz-tray.js"
-        integrity="sha512-Yo8xSf9KR32GwgEcfWCxqnjZbtEbAbA4k47WjQ0DgXZXev2BPU7nqKdZqK0RkpLj+Yk8WcoHhr7vejXnW9zjmQ=="
-        crossorigin="anonymous">
-    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qz-tray/2.1.0/qz-tray.js"></script>
 
     <link rel="stylesheet" href="styles.css" />
 </head>
-
 <body>
     <div class="copyright-icon" onclick="toggleCopyrightNotice()">©</div>
 
@@ -76,7 +40,7 @@
             <input type="file" id="fileInput" accept=".json" style="display: none" onchange="cargarBackup(this.files)" />
         </section>
 
-        <section>
+         <section>
             <h3>Nombre del Establecimiento</h3>
             <input type="text" id="nombreEstablecimiento" placeholder="Ej: Tienda La Bendición" />
             <button onclick="guardarNombreEstablecimiento()">Guardar Nombre</button>
