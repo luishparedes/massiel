@@ -1,17 +1,102 @@
-// ===== VARIABLES GLOBALES =====
-let productos = JSON.parse(localStorage.getItem('productos')) || [];
-let nombreEstablecimiento = localStorage.getItem('nombreEstablecimiento') || '';
-let tasaBCVGuardada = parseFloat(localStorage.getItem('tasaBCV')) || 0;
-let ventasDiarias = JSON.parse(localStorage.getItem('ventasDiarias')) || [];
-let carrito = JSON.parse(localStorage.getItem('carrito')) || [];
+// ===== SISTEMA DE GUARDADO LOCAL MEJORADO =====
+// Funciones para guardar y cargar datos de forma segura
+function guardarEnLocalStorage(clave, datos) {
+    try {
+        if (!datos) {
+            console.warn(`Intento de guardar datos nulos para: ${clave}`);
+            return false;
+        }
+        
+        const datosJSON = JSON.stringify({
+            datos: datos,
+            timestamp: Date.now(),
+            version: '1.0'
+        });
+        
+        if (!datosJSON) {
+            throw new Error(`Datos no serializables para: ${clave}`);
+        }
+        
+        localStorage.setItem(clave, datosJSON);
+        
+        // Backup de seguridad
+        try {
+            sessionStorage.setItem(`backup_${clave}`, datosJSON);
+        } catch (e) {
+            console.warn('No se pudo crear backup:', e);
+        }
+        
+        console.log(`✓ Guardado exitoso: ${clave}`);
+        return true;
+        
+    } catch (error) {
+        console.error(`Error al guardar ${clave}:`, error);
+        return false;
+    }
+}
+
+function cargarDesdeLocalStorage(clave, valorPorDefecto = null) {
+    try {
+        // Intentar con localStorage primero
+        let datosGuardados = localStorage.getItem(clave);
+        
+        if (!datosGuardados) {
+            // Intentar con el backup
+            datosGuardados = sessionStorage.getItem(`backup_${clave}`);
+            if (datosGuardados) {
+                console.log(`✓ Recuperado desde backup: ${clave}`);
+            }
+        }
+        
+        if (!datosGuardados) {
+            return valorPorDefecto;
+        }
+        
+        const datosParseados = JSON.parse(datosGuardados);
+        
+        // Extraer los datos reales
+        let datosFinales;
+        if (datosParseados && datosParseados.datos) {
+            datosFinales = datosParseados.datos;
+        } else {
+            datosFinales = datosParseados;
+        }
+        
+        return datosFinales;
+        
+    } catch (error) {
+        console.error(`Error al cargar ${clave}:`, error);
+        return valorPorDefecto;
+    }
+}
+
+function inicializarSistemaAlmacenamiento() {
+    console.log('Inicializando sistema de almacenamiento mejorado...');
+    
+    // Cargar todos los datos con el nuevo sistema
+    productos = cargarDesdeLocalStorage('productos', []);
+    nombreEstablecimiento = cargarDesdeLocalStorage('nombreEstablecimiento', '');
+    tasaBCVGuardada = parseFloat(cargarDesdeLocalStorage('tasaBCV', 0));
+    ventasDiarias = cargarDesdeLocalStorage('ventasDiarias', []);
+    carrito = cargarDesdeLocalStorage('carrito', []);
+    claveSeguridad = cargarDesdeLocalStorage('claveSeguridad', '1234');
+    monedaEtiquetas = cargarDesdeLocalStorage('monedaEtiquetas', 'VES');
+    
+    console.log('Sistema de almacenamiento inicializado correctamente');
+}
+
+// ===== VARIABLES GLOBALES CON SISTEMA MEJORADO =====
+let productos = [];
+let nombreEstablecimiento = '';
+let tasaBCVGuardada = 0;
+let ventasDiarias = [];
+let carrito = [];
 let métodoPagoSeleccionado = null;
 let detallesPago = {};
 let productoEditando = null;
 let productosFiltrados = [];
-let monedaEtiquetas = localStorage.getItem('monedaEtiquetas') || 'VES';
-
-// ===== SISTEMA DE CLAVE DE SEGURIDAD =====
-let claveSeguridad = localStorage.getItem('claveSeguridad') || '1234';
+let monedaEtiquetas = 'VES';
+let claveSeguridad = '1234';
 
 // === NUEVAS VARIABLES PARA ESCÁNER ===
 let tiempoUltimaTecla = 0;
@@ -207,7 +292,7 @@ function redondear2Decimales(numero) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Calculadora iniciada correctamente - Modo móvil optimizado');
     inicializarSistemaInactividad();
-    cargarDatosIniciales();
+    inicializarSistemaAlmacenamiento();
     actualizarLista();
     actualizarCarrito();
     configurarEventos();
@@ -514,7 +599,7 @@ function guardarProducto() {
         showToast("✓ Producto guardado exitosamente", 'success');
     }
 
-    localStorage.setItem('productos', JSON.stringify(productos));
+    guardarEnLocalStorage('productos', productos);
     actualizarLista();
     actualizarGananciaTotal();
 
@@ -535,7 +620,7 @@ function editarProducto(index) {
     
     if (claveIngresada === 'ACME123') {
         claveSeguridad = '1234';
-        localStorage.setItem('claveSeguridad', claveSeguridad);
+        guardarEnLocalStorage('claveSeguridad', claveSeguridad);
         showToast('✓ Clave reseteada a: 1234', 'success');
         editarProducto(index);
         return;
@@ -1168,7 +1253,7 @@ function actualizarTasaBCV() {
     if (!nuevaTasa || nuevaTasa <= 0) { showToast("Ingrese una tasa BCV válida", 'error'); return; }
 
     tasaBCVGuardada = nuevaTasa;
-    localStorage.setItem('tasaBCV', tasaBCVGuardada);
+    guardarEnLocalStorage('tasaBCV', tasaBCVGuardada);
 
     productos.forEach(producto => {
         producto.precioUnitarioBolivar = producto.precioUnitarioDolar * nuevaTasa;
@@ -1492,7 +1577,7 @@ function actualizarMonedaEtiquetas() {
     const selector = document.getElementById('monedaEtiquetas');
     if (selector) {
         monedaEtiquetas = selector.value;
-        localStorage.setItem('monedaEtiquetas', monedaEtiquetas);
+        guardarEnLocalStorage('monedaEtiquetas', monedaEtiquetas);
     }
 }
 
@@ -1812,11 +1897,11 @@ function cargarBackup(files) {
                 // CORRECCIÓN: Limpiar localStorage antes de cargar el respaldo
                 localStorage.clear();
                 
-                localStorage.setItem('productos', JSON.stringify(backupData.productos));
-                localStorage.setItem('nombreEstablecimiento', backupData.nombreEstablecimiento || '');
-                localStorage.setItem('tasaBCV', backupData.tasaBCV || '0');
-                localStorage.setItem('ventasDiarias', JSON.stringify(backupData.ventasDiarias || []));
-                localStorage.setItem('carrito', JSON.stringify(backupData.carrito || []));
+                guardarEnLocalStorage('productos', backupData.productos);
+                guardarEnLocalStorage('nombreEstablecimiento', backupData.nombreEstablecimiento || '');
+                guardarEnLocalStorage('tasaBCV', backupData.tasaBCV || '0');
+                guardarEnLocalStorage('ventasDiarias', backupData.ventasDiarias || []);
+                guardarEnLocalStorage('carrito', backupData.carrito || []);
                 
                 if (backupData.claveSeguridad) {
                     localStorage.setItem('claveSeguridad', backupData.claveSeguridad);
@@ -2082,11 +2167,11 @@ function cargarDatosOffline() {
             ventasDiarias = datos.ventasDiarias || ventasDiarias;
             carrito = datos.carrito || carrito;
             
-            localStorage.setItem('productos', JSON.stringify(productos));
-            localStorage.setItem('nombreEstablecimiento', nombreEstablecimiento);
-            localStorage.setItem('tasaBCV', tasaBCVGuardada.toString());
-            localStorage.setItem('ventasDiarias', JSON.stringify(ventasDiarias));
-            localStorage.setItem('carrito', JSON.stringify(carrito));
+            guardarEnLocalStorage('productos', productos);
+            guardarEnLocalStorage('nombreEstablecimiento', nombreEstablecimiento);
+            guardarEnLocalStorage('tasaBCV', tasaBCVGuardada);
+            guardarEnLocalStorage('ventasDiarias', ventasDiarias);
+            guardarEnLocalStorage('carrito', carrito);
             
             showToast('Datos recuperados correctamente', 'success');
         }
