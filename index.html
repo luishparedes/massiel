@@ -14,7 +14,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qz-tray/2.1.0/qz-tray.js"></script>
     
-    <!-- Font Awesome para iconos (opcional pero mejora la vista) -->
+    <!-- Font Awesome para iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
     <!-- Estilos -->
@@ -76,7 +76,7 @@
             <strong>No revendas tu código de acceso</strong> o será bloqueado y perderás tu dinero.
         </div>
 
-        <!-- SECCIÓN DASHBOARD (por defecto) -->
+        <!-- SECCIÓN DASHBOARD -->
         <section id="dashboard-section" class="content-section active">
             <h1><i class="fas fa-chart-line"></i> Dashboard</h1>
             <div class="stats-grid">
@@ -122,7 +122,7 @@
             </div>
         </section>
 
-        <!-- SECCIÓN PUNTO DE VENTA -->
+        <!-- SECCIÓN PUNTO DE VENTA (MEJORADA con entrada directa de gramos) -->
         <section id="punto-venta-section" class="content-section">
             <h1><i class="fas fa-shopping-cart"></i> Punto de Venta</h1>
 
@@ -170,7 +170,7 @@
             </div>
         </section>
 
-        <!-- SECCIÓN PRODUCTOS (Gestión) -->
+        <!-- SECCIÓN PRODUCTOS -->
         <section id="productos-section" class="content-section">
             <h1><i class="fas fa-boxes"></i> Gestión de Productos</h1>
 
@@ -206,7 +206,7 @@
             </div>
         </section>
 
-        <!-- SECCIÓN INVENTARIO (Lista de Productos) -->
+        <!-- SECCIÓN INVENTARIO -->
         <section id="inventario-section" class="content-section">
             <h1><i class="fas fa-clipboard-list"></i> Inventario</h1>
 
@@ -233,26 +233,34 @@
             </div>
         </section>
 
-        <!-- SECCIÓN REPORTES -->
+        <!-- SECCIÓN REPORTES (CORREGIDA) -->
         <section id="reportes-section" class="content-section">
             <h1><i class="fas fa-file-pdf"></i> Reportes y Etiquetas</h1>
 
             <div class="card">
                 <h2>Generar Documentos</h2>
-                <div class="action-buttons">
-                    <button onclick="generarReporteDiario()" class="report-btn"><i class="fas fa-file-pdf"></i> Reporte Diario</button>
-                    <button onclick="mostrarListaCostos()" class="report-btn"><i class="fas fa-list"></i> Lista de Costos</button>
-                    <button onclick="mostrarOpcionesPDF()" class="report-btn"><i class="fas fa-tags"></i> PDF por Categoría</button>
-                    <button onclick="generarEtiquetasAnaqueles()" class="report-btn"><i class="fas fa-tag"></i> Etiquetas Anaqueles</button>
+                <div class="action-buttons" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                    <button onclick="generarReporteDiario()" class="report-btn" style="flex: 1; min-width: 200px;">
+                        <i class="fas fa-file-pdf"></i> Reporte Diario
+                    </button>
+                    <button onclick="mostrarListaCostos()" class="report-btn" style="flex: 1; min-width: 200px;">
+                        <i class="fas fa-list"></i> Lista de Costos
+                    </button>
+                    <button onclick="mostrarOpcionesPDF()" class="report-btn" style="flex: 1; min-width: 200px;">
+                        <i class="fas fa-tags"></i> PDF por Categoría
+                    </button>
+                    <button onclick="generarEtiquetasAnaqueles()" class="report-btn" style="flex: 1; min-width: 200px;">
+                        <i class="fas fa-tag"></i> Etiquetas Anaqueles
+                    </button>
                 </div>
-                <div id="listaCostosContainer" style="display: none;">
+                <div id="listaCostosContainer" style="display: none; margin-top: 20px;">
                     <h3>Lista de Costos</h3>
-                    <div class="total-invertido">
+                    <div class="total-invertido" style="margin-bottom: 15px; padding: 10px; background: #e8f5e9; border-radius: 5px;">
                         <strong>Total invertido:</strong>
                         <span id="totalInvertidoUSD">X USD</span>
                         <span id="totalInvertidoBS">/ X Bs</span>
                     </div>
-                    <ul id="listaCostos"></ul>
+                    <ul id="listaCostos" style="list-style: none; padding: 0; max-height: 300px; overflow-y: auto;"></ul>
                 </div>
             </div>
         </section>
@@ -292,44 +300,135 @@
         </section>
     </main>
 
-    <!-- ===== MODALES (sin cambios, pero reubicados para claridad) ===== -->
+    <!-- ===== MODALES ===== -->
+
+    <!-- Modal Pago -->
     <div id="modalPago" class="modal" style="display: none;">
         <div class="modal-content">
             <span class="close" onclick="cerrarModalPago()">&times;</span>
             <h3>Seleccionar Método de Pago</h3>
-            <div class="resumen-venta">
-                <p id="resumenTotalBs">Total: Bs 0,00</p>
-                <p id="resumenTotalDolares">Total: $ 0,00</p>
+            <div class="resumen-venta" style="background: #e8f5e9; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                <p id="resumenTotalBs" style="font-size: 1.2rem; margin: 5px 0;"><strong>Total: Bs 0,00</strong></p>
+                <p id="resumenTotalDolares" style="font-size: 1.2rem; margin: 5px 0;"><strong>Total: $ 0,00</strong></p>
             </div>
-            <div class="metodos-pago">
+            <div class="metodos-pago" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
                 <button onclick="seleccionarMetodoPago('efectivo_bs')">Efectivo Bs</button>
                 <button onclick="seleccionarMetodoPago('efectivo_dolares')">Efectivo $</button>
                 <button onclick="seleccionarMetodoPago('punto')">Punto</button>
                 <button onclick="seleccionarMetodoPago('pago_movil')">Pago Móvil</button>
                 <button onclick="seleccionarMetodoPago('biopago')">Biopago</button>
             </div>
-            <div id="detallesPago" style="display: none;">
+            <div id="detallesPago" style="display: none; margin-top: 20px;">
                 <h4>Detalles del Pago</h4>
                 <div id="camposPago"></div>
-                <div id="mensajePago" class="mensaje-pago" style="display: none;"></div>
-                <div class="modal-buttons">
-                    <button onclick="confirmarMetodoPago()">Confirmar Pago</button>
-                    <button onclick="cancelarPago()" class="btn-cancelar">Cancelar</button>
+                <div id="mensajePago" class="mensaje-pago" style="display: none; padding: 10px; border-radius: 5px; margin: 10px 0;"></div>
+                <div class="modal-buttons" style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button onclick="confirmarMetodoPago()" style="flex: 1;">Confirmar Pago</button>
+                    <button onclick="cancelarPago()" class="btn-cancelar" style="flex: 1; background: #f44336;">Cancelar</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modales para Categorías PDF y Etiquetas (mantener igual) -->
-    <div id="modalCategorias" class="modal" style="display: none;">...</div>
-    <div id="modalEtiquetas" class="modal" style="display: none;">...</div>
-    <div id="modalClave" class="modal" style="display: none;">...</div>
-    <div id="modalCambiarClave" class="modal" style="display: none;">...</div>
+    <!-- Modal PDF por Categoría (CORREGIDO) -->
+    <div id="modalCategorias" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close" onclick="cerrarModalCategorias()">&times;</span>
+            <h3><i class="fas fa-file-pdf"></i> Generar PDF por Categoría</h3>
+            <div class="categorias-lista" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-height: 400px; overflow-y: auto; padding: 10px;">
+                <button onclick="generarPDFPorCategoria('todos')" class="categoria-btn" style="grid-column: span 3; background: #4CAF50;">TODOS LOS PRODUCTOS</button>
+                <button onclick="generarPDFPorCategoria('viveres')" class="categoria-btn">VÍVERES</button>
+                <button onclick="generarPDFPorCategoria('bebidas')" class="categoria-btn">BEBIDAS</button>
+                <button onclick="generarPDFPorCategoria('licores')" class="categoria-btn">LICORES</button>
+                <button onclick="generarPDFPorCategoria('enlatados')" class="categoria-btn">ENLATADOS</button>
+                <button onclick="generarPDFPorCategoria('plasticos')" class="categoria-btn">PLÁSTICOS</button>
+                <button onclick="generarPDFPorCategoria('papeleria')" class="categoria-btn">PAPELERÍA</button>
+                <button onclick="generarPDFPorCategoria('lacteos')" class="categoria-btn">LÁCTEOS</button>
+                <button onclick="generarPDFPorCategoria('ferreteria')" class="categoria-btn">FERRETERÍA</button>
+                <button onclick="generarPDFPorCategoria('carnes')" class="categoria-btn">CARNES</button>
+                <button onclick="generarPDFPorCategoria('frutas')" class="categoria-btn">FRUTAS</button>
+                <button onclick="generarPDFPorCategoria('verduras')" class="categoria-btn">VERDURAS</button>
+                <button onclick="generarPDFPorCategoria('aseo_personal')" class="categoria-btn">ASEO</button>
+                <button onclick="generarPDFPorCategoria('limpieza')" class="categoria-btn">LIMPIEZA</button>
+                <button onclick="generarPDFPorCategoria('otros')" class="categoria-btn">OTROS</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Etiquetas (CORREGIDO) -->
+    <div id="modalEtiquetas" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close" onclick="cerrarModalEtiquetas()">&times;</span>
+            <h3><i class="fas fa-tags"></i> Generar Etiquetas para Anaqueles</h3>
+            <div class="selector-moneda" style="margin: 15px 0; padding: 15px; background: #f5f5f5; border-radius: 5px;">
+                <label style="font-weight: bold; margin-right: 10px;">Moneda para precios:</label>
+                <select id="monedaEtiquetas" onchange="actualizarMonedaEtiquetas()" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                    <option value="VES">Bolívares (Bs)</option>
+                    <option value="USD">Dólares ($)</option>
+                </select>
+            </div>
+            <div class="categorias-lista" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-height: 400px; overflow-y: auto; padding: 10px;">
+                <button onclick="generarEtiquetasPorCategoria('todos')" class="categoria-btn" style="grid-column: span 3; background: #FF9800;">TODOS LOS PRODUCTOS</button>
+                <button onclick="generarEtiquetasPorCategoria('viveres')" class="categoria-btn">VÍVERES</button>
+                <button onclick="generarEtiquetasPorCategoria('bebidas')" class="categoria-btn">BEBIDAS</button>
+                <button onclick="generarEtiquetasPorCategoria('licores')" class="categoria-btn">LICORES</button>
+                <button onclick="generarEtiquetasPorCategoria('enlatados')" class="categoria-btn">ENLATADOS</button>
+                <button onclick="generarEtiquetasPorCategoria('plasticos')" class="categoria-btn">PLÁSTICOS</button>
+                <button onclick="generarEtiquetasPorCategoria('papeleria')" class="categoria-btn">PAPELERÍA</button>
+                <button onclick="generarEtiquetasPorCategoria('lacteos')" class="categoria-btn">LÁCTEOS</button>
+                <button onclick="generarEtiquetasPorCategoria('ferreteria')" class="categoria-btn">FERRETERÍA</button>
+                <button onclick="generarEtiquetasPorCategoria('carnes')" class="categoria-btn">CARNES</button>
+                <button onclick="generarEtiquetasPorCategoria('frutas')" class="categoria-btn">FRUTAS</button>
+                <button onclick="generarEtiquetasPorCategoria('verduras')" class="categoria-btn">VERDURAS</button>
+                <button onclick="generarEtiquetasPorCategoria('aseo_personal')" class="categoria-btn">ASEO</button>
+                <button onclick="generarEtiquetasPorCategoria('limpieza')" class="categoria-btn">LIMPIEZA</button>
+                <button onclick="generarEtiquetasPorCategoria('otros')" class="categoria-btn">OTROS</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Clave -->
+    <div id="modalClave" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 400px;">
+            <span class="close" onclick="cerrarModalClave()">&times;</span>
+            <h3>Clave de Seguridad</h3>
+            <p>Ingrese la clave de seguridad:</p>
+            <input type="password" id="claveSeguridad" placeholder="Clave" style="width: 100%; padding: 10px; margin: 10px 0;">
+            <div class="modal-buttons" style="display: flex; gap: 10px;">
+                <button onclick="verificarClave()" style="flex: 1;">Verificar</button>
+                <button onclick="cerrarModalClave()" class="btn-cancelar" style="flex: 1;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Cambiar Clave -->
+    <div id="modalCambiarClave" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 400px;">
+            <span class="close" onclick="cerrarModalCambiarClave()">&times;</span>
+            <h3>Cambiar Clave de Seguridad</h3>
+            <div style="margin: 15px 0;">
+                <label>Clave actual:</label>
+                <input type="password" id="claveActual" style="width: 100%; padding: 8px; margin: 5px 0;">
+            </div>
+            <div style="margin: 15px 0;">
+                <label>Nueva clave:</label>
+                <input type="password" id="nuevaClave" style="width: 100%; padding: 8px; margin: 5px 0;">
+            </div>
+            <div style="margin: 15px 0;">
+                <label>Confirmar clave:</label>
+                <input type="password" id="confirmarClave" style="width: 100%; padding: 8px; margin: 5px 0;">
+            </div>
+            <div class="modal-buttons" style="display: flex; gap: 10px;">
+                <button onclick="cambiarClave()" style="flex: 1;">Cambiar Clave</button>
+                <button onclick="cerrarModalCambiarClave()" class="btn-cancelar" style="flex: 1;">Cancelar</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Toast container -->
-    <div id="toastContainer" aria-live="polite"></div>
+    <div id="toastContainer" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;"></div>
 
-    <!-- Scripts -->
+    <!-- Script -->
     <script src="script.js"></script>
 </body>
 </html>
