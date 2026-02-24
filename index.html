@@ -122,7 +122,7 @@
             </div>
         </section>
 
-        <!-- SECCIÓN PUNTO DE VENTA (MEJORADA con entrada directa de gramos) -->
+        <!-- SECCIÓN PUNTO DE VENTA -->
         <section id="punto-venta-section" class="content-section">
             <h1><i class="fas fa-shopping-cart"></i> Punto de Venta</h1>
 
@@ -233,7 +233,7 @@
             </div>
         </section>
 
-        <!-- SECCIÓN REPORTES (CORREGIDA) -->
+        <!-- SECCIÓN REPORTES -->
         <section id="reportes-section" class="content-section">
             <h1><i class="fas fa-file-pdf"></i> Reportes y Etiquetas</h1>
 
@@ -304,33 +304,33 @@
 
     <!-- Modal Pago -->
     <div id="modalPago" class="modal" style="display: none;">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 500px;">
             <span class="close" onclick="cerrarModalPago()">&times;</span>
-            <h3>Seleccionar Método de Pago</h3>
+            <h3><i class="fas fa-credit-card"></i> Seleccionar Método de Pago</h3>
             <div class="resumen-venta" style="background: #e8f5e9; padding: 15px; border-radius: 5px; margin: 15px 0;">
                 <p id="resumenTotalBs" style="font-size: 1.2rem; margin: 5px 0;"><strong>Total: Bs 0,00</strong></p>
                 <p id="resumenTotalDolares" style="font-size: 1.2rem; margin: 5px 0;"><strong>Total: $ 0,00</strong></p>
             </div>
             <div class="metodos-pago" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-                <button onclick="seleccionarMetodoPago('efectivo_bs')">Efectivo Bs</button>
-                <button onclick="seleccionarMetodoPago('efectivo_dolares')">Efectivo $</button>
-                <button onclick="seleccionarMetodoPago('punto')">Punto</button>
-                <button onclick="seleccionarMetodoPago('pago_movil')">Pago Móvil</button>
-                <button onclick="seleccionarMetodoPago('biopago')">Biopago</button>
+                <button onclick="seleccionarMetodoPago('efectivo_bs')" style="background: #4CAF50;">Efectivo Bs</button>
+                <button onclick="seleccionarMetodoPago('efectivo_dolares')" style="background: #2196F3;">Efectivo $</button>
+                <button onclick="seleccionarMetodoPago('punto')" style="background: #9C27B0;">Punto</button>
+                <button onclick="seleccionarMetodoPago('pago_movil')" style="background: #FF9800;">Pago Móvil</button>
+                <button onclick="seleccionarMetodoPago('biopago')" style="background: #607D8B;">Biopago</button>
             </div>
             <div id="detallesPago" style="display: none; margin-top: 20px;">
                 <h4>Detalles del Pago</h4>
                 <div id="camposPago"></div>
                 <div id="mensajePago" class="mensaje-pago" style="display: none; padding: 10px; border-radius: 5px; margin: 10px 0;"></div>
                 <div class="modal-buttons" style="display: flex; gap: 10px; margin-top: 15px;">
-                    <button onclick="confirmarMetodoPago()" style="flex: 1;">Confirmar Pago</button>
-                    <button onclick="cancelarPago()" class="btn-cancelar" style="flex: 1; background: #f44336;">Cancelar</button>
+                    <button onclick="confirmarMetodoPago()" style="flex: 1; background: #4CAF50;">Confirmar Pago</button>
+                    <button onclick="cancelarPago()" style="flex: 1; background: #f44336;">Cancelar</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal PDF por Categoría (CORREGIDO) -->
+    <!-- Modal PDF por Categoría -->
     <div id="modalCategorias" class="modal" style="display: none;">
         <div class="modal-content" style="max-width: 600px;">
             <span class="close" onclick="cerrarModalCategorias()">&times;</span>
@@ -355,7 +355,7 @@
         </div>
     </div>
 
-    <!-- Modal Etiquetas (CORREGIDO) -->
+    <!-- Modal Etiquetas -->
     <div id="modalEtiquetas" class="modal" style="display: none;">
         <div class="modal-content" style="max-width: 600px;">
             <span class="close" onclick="cerrarModalEtiquetas()">&times;</span>
@@ -387,41 +387,48 @@
         </div>
     </div>
 
-    <!-- Modal Clave -->
-    <div id="modalClave" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 400px;">
-            <span class="close" onclick="cerrarModalClave()">&times;</span>
-            <h3>Clave de Seguridad</h3>
-            <p>Ingrese la clave de seguridad:</p>
-            <input type="password" id="claveSeguridad" placeholder="Clave" style="width: 100%; padding: 10px; margin: 10px 0;">
-            <div class="modal-buttons" style="display: flex; gap: 10px;">
-                <button onclick="verificarClave()" style="flex: 1;">Verificar</button>
-                <button onclick="cerrarModalClave()" class="btn-cancelar" style="flex: 1;">Cancelar</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Modal Cambiar Clave -->
     <div id="modalCambiarClave" class="modal" style="display: none;">
         <div class="modal-content" style="max-width: 400px;">
             <span class="close" onclick="cerrarModalCambiarClave()">&times;</span>
-            <h3>Cambiar Clave de Seguridad</h3>
+            <h3><i class="fas fa-key"></i> Cambiar Clave de Seguridad</h3>
             <div style="margin: 15px 0;">
-                <label>Clave actual:</label>
-                <input type="password" id="claveActual" style="width: 100%; padding: 8px; margin: 5px 0;">
-            </div>
-            <div style="margin: 15px 0;">
-                <label>Nueva clave:</label>
-                <input type="password" id="nuevaClave" style="width: 100%; padding: 8px; margin: 5px 0;">
+                <label style="display: block; margin-bottom: 5px;">Clave actual:</label>
+                <input type="password" id="claveActual" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
             </div>
             <div style="margin: 15px 0;">
-                <label>Confirmar clave:</label>
-                <input type="password" id="confirmarClave" style="width: 100%; padding: 8px; margin: 5px 0;">
+                <label style="display: block; margin-bottom: 5px;">Nueva clave:</label>
+                <input type="password" id="nuevaClave" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
             </div>
-            <div class="modal-buttons" style="display: flex; gap: 10px;">
-                <button onclick="cambiarClave()" style="flex: 1;">Cambiar Clave</button>
-                <button onclick="cerrarModalCambiarClave()" class="btn-cancelar" style="flex: 1;">Cancelar</button>
+            <div style="margin: 15px 0;">
+                <label style="display: block; margin-bottom: 5px;">Confirmar clave:</label>
+                <input type="password" id="confirmarClave" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
             </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="cambiarClave()" style="flex: 1; background: #4CAF50; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer;">Cambiar Clave</button>
+                <button onclick="cerrarModalCambiarClave()" style="flex: 1; background: #f44336; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Clave de Seguridad (NUEVO) -->
+    <div id="modalClave" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 400px;">
+            <span class="close" onclick="cerrarModalClave()">&times;</span>
+            <h3><i class="fas fa-lock"></i> Clave de Seguridad Requerida</h3>
+            <p style="margin: 15px 0; color: #666;">Para editar productos o ajustar inventario, ingrese la clave de seguridad:</p>
+            <input type="password" id="claveSeguridadInput" placeholder="Ingrese la clave" style="width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; font-size: 16px;">
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="verificarClaveModal()" style="flex: 1; background: #4CAF50; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                    <i class="fas fa-check"></i> Verificar
+                </button>
+                <button onclick="cerrarModalClave()" style="flex: 1; background: #f44336; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+            </div>
+            <p style="font-size: 12px; color: #999; margin-top: 15px; text-align: center;">
+                Clave por defecto: <strong>1234</strong> | Reseteo: <strong>ACME123</strong>
+            </p>
         </div>
     </div>
 
