@@ -1,295 +1,165 @@
-// ===== VARIABLES GLOBALES =====
-let productos = JSON.parse(localStorage.getItem('productos')) || [];
-let nombreEstablecimiento = localStorage.getItem('nombreEstablecimiento') || '';
-let tasaBCVGuardada = parseFloat(localStorage.getItem('tasaBCV')) || 0;
-let ventasDiarias = JSON.parse(localStorage.getItem('ventasDiarias')) || [];
-let carrito = JSON.parse(localStorage.getItem('carrito')) || [];
-let métodoPagoSeleccionado = null;
+// ============================================
+// CALCULADORA MÁGICA - VERSIÓN PROFESIONAL COMPLETA
+// ============================================
+
+// ----- VARIABLES GLOBALES -----
+let productos = [];
+let nombreEstablecimiento = '';
+let tasaBCVGuardada = 0;
+let ventasDiarias = [];
+let carrito = [];
+let claveSeguridad = '1234';
+let monedaEtiquetas = 'VES';
+let metodoPagoSeleccionado = null;
 let detallesPago = {};
 let productoEditando = null;
 let productosFiltrados = [];
-let monedaEtiquetas = localStorage.getItem('monedaEtiquetas') || 'VES';
 
-// ===== SISTEMA DE CLAVE DE SEGURIDAD =====
-let claveSeguridad = localStorage.getItem('claveSeguridad') || '1234';
-
-// === NUEVAS VARIABLES PARA ESCÁNER ===
+// Variables para escáner
 let tiempoUltimaTecla = 0;
 let bufferEscaneo = '';
 
-// ===== SEGURIDAD ADICIONAL =====
-// --- Anti-spam / rate limit básico ---
-let ultimaPeticion = 0;
-const MIN_INTERVALO_MS = 80; // evita spam extremo sin afectar el uso normal
-
-function permitirEjecucion() {
-    const ahora = Date.now();
-    if (ahora - ultimaPeticion < MIN_INTERVALO_MS) {
-        console.warn("Rate limit: petición bloqueada para evitar spam o bugs.");
-        return false;
-    }
-    ultimaPeticion = ahora;
-    return true;
-}
-
-// --- Escudo anti-crash ---
-window.onerror = function (msg, url, lineNo, colNo, error) {
-    console.error("ERROR CAPTURADO:", msg, lineNo, colNo);
-    // No detiene la app: solo registra
-    return true; 
-};
-
-// --- Validación defensiva del localStorage ---
-try {
-    if (localStorage.length > 500) { 
-        console.warn("Posible sabotaje: localStorage excesivo. Se limpia parcialmente.");
-        localStorage.clear();
-    }
-} catch (e) {
-    console.error("Error monitoreando localStorage:", e);
-}
-// ===== FIN SEGURIDAD ADICIONAL =====
-
-// ===== PROTECCIÓN CONTRA ACCESO DIRECTO MEJORADA PARA MÓVILES =====
-(function() {
-    const SESSION_KEY = 'calculadora_magica_session';
-    const PORTAL_KEY = 'portal_access_granted';
-    const URL_REDIRECCION_PORTAL = "http://portal.calculadoramagica.lat/";
-    
-    const esMovil = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    const accesoPortal = sessionStorage.getItem(PORTAL_KEY);
-    const sessionValida = sessionStorage.getItem(SESSION_KEY);
-    
-    if (!accesoPortal && !sessionValida) {
-        const referrer = document.referrer;
-        const vieneDePortal = referrer && referrer.includes('portal.calculadoramagica.lat');
-        const vieneDeClientes = referrer && referrer.includes('clientes.calculadoramagica.lat');
-        const noHayReferrer = !referrer || referrer === '';
-        
-        if (esMovil) {
-            if (noHayReferrer && !vieneDePortal && !vieneDeClientes) {
-                console.log('Acceso directo móvil detectado, redirigiendo al portal...');
-                window.location.href = URL_REDIRECCION_PORTAL;
-                return;
-            }
-        } else {
-            if (!vieneDePortal && !vieneDeClientes && !noHayReferrer) {
-                console.log('Acceso directo desktop detectado, redirigiendo al portal...');
-                window.location.href = URL_REDIRECCION_PORTAL;
-                return;
-            }
-        }
-    }
-    
-    sessionStorage.setItem(SESSION_KEY, 'activa_' + Date.now());
-    
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('access') && urlParams.get('access') === 'portal') {
-        sessionStorage.setItem(PORTAL_KEY, 'true');
-    }
-})();
-
-// ===== SISTEMA DE REDIRECCIÓN POR INACTIVIDAD MEJORADO =====
-const TIEMPO_INACTIVIDAD = 4 * 60 * 1000;
-const URL_REDIRECCION = "http://portal.calculadoramagica.lat/";
-
+// Control de inactividad
 let temporizadorInactividad;
 let ultimaActividad = Date.now();
 let redireccionEnCurso = false;
+const TIEMPO_INACTIVIDAD = 4 * 60 * 1000;
+const URL_REDIRECCION = "http://portal.calculadoramagica.lat/";
 
-function registrarActividad() {
-    ultimaActividad = Date.now();
-    reiniciarTemporizador();
-}
+// ----- STORAGE KEYS -----
+const STORAGE_KEYS = {
+    PRODUCTOS: 'productos',
+    NOMBRE: 'nombreEstablecimiento',
+    TASA: 'tasaBCV',
+    VENTAS: 'ventasDiarias',
+    CARRITO: 'carrito',
+    CLAVE: 'claveSeguridad',
+    MONEDA: 'monedaEtiquetas'
+};
 
-function verificarInactividad() {
-    const tiempoTranscurrido = Date.now() - ultimaActividad;
-    
-    if (tiempoTranscurrido >= TIEMPO_INACTIVIDAD && !redireccionEnCurso) {
-        console.log('Redirigiendo por inactividad después de', Math.round(tiempoTranscurrido / 1000), 'segundos');
-        redireccionEnCurso = true;
-        
-        sessionStorage.removeItem('calculadora_magica_session');
-        sessionStorage.removeItem('portal_access_granted');
-        localStorage.removeItem('ultimaActividad');
-        
-        window.location.href = URL_REDIRECCION;
-        return;
-    }
-    
-    setTimeout(verificarInactividad, 1000);
-}
-
-function reiniciarTemporizador() {
-    localStorage.setItem('ultimaActividad', Date.now().toString());
-    
-    if (temporizadorInactividad) {
-        clearTimeout(temporizadorInactividad);
-    }
-    
-    temporizadorInactividad = setTimeout(() => {
-        if (!redireccionEnCurso) {
-            console.log('Temporizador de inactividad ejecutado');
-            redireccionEnCurso = true;
-            sessionStorage.removeItem('calculadora_magica_session');
-            sessionStorage.removeItem('portal_access_granted');
-            localStorage.removeItem('ultimaActividad');
-            window.location.href = URL_REDIRECCION;
-        }
-    }, TIEMPO_INACTIVIDAD);
-}
-
-['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click', 'input', 'touchmove', 'touchend'].forEach(evento => {
-    document.addEventListener(evento, registrarActividad, { passive: true });
-});
-
-function inicializarSistemaInactividad() {
-    const ultimaActividadGuardada = localStorage.getItem('ultimaActividad');
-    if (ultimaActividadGuardada) {
-        ultimaActividad = parseInt(ultimaActividadGuardada);
-        
-        const tiempoTranscurrido = Date.now() - ultimaActividad;
-        if (tiempoTranscurrido >= TIEMPO_INACTIVIDAD) {
-            console.log('Sesión expirada al cargar. Redirigiendo...');
-            sessionStorage.removeItem('calculadora_magica_session');
-            sessionStorage.removeItem('portal_access_granted');
-            localStorage.removeItem('ultimaActividad');
-            window.location.href = URL_REDIRECCION;
-            return;
-        }
-    }
-    
-    reiniciarTemporizador();
-    verificarInactividad();
-}
-
-// ===== PROTECCIÓN MEJORADA PARA MÓVILES - SIN BLOQUEO F12 =====
-(function() {
-    const esMovil = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const esTablet = /iPad|Android.*(?:Tablet|Pad)/i.test(navigator.userAgent);
-    const esDispositivoTactil = esMovil || esTablet;
-    
-    if (esDispositivoTactil) {
-        console.log('%c📱 Modo móvil activado - Protecciones F12 deshabilitadas', 'color: green; font-size: 14px;');
-        return;
-    }
-    
-    function mostrarAdvertenciaSeguridad() {
-        console.log('%c⚠️ ACCESO RESTRINGIDO ⚠️', 'color: red; font-size: 16px; font-weight: bold;');
-        console.log('El uso de herramientas de desarrollo está restringido en esta aplicación.');
-    }
-    
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'F12' || e.keyCode === 123) {
-            e.preventDefault();
-            e.stopPropagation();
-            mostrarAdvertenciaSeguridad();
-            return false;
-        }
-    }, true);
-    
-    document.addEventListener('contextmenu', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
-    }, true);
-    
-})();
-
-// ===== FUNCIÓN PARA REDONDEAR A 2 DECIMALES =====
+// ===== FUNCIONES UTILITARIAS =====
 function redondear2Decimales(numero) {
     if (isNaN(numero)) return 0;
     return Math.round((numero + Number.EPSILON) * 100) / 100;
 }
 
-// ===== INICIALIZACIÓN =====
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Calculadora iniciada correctamente - Modo móvil optimizado');
-    inicializarSistemaInactividad();
-    cargarDatosIniciales();
-    actualizarLista();
-    actualizarCarrito();
-    configurarEventos();
-    configurarEventosMoviles();
-    actualizarGananciaTotal();
-});
-
-// ===== CONFIGURACIÓN ESPECÍFICA PARA MÓVILES =====
-function configurarEventosMoviles() {
-    const esMovil = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    if (!esMovil) return;
-    
-    console.log('Configurando eventos optimizados para móviles');
-    
-    document.addEventListener('touchstart', function(e) {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
-            setTimeout(() => {
-                e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 100);
-        }
-    }, { passive: true });
-    
-    const viewport = document.querySelector('meta[name="viewport"]');
-    if (viewport) {
-        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes');
-    }
-    
-    document.addEventListener('touchmove', function(e) {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
-        }
-    }, { passive: true });
-    
-    document.addEventListener('touchstart', function() {
-    }, { passive: true });
-}
-
-// ===== UTILIDADES / TOASTS =====
 function showToast(message, type = 'success', duration = 3500) {
     const container = document.getElementById('toastContainer');
     if (!container) return;
     const toast = document.createElement('div');
     toast.className = `toast ${type === 'success' ? 'success' : type === 'error' ? 'error' : 'warning'}`;
-    toast.textContent = message;
+    toast.innerHTML = message;
     container.appendChild(toast);
     setTimeout(() => {
         toast.style.opacity = '0';
-        toast.style.transform = 'translateY(8px)';
-        setTimeout(() => {
-            if (container.contains(toast)) container.removeChild(toast);
-        }, 300);
+        setTimeout(() => toast.remove(), 300);
     }, duration);
 }
 
-// ===== CONFIGURACIÓN DE EVENTOS MEJORADA =====
+function safeSetItem(key, data) {
+    try {
+        localStorage.setItem(key, JSON.stringify(data));
+    } catch (e) {
+        if (e.name === 'QuotaExceededError') {
+            showToast('⚠️ Espacio de almacenamiento lleno. Haz un respaldo.', 'warning');
+        } else {
+            console.error('Error guardando:', e);
+        }
+    }
+}
+
+// ===== INICIALIZACIÓN =====
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Calculadora Mágica v2.0 iniciando');
+    cargarDatosStorage();
+    inicializarSistemaInactividad();
+    configurarEventos();
+    configurarEventosMoviles();
+    actualizarTodo();
+    actualizarAnioCopyright();
+});
+
+function cargarDatosStorage() {
+    try {
+        productos = JSON.parse(localStorage.getItem(STORAGE_KEYS.PRODUCTOS)) || [];
+        nombreEstablecimiento = localStorage.getItem(STORAGE_KEYS.NOMBRE) || 'Mi Negocio';
+        tasaBCVGuardada = parseFloat(localStorage.getItem(STORAGE_KEYS.TASA)) || 0;
+        ventasDiarias = JSON.parse(localStorage.getItem(STORAGE_KEYS.VENTAS)) || [];
+        carrito = JSON.parse(localStorage.getItem(STORAGE_KEYS.CARRITO)) || [];
+        claveSeguridad = localStorage.getItem(STORAGE_KEYS.CLAVE) || '1234';
+        monedaEtiquetas = localStorage.getItem(STORAGE_KEYS.MONEDA) || 'VES';
+
+        // Sanitizar carrito
+        carrito = carrito.filter(item => item && item.nombre);
+    } catch (error) {
+        console.error('Error cargando datos:', error);
+        productos = [];
+        carrito = [];
+    }
+}
+
+function actualizarTodo() {
+    actualizarNombreSidebar();
+    actualizarEstadisticas();
+    actualizarListaProductos();
+    actualizarCarrito();
+    cargarDatosIniciales();
+}
+
+function actualizarAnioCopyright() {
+    const el = document.getElementById('currentYear');
+    if (el) el.textContent = new Date().getFullYear();
+}
+
+// ===== SIDEBAR =====
+function toggleSidebar() {
+    document.getElementById('mainSidebar').classList.toggle('collapsed');
+}
+
+function showSection(sectionId) {
+    document.querySelectorAll('.menu-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.section === sectionId) {
+            item.classList.add('active');
+        }
+    });
+
+    document.querySelectorAll('.content-section').forEach(section => {
+        section.classList.remove('active');
+    });
+    document.getElementById(`${sectionId}-section`).classList.add('active');
+    
+    // Enfocar input de escaneo si es punto de venta
+    if (sectionId === 'punto-venta') {
+        setTimeout(() => document.getElementById('codigoBarrasInput')?.focus(), 300);
+    }
+}
+
+function actualizarNombreSidebar() {
+    const span = document.getElementById('sidebarStoreName');
+    if (span) span.textContent = nombreEstablecimiento;
+}
+
+// ===== EVENTOS =====
 function configurarEventos() {
+    // Buscador
     const buscarInput = document.getElementById('buscar');
     if (buscarInput) {
-        buscarInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                buscarProducto();
-            }
-        });
-        
-        buscarInput.addEventListener('input', function(e) {
+        buscarInput.addEventListener('input', function() {
             clearTimeout(this.searchTimeout);
-            this.searchTimeout = setTimeout(() => {
-                buscarProducto();
-            }, 500);
+            this.searchTimeout = setTimeout(() => buscarProducto(), 500);
         });
     }
 
+    // Escáner de códigos
     const codigoInput = document.getElementById('codigoBarrasInput');
     if (codigoInput) {
         codigoInput.addEventListener('keydown', function(e) {
             const tiempoActual = new Date().getTime();
             
-            if (e.key === 'Enter' || e.key === 'Tab') {
+            if (e.key === 'Enter') {
                 e.preventDefault();
-                
-                if (this.value.trim() && (tiempoActual - tiempoUltimaTecla) < 100) {
+                if (this.value.trim()) {
                     procesarEscaneo(this.value.trim());
                     this.value = '';
                 }
@@ -302,9 +172,7 @@ function configurarEventos() {
                 
                 clearTimeout(window.bufferTimeout);
                 window.bufferTimeout = setTimeout(() => {
-                    if (bufferEscaneo.length > 0) {
-                        bufferEscaneo = '';
-                    }
+                    bufferEscaneo = '';
                 }, 60);
             }
         });
@@ -318,206 +186,139 @@ function configurarEventos() {
             if (termino.length < 2) return;
 
             const coincidencias = productos.filter(p =>
-                (p.nombre || p.producto || '').toLowerCase().includes(termino) ||
+                p.nombre.toLowerCase().includes(termino) ||
                 (p.codigoBarras && p.codigoBarras.toLowerCase().includes(termino))
-            );
+            ).slice(0, 8);
 
-            coincidencias.slice(0, 8).forEach(prod => {
+            coincidencias.forEach(prod => {
                 const opcion = document.createElement('div');
-                opcion.textContent = `${(prod.nombre || prod.producto)} (${prod.descripcion || prod.descripcion})`;
+                opcion.textContent = `${prod.nombre} (${prod.descripcion})`;
                 opcion.onclick = function() {
-                    document.getElementById('codigoBarrasInput').value = prod.codigoBarras || prod.nombre || prod.producto;
-                    procesarEscaneo(document.getElementById('codigoBarrasInput').value);
+                    agregarProductoAlCarrito(prod);
+                    codigoInput.value = '';
                     sugerenciasDiv.innerHTML = '';
-                    document.getElementById('codigoBarrasInput').focus();
+                    codigoInput.focus();
                 };
                 sugerenciasDiv.appendChild(opcion);
             });
         });
-
-        codigoInput.addEventListener('blur', function() {
-            setTimeout(() => {
-                const activeElement = document.activeElement;
-                const esCampoConfiguracion = activeElement && 
-                    (activeElement.id === 'tasaBCV' || 
-                     activeElement.id === 'nombreEstablecimiento' ||
-                     activeElement.closest('.config-section'));
-                
-                if (!esCampoConfiguracion && 
-                    (!activeElement || 
-                     !activeElement.matches('button, input[type="text"], select, textarea'))) {
-                    codigoInput.focus();
-                }
-            }, 100);
-        });
     }
-
-    setTimeout(() => {
-        if (codigoInput) {
-            codigoInput.focus();
-            codigoInput.select();
-        }
-    }, 500);
-
-    const camposConfiguracion = ['tasaBCV', 'nombreEstablecimiento'];
-    camposConfiguracion.forEach(id => {
-        const campo = document.getElementById(id);
-        if (campo) {
-            campo.addEventListener('focus', function() {
-                this.setAttribute('data-scanning-disabled', 'true');
-            });
-            campo.addEventListener('blur', function() {
-                this.removeAttribute('data-scanning-disabled');
-            });
-        }
-    });
 }
 
-// ===== BUSCADOR RÁPIDO =====
-const codigoInputElem = document.getElementById('codigoBarrasInput');
-if (codigoInputElem) {
-    codigoInputElem.addEventListener('input', function() {
-        const termino = this.value.trim().toLowerCase();
-        const sugerenciasDiv = document.getElementById('sugerencias');
-        if (!sugerenciasDiv) return;
-        sugerenciasDiv.innerHTML = '';
+function configurarEventosMoviles() {
+    const esMovil = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (!esMovil) return;
 
-        if (termino.length < 2) return;
+    document.addEventListener('touchstart', function(e) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
+            setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+        }
+    }, { passive: true });
+}
 
-        const coincidencias = productos.filter(p =>
-            (p.nombre || p.producto || '').toLowerCase().includes(termino) ||
-            (p.codigoBarras && p.codigoBarras.toLowerCase().includes(termino))
-        );
+// ===== SISTEMA DE INACTIVIDAD =====
+function registrarActividad() {
+    ultimaActividad = Date.now();
+    reiniciarTemporizador();
+}
 
-        coincidencias.slice(0, 8).forEach(prod => {
-            const opcion = document.createElement('div');
-            opcion.textContent = `${(prod.nombre || prod.producto)} (${prod.descripcion || prod.descripcion})`;
-            opcion.onclick = function() {
-                document.getElementById('codigoBarrasInput').value = prod.codigoBarras || prod.nombre || prod.producto;
-                agregarPorCodigoBarras();
-                sugerenciasDiv.innerHTML = '';
-                document.getElementById('codigoBarrasInput').focus();
-            };
-            sugerenciasDiv.appendChild(opcion);
-        });
+function reiniciarTemporizador() {
+    if (temporizadorInactividad) clearTimeout(temporizadorInactividad);
+    temporizadorInactividad = setTimeout(() => {
+        if (!redireccionEnCurso) {
+            redireccionEnCurso = true;
+            window.location.href = URL_REDIRECCION;
+        }
+    }, TIEMPO_INACTIVIDAD);
+}
+
+function inicializarSistemaInactividad() {
+    ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'].forEach(evento => {
+        document.addEventListener(evento, registrarActividad, { passive: true });
     });
+    reiniciarTemporizador();
 }
 
 // ===== FUNCIONES BÁSICAS =====
 function cargarDatosIniciales() {
-    const nombreElem = document.getElementById('nombreEstablecimiento');
-    const tasaElem = document.getElementById('tasaBCV');
-    const monedaEtiquetasElem = document.getElementById('monedaEtiquetas');
-    
-    if (nombreElem) nombreElem.value = nombreEstablecimiento;
-    if (tasaElem) tasaElem.value = tasaBCVGuardada || '';
-    if (monedaEtiquetasElem) monedaEtiquetasElem.value = monedaEtiquetas;
+    document.getElementById('nombreEstablecimiento').value = nombreEstablecimiento;
+    document.getElementById('tasaBCV').value = tasaBCVGuardada || '';
+    const monedaSelect = document.getElementById('monedaEtiquetas');
+    if (monedaSelect) monedaSelect.value = monedaEtiquetas;
 }
 
 function calcularPrecioVenta() {
-    const tasaBCV = parseFloat(document.getElementById('tasaBCV').value) || tasaBCVGuardada;
+    const tasa = parseFloat(document.getElementById('tasaBCV').value) || tasaBCVGuardada;
     const costo = parseFloat(document.getElementById('costo').value);
     const ganancia = parseFloat(document.getElementById('ganancia').value);
-    const unidadesPorCaja = parseFloat(document.getElementById('unidadesPorCaja').value);
+    const unidades = parseFloat(document.getElementById('unidadesPorCaja').value);
 
-    if (!tasaBCV || tasaBCV <= 0) {
-        showToast("Ingrese una tasa BCV válida", 'error');
-        return;
-    }
-    if (!costo || !ganancia || !unidadesPorCaja) {
-        showToast("Complete todos los campos requeridos", 'error');
-        return;
-    }
+    if (!tasa || tasa <= 0) return showToast('Ingrese tasa BCV válida', 'error');
+    if (!costo || !ganancia || !unidades) return showToast('Complete todos los campos', 'error');
 
-    const gananciaDecimal = ganancia / 100;
-    const precioDolar = costo / (1 - gananciaDecimal);
-    const precioBolivares = precioDolar * tasaBCV;
-    const precioUnitarioDolar = redondear2Decimales(precioDolar / unidadesPorCaja);
-    const precioUnitarioBolivar = redondear2Decimales(precioBolivares / unidadesPorCaja);
+    const precioDolar = costo / (1 - (ganancia / 100));
+    const unitarioDolar = redondear2Decimales(precioDolar / unidades);
+    const unitarioBolivar = redondear2Decimales(unitarioDolar * tasa);
 
-    const precioUnitarioElem = document.getElementById('precioUnitario');
-    if (precioUnitarioElem) {
-        precioUnitarioElem.innerHTML =
-            `<strong>Precio unitario:</strong> $${precioUnitarioDolar.toFixed(2)} / Bs${precioUnitarioBolivar.toFixed(2)}`;
-    }
+    document.getElementById('precioUnitario').innerHTML = 
+        `<strong>Precio unitario:</strong> $${unitarioDolar.toFixed(2)} / Bs${unitarioBolivar.toFixed(2)}`;
 }
 
-// ===== GUARDAR / EDITAR PRODUCTOS =====
+// ===== GESTIÓN DE PRODUCTOS =====
 function guardarProducto() {
     const nombre = document.getElementById('producto').value.trim();
-    const codigoBarras = document.getElementById('codigoBarras').value.trim();
-    const descripcion = document.getElementById('descripcion').value;
+    const codigo = document.getElementById('codigoBarras').value.trim();
+    const desc = document.getElementById('descripcion').value;
     const costo = parseFloat(document.getElementById('costo').value);
     const ganancia = parseFloat(document.getElementById('ganancia').value);
     const unidadesPorCaja = parseFloat(document.getElementById('unidadesPorCaja').value);
-    const unidadesExistentesInput = parseFloat(document.getElementById('unidadesExistentes').value) || 0;
-    const tasaBCV = parseFloat(document.getElementById('tasaBCV').value) || tasaBCVGuardada;
+    const existencias = parseFloat(document.getElementById('unidadesExistentes').value) || 0;
+    const tasa = parseFloat(document.getElementById('tasaBCV').value) || tasaBCVGuardada;
 
-    if (!nombre || !descripcion) { 
-        showToast("Complete el nombre y descripción del producto", 'error'); 
-        return; 
-    }
-    if (!tasaBCV || tasaBCV <= 0) { 
-        showToast("Ingrese una tasa BCV válida", 'error'); 
-        return; 
-    }
-    if (!costo || !ganancia || !unidadesPorCaja) { 
-        showToast("Complete todos los campos requeridos", 'error'); 
-        return; 
+    if (!nombre || !desc) return showToast('Complete nombre y descripción', 'error');
+    if (!tasa || tasa <= 0) return showToast('Tasa BCV requerida', 'error');
+    if (!costo || !ganancia || !unidadesPorCaja) return showToast('Complete todos los campos', 'error');
+
+    // Verificar código de barras duplicado
+    if (codigo && productoEditando === null) {
+        const existe = productos.find(p => p.codigoBarras && p.codigoBarras.toLowerCase() === codigo.toLowerCase());
+        if (existe) return showToast('Código de barras ya existe', 'error');
     }
 
-    if (codigoBarras && productoEditando === null) {
-        const codigoExistente = productos.findIndex(p => 
-            p.codigoBarras && p.codigoBarras.toLowerCase() === codigoBarras.toLowerCase()
-        );
-        if (codigoExistente !== -1) {
-            showToast("El código de barras ya existe para otro producto", 'error');
-            return;
-        }
-    }
-
-    let productoExistenteIndex = -1;
-    if (productoEditando !== null) {
-        productoExistenteIndex = productoEditando;
-    } else {
-        productoExistenteIndex = productos.findIndex(p => 
-            (p.nombre || p.producto || '').toLowerCase() === nombre.toLowerCase()
-        );
-    }
-
-    const gananciaDecimal = ganancia / 100;
-    const precioDolar = costo / (1 - gananciaDecimal);
-    const precioBolivares = precioDolar * tasaBCV;
-    const precioUnitarioDolar = redondear2Decimales(precioDolar / unidadesPorCaja);
-    const precioUnitarioBolivar = redondear2Decimales(precioBolivares / unidadesPorCaja);
+    const precioDolar = costo / (1 - (ganancia / 100));
+    const unitarioDolar = redondear2Decimales(precioDolar / unidadesPorCaja);
+    const unitarioBolivar = redondear2Decimales(unitarioDolar * tasa);
 
     const producto = {
         nombre,
-        codigoBarras,
-        descripcion,
+        codigoBarras: codigo,
+        descripcion: desc,
         costo,
-        ganancia: gananciaDecimal,
+        ganancia: ganancia / 100,
         unidadesPorCaja,
-        unidadesExistentes: unidadesExistentesInput,
+        unidadesExistentes: existencias,
+        precioUnitarioDolar: unitarioDolar,
+        precioUnitarioBolivar: unitarioBolivar,
         precioMayorDolar: precioDolar,
-        precioMayorBolivar: precioBolivares,
-        precioUnitarioDolar: precioUnitarioDolar,
-        precioUnitarioBolivar: precioUnitarioBolivar,
+        precioMayorBolivar: precioDolar * tasa,
         fechaActualizacion: new Date().toISOString()
     };
 
-    if (productoExistenteIndex !== -1) {
-        productos[productoExistenteIndex] = producto;
-        showToast("✓ Producto actualizado exitosamente", 'success');
+    if (productoEditando !== null) {
+        productos[productoEditando] = producto;
+        showToast('Producto actualizado', 'success');
+        productoEditando = null;
     } else {
         productos.push(producto);
-        showToast("✓ Producto guardado exitosamente", 'success');
+        showToast('Producto guardado', 'success');
     }
 
-    localStorage.setItem('productos', JSON.stringify(productos));
-    actualizarLista();
-    actualizarGananciaTotal();
+    safeSetItem(STORAGE_KEYS.PRODUCTOS, productos);
+    actualizarTodo();
+    limpiarFormularioProducto();
+}
 
+function limpiarFormularioProducto() {
     document.getElementById('producto').value = '';
     document.getElementById('codigoBarras').value = '';
     document.getElementById('costo').value = '';
@@ -526,406 +327,334 @@ function guardarProducto() {
     document.getElementById('unidadesExistentes').value = '';
     document.getElementById('descripcion').selectedIndex = 0;
     document.getElementById('precioUnitario').innerHTML = '';
-
-    productoEditando = null;
 }
 
 function editarProducto(index) {
-    const claveIngresada = prompt("Para editar el producto, ingrese la clave de seguridad:");
-    
-    if (claveIngresada === 'ACME123') {
-        claveSeguridad = '1234';
-        localStorage.setItem('claveSeguridad', claveSeguridad);
-        showToast('✓ Clave reseteada a: 1234', 'success');
-        editarProducto(index);
-        return;
-    }
-    
-    if (claveIngresada !== claveSeguridad) {
-        showToast('✗ Clave incorrecta', 'error');
-        return;
-    }
-    
+    if (!verificarClave('editar')) return;
+
     let indiceReal = index;
-    
     if (productosFiltrados.length > 0) {
-        const productoFiltrado = productosFiltrados[index];
-        if (!productoFiltrado) return;
-        
-        indiceReal = productos.findIndex(p => 
-            p.nombre === productoFiltrado.nombre && 
-            p.descripcion === productoFiltrado.descripcion
-        );
-        
-        if (indiceReal === -1) {
-            showToast("Error: Producto no encontrado en la lista principal", 'error');
-            return;
-        }
-    }
-    
-    const producto = productos[indiceReal];
-    if (!producto) return;
-
-    document.getElementById('producto').value = producto.nombre || '';
-    document.getElementById('codigoBarras').value = producto.codigoBarras || '';
-    document.getElementById('descripcion').value = producto.descripcion || '';
-    document.getElementById('costo').value = producto.costo || '';
-    document.getElementById('ganancia').value = (producto.ganancia * 100) || '';
-    document.getElementById('unidadesPorCaja').value = producto.unidadesPorCaja || '';
-    document.getElementById('unidadesExistentes').value = producto.unidadesExistentes || '';
-    
-    const tasaBCV = parseFloat(document.getElementById('tasaBCV').value) || tasaBCVGuardada;
-    if (tasaBCV > 0) {
-        const precioUnitarioDolar = producto.precioUnitarioDolar;
-        const precioUnitarioBolivar = precioUnitarioDolar * tasaBCV;
-        document.getElementById('precioUnitario').innerHTML =
-            `<strong>Precio unitario:</strong> $${precioUnitarioDolar.toFixed(2)} / Bs${precioUnitarioBolivar.toFixed(2)}`;
+        const prod = productosFiltrados[index];
+        indiceReal = productos.findIndex(p => p.nombre === prod.nombre);
+        if (indiceReal === -1) return showToast('Producto no encontrado', 'error');
     }
 
+    const p = productos[indiceReal];
+    document.getElementById('producto').value = p.nombre;
+    document.getElementById('codigoBarras').value = p.codigoBarras || '';
+    document.getElementById('descripcion').value = p.descripcion;
+    document.getElementById('costo').value = p.costo;
+    document.getElementById('ganancia').value = p.ganancia * 100;
+    document.getElementById('unidadesPorCaja').value = p.unidadesPorCaja;
+    document.getElementById('unidadesExistentes').value = p.unidadesExistentes;
     productoEditando = indiceReal;
     
-    showToast(`Editando: ${producto.nombre}`, 'success');
+    showSection('productos');
+    showToast(`Editando: ${p.nombre}`, 'success');
 }
 
-// ===== CARRITO DE VENTAS - CORREGIDO =====
+function eliminarProducto(index) {
+    if (!confirm('¿Está seguro de eliminar este producto?')) return;
+
+    let indiceReal = index;
+    if (productosFiltrados.length > 0) {
+        const prod = productosFiltrados[index];
+        indiceReal = productos.findIndex(p => p.nombre === prod.nombre);
+        if (indiceReal === -1) return showToast('Producto no encontrado', 'error');
+    }
+
+    productos.splice(indiceReal, 1);
+    safeSetItem(STORAGE_KEYS.PRODUCTOS, productos);
+    productosFiltrados = [];
+    actualizarTodo();
+    showToast('Producto eliminado', 'success');
+}
+
+function verificarClave(accion) {
+    const clave = prompt(`Ingrese clave de seguridad para ${accion}:`);
+    
+    if (clave === 'ACME123') {
+        claveSeguridad = '1234';
+        localStorage.setItem(STORAGE_KEYS.CLAVE, claveSeguridad);
+        showToast('Clave reseteada a 1234', 'success');
+        return true;
+    }
+    
+    if (clave !== claveSeguridad) {
+        showToast('Clave incorrecta', 'error');
+        return false;
+    }
+    return true;
+}
+
+// ===== INVENTARIO =====
+function actualizarListaProductos() {
+    const tbody = document.querySelector('#inventario-section tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const listado = productosFiltrados.length > 0 ? productosFiltrados : productos;
+    
+    listado.forEach((p, idx) => {
+        const fila = document.createElement('tr');
+        const stockBajo = p.unidadesExistentes <= 5 ? 'inventario-bajo' : '';
+        
+        fila.innerHTML = `
+            <td>${p.nombre}</td>
+            <td>${p.descripcion}</td>
+            <td class="${stockBajo}">${p.unidadesExistentes}</td>
+            <td>$${p.precioUnitarioDolar.toFixed(2)}</td>
+            <td>Bs ${p.precioUnitarioBolivar.toFixed(2)}</td>
+            <td>
+                <div class="ajuste-inventario">
+                    <button onclick="ajustarInventario(${idx}, 1)" title="Sumar"><i class="fas fa-plus"></i></button>
+                    <button onclick="ajustarInventario(${idx}, -1)" title="Restar"><i class="fas fa-minus"></i></button>
+                    <button onclick="editarProducto(${idx})" class="btn-secondary" title="Editar"><i class="fas fa-edit"></i></button>
+                    <button onclick="eliminarProducto(${idx})" class="btn-danger" title="Eliminar"><i class="fas fa-trash"></i></button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(fila);
+    });
+}
+
+function buscarProducto() {
+    const termino = document.getElementById('buscar').value.trim().toLowerCase();
+    if (!termino) {
+        productosFiltrados = [];
+    } else {
+        productosFiltrados = productos.filter(p => 
+            p.nombre.toLowerCase().includes(termino) || 
+            p.descripcion.toLowerCase().includes(termino) ||
+            (p.codigoBarras && p.codigoBarras.toLowerCase().includes(termino))
+        );
+    }
+    actualizarListaProductos();
+}
+
+function ajustarInventario(index, delta) {
+    if (!verificarClave('ajustar inventario')) return;
+
+    let indiceReal = index;
+    if (productosFiltrados.length > 0) {
+        const prod = productosFiltrados[index];
+        indiceReal = productos.findIndex(p => p.nombre === prod.nombre);
+        if (indiceReal === -1) return showToast('Producto no encontrado', 'error');
+    }
+
+    const p = productos[indiceReal];
+    p.unidadesExistentes = Math.max(0, (p.unidadesExistentes || 0) + delta);
+    
+    safeSetItem(STORAGE_KEYS.PRODUCTOS, productos);
+    actualizarEstadisticas();
+    actualizarListaProductos();
+    showToast(`Inventario actualizado: ${p.unidadesExistentes}`, 'success');
+}
+
+// ===== ESTADÍSTICAS =====
+function actualizarEstadisticas() {
+    const totalProductos = productos.length;
+    const stockBajo = productos.filter(p => p.unidadesExistentes <= 5).length;
+    
+    document.getElementById('totalProductosCount').textContent = totalProductos;
+    document.getElementById('stockBajoCount').textContent = stockBajo;
+
+    let gananciaUSD = 0;
+    let totalInvertidoUSD = 0;
+    
+    productos.forEach(p => {
+        const gananciaUnidad = p.precioUnitarioDolar - (p.costo / p.unidadesPorCaja);
+        gananciaUSD += gananciaUnidad * (p.unidadesExistentes || 0);
+        totalInvertidoUSD += p.costo || 0;
+    });
+
+    document.getElementById('gananciaTotalUSD').textContent = `$${redondear2Decimales(gananciaUSD).toFixed(2)}`;
+    document.getElementById('gananciaTotalBS').textContent = `Bs ${redondear2Decimales(gananciaUSD * tasaBCVGuardada).toFixed(2)}`;
+    document.getElementById('totalInvertidoUSD').textContent = `$${redondear2Decimales(totalInvertidoUSD).toFixed(2)} USD`;
+    document.getElementById('totalInvertidoBS').textContent = `/ Bs ${redondear2Decimales(totalInvertidoUSD * tasaBCVGuardada).toFixed(2)}`;
+}
+
+// ===== CARRITO Y VENTAS =====
 function agregarPorCodigoBarras() {
     const codigo = document.getElementById('codigoBarrasInput').value.trim();
     procesarEscaneo(codigo);
 }
 
-function actualizarCarrito() {
-    const carritoBody = document.getElementById('carritoBody');
-    const totalCarritoBs = document.getElementById('totalCarritoBs');
-    const totalCarritoDolares = document.getElementById('totalCarritoDolares');
+function procesarEscaneo(codigo) {
+    if (!codigo) return showToast('Ingrese un código', 'warning');
 
-    if (!carritoBody) return;
+    let producto = productos.find(p => 
+        (p.codigoBarras && p.codigoBarras.toLowerCase() === codigo.toLowerCase()) ||
+        p.nombre.toLowerCase() === codigo.toLowerCase()
+    );
 
-    carritoBody.innerHTML = '';
-
-    if (carrito.length === 0) {
-        carritoBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">El carrito está vacío</td></tr>';
-        if (totalCarritoBs) totalCarritoBs.textContent = 'Total: Bs 0,00';
-        if (totalCarritoDolares) totalCarritoDolares.textContent = 'Total: $ 0,00';
-        return;
-    }
-
-    let totalBs = 0;
-    let totalDolares = 0;
-
-    carrito.forEach((item, index) => {
-        // CORRECCIÓN: Recalcular subtotales antes de sumar
-        calcularSubtotalSegonUnidad(item);
-        
-        totalBs += item.subtotal;
-        totalDolares += item.subtotalDolar;
-
-        const cantidadMostrada = item.unidad === 'gramo' ? `${item.cantidad} g` : item.cantidad;
-
-        const botonMas = item.unidad === 'gramo'
-            ? `<button onclick="ingresarGramos(${index})" class="btn-carrito">+</button>`
-            : `<button onclick="actualizarCantidadCarrito(${index}, 1)" class="btn-carrito">+</button>`;
-
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${item.nombre} (${item.descripcion})</td>
-            <td>Bs ${item.precioUnitarioBolivar.toFixed(2)}</td>
-            <td>
-                <button onclick="actualizarCantidadCarrito(${index}, -1)" class="btn-carrito">-</button>
-                ${cantidadMostrada}
-                ${botonMas}
-            </td>
-            <td>
-                <select onchange="cambiarUnidadCarrito(${index}, this.value)" class="unidad-selector">
-                    <option value="unidad" ${item.unidad === 'unidad' ? 'selected' : ''}>Unidad</option>
-                    <option value="gramo" ${item.unidad === 'gramo' ? 'selected' : ''}>Gramo</option>
-                </select>
-            </td>
-            <td>Bs ${item.subtotal.toFixed(2)}</td>
-            <td>
-                <button class="btn-eliminar-carrito" onclick="eliminarDelCarrito(${index})">Eliminar</button>
-            </td>
-        `;
-        carritoBody.appendChild(row);
-    });
-
-    // CORRECCIÓN: Redondear los totales finales
-    if (totalCarritoBs) totalCarritoBs.textContent = `Total: Bs ${redondear2Decimales(totalBs).toFixed(2)}`;
-    if (totalCarritoDolares) totalCarritoDolares.textContent = `Total: $ ${redondear2Decimales(totalDolares).toFixed(2)}`;
-}
-
-function actualizarCantidadCarrito(index, cambio) {
-    if (!permitirEjecucion()) return;
-    
-    const item = carrito[index];
-    if (!item) return;
-
-    item.cantidad += cambio;
-
-    if (item.cantidad <= 0) {
-        eliminarDelCarrito(index);
-        return;
-    }
-
-    // CORRECCIÓN: Recalcular subtotal después de cambiar cantidad
-    calcularSubtotalSegonUnidad(item);
-
-    localStorage.setItem('carrito', JSON.stringify(carrito));
-    actualizarCarrito();
-}
-
-// ===== FUNCIÓN: ingresarGramos =====
-function ingresarGramos(index) {
-    if (!permitirEjecucion()) return;
-    
-    const item = carrito[index];
-    if (!item) return;
-
-    const producto = productos[item.indexProducto];
     if (!producto) {
-        showToast("Producto no encontrado en inventario", 'error');
+        producto = productos.find(p => 
+            p.nombre.toLowerCase().includes(codigo.toLowerCase())
+        );
+    }
+
+    if (!producto) {
+        showToast('Producto no encontrado', 'error');
+        mostrarSugerencias(codigo);
         return;
     }
 
-    const gramosInput = prompt("Ingrese la cantidad en gramos (ej: 350):", item.cantidad || '');
-    if (gramosInput === null) return;
+    agregarProductoAlCarrito(producto);
+    document.getElementById('codigoBarrasInput').value = '';
+    document.getElementById('codigoBarrasInput').focus();
+    document.getElementById('scannerStatus').innerHTML = '<i class="fas fa-check-circle"></i> Producto agregado';
+}
 
-    const gramos = parseFloat(gramosInput);
-    if (isNaN(gramos) || gramos <= 0) {
-        showToast("Ingrese una cantidad válida en gramos", 'error');
-        return;
-    }
-
-    const disponibleGramos = (producto.unidadesExistentes || 0) * 1000;
-
-    let enCarritoMismoProducto = 0;
-    carrito.forEach((it, i) => {
-        if (i !== index && it.indexProducto === item.indexProducto) {
-            if (it.unidad === 'gramo') enCarritoMismoProducto += (parseFloat(it.cantidad) || 0);
-            else {
-                const factor = producto.unidadesPorCaja || 1;
-                enCarritoMismoProducto += (parseFloat(it.cantidad) || 0) * factor * 1000;
-            }
-        }
+function mostrarSugerencias(termino) {
+    const sugerencias = productos.filter(p => 
+        p.nombre.toLowerCase().includes(termino.toLowerCase())
+    ).slice(0, 5);
+    
+    const div = document.getElementById('sugerencias');
+    if (!div) return;
+    
+    div.innerHTML = '';
+    sugerencias.forEach(p => {
+        const item = document.createElement('div');
+        item.textContent = `${p.nombre} (${p.descripcion})`;
+        item.onclick = () => agregarProductoAlCarrito(p);
+        div.appendChild(item);
     });
+}
 
-    if ((gramos + enCarritoMismoProducto) > disponibleGramos) {
-        showToast("No hay suficiente stock (gramos) para esa cantidad", 'error');
-        return;
+function agregarProductoAlCarrito(producto) {
+    const indexProducto = productos.findIndex(p => p.nombre === producto.nombre);
+    const existente = carrito.findIndex(item => 
+        item.nombre === producto.nombre && item.unidad === 'unidad'
+    );
+
+    if (existente !== -1) {
+        carrito[existente].cantidad += 1;
+        recalcularSubtotal(carrito[existente]);
+    } else {
+        carrito.push({
+            nombre: producto.nombre,
+            descripcion: producto.descripcion,
+            precioUnitarioBolivar: producto.precioUnitarioBolivar,
+            precioUnitarioDolar: producto.precioUnitarioDolar,
+            cantidad: 1,
+            unidad: 'unidad',
+            subtotal: producto.precioUnitarioBolivar,
+            subtotalDolar: producto.precioUnitarioDolar,
+            indexProducto
+        });
     }
 
-    item.cantidad = gramos;
-    item.unidad = 'gramo';
-    calcularSubtotalSegonUnidad(item);
-
-    localStorage.setItem('carrito', JSON.stringify(carrito));
+    safeSetItem(STORAGE_KEYS.CARRITO, carrito);
     actualizarCarrito();
 }
 
-// ===== FUNCIÓN CALCULAR SUBTOTAL SEGÚN UNIDAD - CORREGIDA =====
-function calcularSubtotalSegonUnidad(item) {
-    const producto = productos[item.indexProducto];
-    if (!producto) return;
-
+function recalcularSubtotal(item) {
     if (item.unidad === 'gramo') {
-        // CORRECCIÓN: Calcular correctamente el precio por gramo
-        const precioPorGramoBolivar = (producto.precioUnitarioBolivar * 0.001);
-        const precioPorGramoDolar = (producto.precioUnitarioDolar * 0.001);
-        
-        item.subtotal = redondear2Decimales(item.cantidad * precioPorGramoBolivar);
-        item.subtotalDolar = redondear2Decimales(item.cantidad * precioPorGramoDolar);
+        const precioGramoBs = item.precioUnitarioBolivar / 1000;
+        const precioGramoUsd = item.precioUnitarioDolar / 1000;
+        item.subtotal = redondear2Decimales(item.cantidad * precioGramoBs);
+        item.subtotalDolar = redondear2Decimales(item.cantidad * precioGramoUsd);
     } else {
         item.subtotal = redondear2Decimales(item.cantidad * item.precioUnitarioBolivar);
         item.subtotalDolar = redondear2Decimales(item.cantidad * item.precioUnitarioDolar);
     }
 }
 
-function cambiarUnidadCarrito(index, nuevaUnidad) {
-    if (!permitirEjecucion()) return;
+function actualizarCarrito() {
+    const tbody = document.getElementById('carritoBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (carrito.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center">Carrito vacío</td></tr>';
+        document.getElementById('totalCarritoBs').innerHTML = '<strong>Total Bs:</strong> 0,00';
+        document.getElementById('totalCarritoDolares').innerHTML = '<strong>Total USD:</strong> 0,00';
+        return;
+    }
+
+    let totalBs = 0;
+    let totalUsd = 0;
+
+    carrito.forEach((item, idx) => {
+        recalcularSubtotal(item);
+        totalBs += item.subtotal;
+        totalUsd += item.subtotalDolar;
+
+        const fila = document.createElement('tr');
+        fila.innerHTML = `
+            <td>${item.nombre}</td>
+            <td>Bs ${item.precioUnitarioBolivar.toFixed(2)}</td>
+            <td>
+                <button onclick="actualizarCantidadCarrito(${idx}, -1)">-</button>
+                ${item.cantidad} ${item.unidad === 'gramo' ? 'g' : ''}
+                <button onclick="actualizarCantidadCarrito(${idx}, 1)">+</button>
+            </td>
+            <td>
+                <select onchange="cambiarUnidadCarrito(${idx}, this.value)" class="unidad-selector">
+                    <option value="unidad" ${item.unidad === 'unidad' ? 'selected' : ''}>Unidad</option>
+                    <option value="gramo" ${item.unidad === 'gramo' ? 'selected' : ''}>Gramo</option>
+                </select>
+            </td>
+            <td>Bs ${item.subtotal.toFixed(2)}</td>
+            <td>
+                <button onclick="eliminarDelCarrito(${idx})" class="btn-danger"><i class="fas fa-trash"></i></button>
+            </td>
+        `;
+        tbody.appendChild(fila);
+    });
+
+    document.getElementById('totalCarritoBs').innerHTML = `<strong>Total Bs:</strong> ${totalBs.toFixed(2)}`;
+    document.getElementById('totalCarritoDolares').innerHTML = `<strong>Total USD:</strong> $${totalUsd.toFixed(2)}`;
+}
+
+function actualizarCantidadCarrito(index, delta) {
+    if (!carrito[index]) return;
     
-    carrito[index].unidad = nuevaUnidad;
+    carrito[index].cantidad = Math.max(0.1, (carrito[index].cantidad || 1) + delta);
     
-    // CORRECCIÓN: Si cambia de gramos a unidades, ajustar cantidad
-    if (nuevaUnidad === 'unidad' && carrito[index].unidad === 'gramo') {
-        // Convertir gramos a unidades aproximadas (asumiendo 1000g = 1 unidad)
-        carrito[index].cantidad = Math.ceil(carrito[index].cantidad / 1000);
+    if (carrito[index].cantidad <= 0) {
+        eliminarDelCarrito(index);
+    } else {
+        recalcularSubtotal(carrito[index]);
+        safeSetItem(STORAGE_KEYS.CARRITO, carrito);
+        actualizarCarrito();
+    }
+}
+
+function cambiarUnidadCarrito(index, unidad) {
+    if (!carrito[index]) return;
+    
+    const item = carrito[index];
+    const producto = productos[item.indexProducto];
+    
+    if (unidad === 'gramo' && item.unidad === 'unidad') {
+        // Convertir unidades a gramos (1 unidad = 1000g)
+        item.cantidad = item.cantidad * 1000;
+    } else if (unidad === 'unidad' && item.unidad === 'gramo') {
+        // Convertir gramos a unidades
+        item.cantidad = item.cantidad / 1000;
     }
     
-    calcularSubtotalSegonUnidad(carrito[index]);
-    localStorage.setItem('carrito', JSON.stringify(carrito));
+    item.unidad = unidad;
+    recalcularSubtotal(item);
+    safeSetItem(STORAGE_KEYS.CARRITO, carrito);
     actualizarCarrito();
 }
 
 function eliminarDelCarrito(index) {
-    if (!permitirEjecucion()) return;
-    
     carrito.splice(index, 1);
-    localStorage.setItem('carrito', JSON.stringify(carrito));
+    safeSetItem(STORAGE_KEYS.CARRITO, carrito);
     actualizarCarrito();
 }
 
-// ===== LISTA DE PRODUCTOS =====
-function actualizarLista() {
-    const tbody = document.querySelector('#listaProductos tbody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-
-    productosFiltrados = [];
-
-    productos.forEach((producto, index) => {
-        const inventarioBajo = producto.unidadesExistentes <= 5;
-        const filas = document.createElement('tr');
-        filas.innerHTML = `
-            <td>${producto.nombre}</td>
-            <td>${producto.descripcion}</td>
-            <td>${producto.codigoBarras || 'N/A'}</td>
-            <td class="${inventarioBajo ? 'inventario-bajo' : ''}">${producto.unidadesExistentes}</td>
-            <td>
-                <div class="ajuste-inventario">
-                    <button onclick="ajustarInventario(${index}, 'sumar')" class="btn-inventario">+</button>
-                    <button onclick="ajustarInventario(${index}, 'restar')" class="btn-inventario">-</button>
-                </div>
-            </td>
-            <td>$${producto.precioUnitarioDolar.toFixed(2)}</td>
-            <td>Bs${producto.precioUnitarioBolivar.toFixed(2)}</td>
-            <td>${(producto.ganancia * 100).toFixed(0)}%</td>
-            <td>
-                <button class="editar" onclick="editarProducto(${index})">Editar</button>
-                <button class="eliminar" onclick="eliminarProducto(${index})">Eliminar</button>
-            </td>
-        `;
-        tbody.appendChild(filas);
-    });
-}
-
-// ===== BUSCADOR MEJORADO PARA MÓVILES =====
-function buscarProducto() {
-    const termino = document.getElementById('buscar').value.trim().toLowerCase();
-    if (!termino) { 
-        productosFiltrados = [];
-        actualizarLista(); 
-        return; 
-    }
-
-    productosFiltrados = productos.filter(p =>
-        (p.nombre || '').toLowerCase().includes(termino) ||
-        (p.descripcion || '').toLowerCase().includes(termino) ||
-        (p.codigoBarras && p.codigoBarras.toLowerCase().includes(termino))
-    );
-
-    const tbody = document.querySelector('#listaProductos tbody');
-    if (!tbody) return;
-    
-    tbody.innerHTML = '';
-
-    if (productosFiltrados.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">No se encontraron productos</td></tr>';
-        return;
-    }
-
-    productosFiltrados.forEach((producto, index) => {
-        const inventarioBajo = producto.unidadesExistentes <= 5;
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${producto.nombre}</td>
-            <td>${producto.descripcion}</td>
-            <td>${producto.codigoBarras || 'N/A'}</td>
-            <td class="${inventarioBajo ? 'inventario-bajo' : ''}">${producto.unidadesExistentes}</td>
-            <td>
-                <div class="ajuste-inventario">
-                    <button onclick="ajustarInventario(${index}, 'sumar')" class="btn-inventario">+</button>
-                    <button onclick="ajustarInventario(${index}, 'restar')" class="btn-inventario">-</button>
-                </div>
-            </td>
-            <td>$${producto.precioUnitarioDolar.toFixed(2)}</td>
-            <td>Bs${producto.precioUnitarioBolivar.toFixed(2)}</td>
-            <td>${(producto.ganancia * 100).toFixed(0)}%</td>
-            <td>
-                <button class="editar" onclick="editarProducto(${index})">Editar</button>
-                <button class="eliminar" onclick="eliminarProducto(${index})">Eliminar</button>
-            </td>
-        `;
-        tbody.appendChild(row);
-    });
-}
-
-function ajustarInventario(index, operacion) {
-    const claveAjuste = prompt("Para ajustar inventario, ingrese la clave de seguridad:");
-    
-    if (claveAjuste === 'ACME123') {
-        claveSeguridad = '1234';
-        localStorage.setItem('claveSeguridad', claveSeguridad);
-        showToast('✓ Clave reseteada a: 1234', 'success');
-        ajustarInventario(index, operacion);
-        return;
-    }
-    
-    if (claveAjuste !== claveSeguridad) {
-        showToast('✗ Clave incorrecta', 'error');
-        return;
-    }
-    
-    let indiceReal = index;
-    
-    if (productosFiltrados.length > 0) {
-        const productoFiltrado = productosFiltrados[index];
-        if (!productoFiltrado) return;
-        
-        indiceReal = productos.findIndex(p => 
-            p.nombre === productoFiltrado.nombre && 
-            p.descripcion === productoFiltrado.descripcion
-        );
-        
-        if (indiceReal === -1) {
-            showToast("Error: Producto no encontrado en la lista principal", 'error');
-            return;
-        }
-    }
-    
-    const producto = productos[indiceReal];
-    const cantidad = parseInt(prompt(`Ingrese la cantidad a ${operacion === 'sumar' ? 'sumar' : 'restar'}:`, "1")) || 0;
-
-    if (cantidad <= 0) { showToast("Ingrese una cantidad válida", 'error'); return; }
-    if (operacion === 'restar' && producto.unidadesExistentes < cantidad) { showToast("No hay suficientes unidades en inventario", 'error'); return; }
-
-    producto.unidadesExistentes = operacion === 'sumar' ? producto.unidadesExistentes + cantidad : producto.unidadesExistentes - cantidad;
-
-    localStorage.setItem('productos', JSON.stringify(productos));
-    actualizarLista();
-    actualizarGananciaTotal();
-    showToast(`Inventario de ${producto.nombre} actualizado: ${producto.unidadesExistentes} unidades`, 'success');
-}
-
-function eliminarProducto(index) {
-    let indiceReal = index;
-    
-    if (productosFiltrados.length > 0) {
-        const productoFiltrado = productosFiltrados[index];
-        if (!productoFiltrado) return;
-        
-        indiceReal = productos.findIndex(p => 
-            p.nombre === productoFiltrado.nombre && 
-            p.descripcion === productoFiltrado.descripcion
-        );
-        
-        if (indiceReal === -1) {
-            showToast("Error: Producto no encontrado en la lista principal", 'error');
-            return;
-        }
-    }
-    
-    const producto = productos[indiceReal];
-    if (confirm(`¿Estás seguro de eliminar "${producto.nombre}"?`)) {
-        productos.splice(indiceReal, 1);
-        localStorage.setItem('productos', JSON.stringify(productos));
-        actualizarLista();
-        actualizarGananciaTotal();
-        showToast(`Producto eliminado: ${producto.nombre}`, 'success');
-    }
-}
-
-// ===== MÉTODOS DE PAGO Y VENTAS =====
+// ===== PROCESO DE VENTA =====
 function finalizarVenta() {
-    if (carrito.length === 0) { showToast("El carrito está vacío", 'warning'); return; }
+    if (carrito.length === 0) {
+        showToast('El carrito está vacío', 'warning');
+        return;
+    }
 
     const totalBs = carrito.reduce((sum, item) => sum + item.subtotal, 0);
     const totalDolares = carrito.reduce((sum, item) => sum + item.subtotalDolar, 0);
@@ -946,66 +675,66 @@ function cerrarModalPago() {
     detallesPago = {};
 }
 
+function cancelarPago() {
+    document.getElementById('detallesPago').style.display = 'none';
+    metodoPagoSeleccionado = null;
+    detallesPago = {};
+}
+
 function seleccionarMetodoPago(metodo) {
     metodoPagoSeleccionado = metodo;
     const detallesDiv = document.getElementById('camposPago');
     const totalBs = carrito.reduce((sum, i) => sum + i.subtotal, 0);
     const totalDolares = carrito.reduce((sum, i) => sum + i.subtotalDolar, 0);
+    
     detallesDiv.innerHTML = '';
-
     detallesPago = { metodo, totalBs, totalDolares };
 
     if (metodo === 'efectivo_bs' || metodo === 'efectivo_dolares') {
+        const moneda = metodo === 'efectivo_bs' ? 'Bs' : '$';
+        const total = metodo === 'efectivo_bs' ? totalBs : totalDolares;
+        
         detallesDiv.innerHTML = `
             <div class="campo-pago">
-                <label>Monto recibido (${metodo === 'efectivo_bs' ? 'Bs' : '$'}):</label>
-                <input type="number" id="montoRecibido" placeholder="Ingrese monto recibido" class="input-movil" />
+                <label>Monto recibido (${moneda}):</label>
+                <input type="number" id="montoRecibido" placeholder="Ingrese monto recibido" step="0.01">
             </div>
             <div class="campo-pago">
                 <label>Cambio:</label>
-                <input type="text" id="cambioCalculado" readonly placeholder="0.00" class="input-movil" />
+                <input type="text" id="cambioCalculado" readonly placeholder="0.00">
             </div>
         `;
         
         setTimeout(() => {
             const input = document.getElementById('montoRecibido');
-            if (!input) return;
-            
-            input.addEventListener('input', function() {
-                if (this.value === '') {
-                    document.getElementById('mensajePago').style.display = 'none';
-                    document.getElementById('cambioCalculado').value = '';
-                } else {
-                    const recib = parseFloat(this.value) || 0;
-                    calcularFaltaOCambio(recib, metodo, totalBs, totalDolares);
-                }
-            });
-            
-            if (input.value) {
-                const recib = parseFloat(input.value) || 0;
-                calcularFaltaOCambio(recib, metodo, totalBs, totalDolares);
+            if (input) {
+                input.addEventListener('input', function() {
+                    calcularCambio(this.value, metodo, total);
+                });
             }
         }, 100);
-    } else if (metodo === 'punto' || metodo === 'biopago') {
+    } 
+    else if (metodo === 'punto' || metodo === 'biopago') {
         detallesDiv.innerHTML = `
             <div class="campo-pago">
-                <label>Monto a pagar:</label>
-                <input type="number" id="montoPago" placeholder="Ingrese monto" class="input-movil" />
+                <label>Monto a pagar (Bs):</label>
+                <input type="number" id="montoPago" value="${totalBs.toFixed(2)}" step="0.01">
             </div>
         `;
-    } else if (metodo === 'pago_movil') {
+    } 
+    else if (metodo === 'pago_movil') {
         detallesDiv.innerHTML = `
             <div class="campo-pago">
-                <label>Monto a pagar:</label>
-                <input type="number" id="montoPagoMovil" placeholder="Ingrese monto" class="input-movil" />
+                <label>Monto (Bs):</label>
+                <input type="number" id="montoPagoMovil" value="${totalBs.toFixed(2)}" step="0.01">
             </div>
             <div class="campo-pago">
-                <label>Referencia / Número:</label>
-                <input type="text" id="refPagoMovil" placeholder="Referencia bancaria" class="input-movil" />
+                <label>Referencia:</label>
+                <input type="text" id="refPagoMovil" placeholder="Número de referencia">
             </div>
             <div class="campo-pago">
                 <label>Banco:</label>
-                <input type="text" id="bancoPagoMovil" placeholder="Nombre del banco" class="input-movil" />
+                <input type="text" id="bancoPagoMovil" placeholder="Nombre del banco">
             </div>
         `;
     }
@@ -1013,93 +742,62 @@ function seleccionarMetodoPago(metodo) {
     document.getElementById('detallesPago').style.display = 'block';
 }
 
-// ===== NUEVA FUNCIÓN: CALCULAR FALTA O CAMBIO =====
-function calcularFaltaOCambio(montoRecibido, metodo, totalBs, totalDolares) {
+function calcularCambio(montoRecibido, metodo, total) {
     const mensajeDiv = document.getElementById('mensajePago');
     const cambioInput = document.getElementById('cambioCalculado');
     
     if (!mensajeDiv || !cambioInput) return;
     
-    let falta = 0;
-    let cambio = 0;
-    let mensaje = '';
-    let tipo = '';
+    montoRecibido = parseFloat(montoRecibido) || 0;
     
-    if (metodo === 'efectivo_bs') {
-        if (montoRecibido < totalBs) {
-            falta = redondear2Decimales(totalBs - montoRecibido);
-            const faltaUSD = redondear2Decimales(falta / tasaBCVGuardada);
-            mensaje = `Faltan Bs ${falta.toFixed(2)} ($${faltaUSD.toFixed(2)})`;
-            tipo = 'falta';
-        } else {
-            cambio = redondear2Decimales(montoRecibido - totalBs);
-            mensaje = `Cambio: Bs ${cambio.toFixed(2)}`;
-            tipo = 'cambio';
-        }
-        cambioInput.value = montoRecibido >= totalBs ? cambio.toFixed(2) : `-${falta.toFixed(2)}`;
-    } else if (metodo === 'efectivo_dolares') {
-        if (montoRecibido < totalDolares) {
-            falta = redondear2Decimales(totalDolares - montoRecibido);
-            const faltaBS = redondear2Decimales(falta * tasaBCVGuardada);
-            mensaje = `Faltan $ ${falta.toFixed(2)} (Bs ${faltaBS.toFixed(2)})`;
-            tipo = 'falta';
-        } else {
-            cambio = redondear2Decimales(montoRecibido - totalDolares);
-            const cambioBS = redondear2Decimales(cambio * tasaBCVGuardada);
-            mensaje = `Cambio: $ ${cambio.toFixed(2)} (Bs ${cambioBS.toFixed(2)})`;
-            tipo = 'cambio';
-        }
-        cambioInput.value = montoRecibido >= totalDolares ? cambio.toFixed(2) : `-${falta.toFixed(2)}`;
+    if (montoRecibido < total) {
+        const falta = redondear2Decimales(total - montoRecibido);
+        mensajeDiv.textContent = `Faltan ${metodo === 'efectivo_bs' ? 'Bs' : '$'} ${falta.toFixed(2)}`;
+        mensajeDiv.className = 'mensaje-pago falta';
+        mensajeDiv.style.display = 'block';
+        cambioInput.value = `-${falta.toFixed(2)}`;
+    } else {
+        const cambio = redondear2Decimales(montoRecibido - total);
+        mensajeDiv.textContent = `Cambio: ${metodo === 'efectivo_bs' ? 'Bs' : '$'} ${cambio.toFixed(2)}`;
+        mensajeDiv.className = 'mensaje-pago cambio';
+        mensajeDiv.style.display = 'block';
+        cambioInput.value = cambio.toFixed(2);
     }
-    
-    mensajeDiv.textContent = mensaje;
-    mensajeDiv.className = `mensaje-pago ${tipo}`;
-    mensajeDiv.style.display = 'block';
 }
 
 function confirmarMetodoPago() {
-    if (!metodoPagoSeleccionado) { 
-        showToast("Seleccione un método de pago", 'error'); 
-        return; 
+    if (!metodoPagoSeleccionado) {
+        showToast('Seleccione un método de pago', 'error');
+        return;
     }
 
     const totalBs = carrito.reduce((sum, item) => sum + item.subtotal, 0);
     const totalDolares = carrito.reduce((sum, item) => sum + item.subtotalDolar, 0);
 
-    if (metodoPagoSeleccionado === 'efectivo_bs') {
-        const recib = parseFloat(document.getElementById('montoRecibido').value) || 0;
-        if (recib < totalBs) { 
-            showToast("Monto recibido menor al total", 'error'); 
-            return; 
+    // Validar según método
+    if (metodoPagoSeleccionado === 'efectivo_bs' || metodoPagoSeleccionado === 'efectivo_dolares') {
+        const monto = parseFloat(document.getElementById('montoRecibido')?.value) || 0;
+        const total = metodoPagoSeleccionado === 'efectivo_bs' ? totalBs : totalDolares;
+        
+        if (monto < total) {
+            showToast('Monto recibido insuficiente', 'error');
+            return;
         }
-        detallesPago.cambio = redondear2Decimales(recib - totalBs);
-        detallesPago.montoRecibido = recib;
-    } else if (metodoPagoSeleccionado === 'efectivo_dolares') {
-        const recib = parseFloat(document.getElementById('montoRecibido').value) || 0;
-        if (recib < totalDolares) { 
-            showToast("Monto recibido menor al total", 'error'); 
-            return; 
+        detallesPago.montoRecibido = monto;
+        detallesPago.cambio = monto - total;
+    }
+    else if (metodoPagoSeleccionado === 'pago_movil') {
+        const ref = document.getElementById('refPagoMovil')?.value.trim();
+        const banco = document.getElementById('bancoPagoMovil')?.value.trim();
+        if (!ref || !banco) {
+            showToast('Complete referencia y banco', 'error');
+            return;
         }
-        detallesPago.cambio = redondear2Decimales(recib - totalDolares);
-        detallesPago.montoRecibido = recib;
-    } else if (metodoPagoSeleccionado === 'punto' || metodoPagoSeleccionado === 'biopago') {
-        const monto = parseFloat(document.getElementById('montoPago') ? document.getElementById('montoPago').value : 0) || 0;
-        if (monto <= 0) { 
-            showToast("Ingrese el monto para Punto/Biopago", 'error'); 
-            return; 
-        }
-        detallesPago.monto = monto;
-    } else if (metodoPagoSeleccionado === 'pago_movil') {
-        const monto = parseFloat(document.getElementById('montoPagoMovil').value) || 0;
-        const ref = document.getElementById('refPagoMovil').value.trim();
-        const banco = document.getElementById('bancoPagoMovil').value.trim();
-        if (!monto || !ref || !banco) { 
-            showToast("Complete todos los datos de Pago Móvil", 'error'); 
-            return; 
-        }
-        detallesPago = {...detallesPago, monto, ref, banco };
+        detallesPago.referencia = ref;
+        detallesPago.banco = banco;
     }
 
+    // Procesar venta
     carrito.forEach(item => {
         const producto = productos[item.indexProducto];
         if (producto) {
@@ -1108,10 +806,8 @@ function confirmarMetodoPago() {
             } else {
                 producto.unidadesExistentes = redondear2Decimales(producto.unidadesExistentes - item.cantidad);
             }
-
-            if (producto.unidadesExistentes < 0) {
-                producto.unidadesExistentes = 0;
-            }
+            
+            if (producto.unidadesExistentes < 0) producto.unidadesExistentes = 0;
 
             ventasDiarias.push({
                 fecha: new Date().toLocaleDateString(),
@@ -1120,274 +816,187 @@ function confirmarMetodoPago() {
                 cantidad: item.cantidad,
                 unidad: item.unidad,
                 totalBolivar: item.subtotal,
-                metodoPago: metodoPagoSeleccionado,
-                indexProducto: item.indexProducto
+                metodoPago: metodoPagoSeleccionado
             });
         }
     });
 
-    localStorage.setItem('productos', JSON.stringify(productos));
-    localStorage.setItem('ventasDiarias', JSON.stringify(ventasDiarias));
+    safeSetItem(STORAGE_KEYS.PRODUCTOS, productos);
+    safeSetItem(STORAGE_KEYS.VENTAS, ventasDiarias);
 
-    showToast(`Venta completada por Bs ${redondear2Decimales(totalBs).toFixed(2)}`, 'success');
+    showToast(`Venta completada por Bs ${totalBs.toFixed(2)}`, 'success');
 
     detallesPago.totalBs = redondear2Decimales(totalBs);
     detallesPago.totalDolares = redondear2Decimales(totalDolares);
     detallesPago.items = JSON.parse(JSON.stringify(carrito));
     detallesPago.fecha = new Date().toLocaleString();
 
-    carrito = [];
-    localStorage.setItem('carrito', JSON.stringify(carrito));
-    actualizarCarrito();
-    actualizarLista();
-    actualizarGananciaTotal();
-    
-    cerrarModalPago();
-
-    // ===== NUEVA FUNCIÓN: IMPRIMIR TICKET TÉRMICO =====
+    // Intentar imprimir ticket
     imprimirTicketTermicoESC_POS(detallesPago);
+
+    carrito = [];
+    safeSetItem(STORAGE_KEYS.CARRITO, carrito);
+    actualizarCarrito();
+    actualizarEstadisticas();
+    cerrarModalPago();
 }
 
-function cancelarPago() {
-    document.getElementById('detallesPago').style.display = 'none';
-    metodoPagoSeleccionado = null;
-    detallesPago = {};
+// ===== IMPRESIÓN DE TICKET =====
+async function imprimirTicketTermicoESC_POS(detalles) {
+    try {
+        if (typeof qz === 'undefined') {
+            console.log('Simulando impresión de ticket');
+            showToast('Ticket generado (simulación)', 'success');
+            return;
+        }
+
+        await qz.websocket.connect();
+
+        const impresoras = await qz.printers.find();
+        const impresora = impresoras.find(p => 
+            p.toLowerCase().includes('thermal') || 
+            p.toLowerCase().includes('pos') ||
+            p.toLowerCase().includes('epson')
+        ) || impresoras[0];
+
+        if (!impresora) throw new Error('No se encontró impresora');
+
+        const config = qz.configs.create(impresora);
+        const fecha = new Date().toLocaleString();
+        
+        let ticket = [
+            '\x1B\x40', // ESC @
+            '\x1B\x61\x01', // Centrado
+            '\x1B\x21\x30', // Doble tamaño
+            (nombreEstablecimiento || "MI NEGOCIO") + "\n",
+            '\x1B\x21\x00', // Normal
+            '\x1B\x61\x00', // Izquierda
+            "--------------------------------\n",
+            `Fecha: ${fecha}\n`,
+            "--------------------------------\n"
+        ];
+
+        detalles.items.forEach(item => {
+            ticket.push(
+                `${item.nombre}\n`,
+                `${item.cantidad} x ${item.precioUnitarioBolivar.toFixed(2)} = ${item.subtotal.toFixed(2)}\n`
+            );
+        });
+
+        ticket.push("--------------------------------\n");
+        ticket.push('\x1B\x21\x20'); // Negrita
+        ticket.push(`TOTAL: Bs ${detalles.totalBs.toFixed(2)}\n`);
+        ticket.push(`REF: $${detalles.totalDolares.toFixed(2)}\n`);
+        ticket.push('\x1B\x21\x00');
+        ticket.push(`Pago: ${detalles.metodo}\n`);
+        ticket.push("\n¡Gracias por su compra!\n\n");
+        ticket.push('\x1D\x56\x00'); // Corte
+
+        await qz.print(config, ticket);
+        await qz.websocket.disconnect();
+        showToast('Ticket impreso', 'success');
+
+    } catch (error) {
+        console.error('Error impresión:', error);
+        showToast('Error al imprimir ticket', 'error');
+    }
 }
 
-// ===== NOMBRE ESTABLECIMIENTO Y TASA BCV =====
+// ===== CONFIGURACIÓN =====
 function guardarNombreEstablecimiento() {
-    nombreEstablecimiento = document.getElementById('nombreEstablecimiento').value.trim();
-    if (!nombreEstablecimiento) { showToast("Ingrese un nombre válido", 'error'); return; }
-    localStorage.setItem('nombreEstablecimiento', nombreEstablecimiento);
-    showToast(`Nombre guardado: "${nombreEstablecimiento}"`, 'success');
+    const nombre = document.getElementById('nombreEstablecimiento').value.trim();
+    if (!nombre) return showToast('Ingrese un nombre', 'error');
+    
+    nombreEstablecimiento = nombre;
+    localStorage.setItem(STORAGE_KEYS.NOMBRE, nombre);
+    actualizarNombreSidebar();
+    showToast('Nombre guardado', 'success');
 }
 
 function actualizarTasaBCV() {
-    const nuevaTasa = parseFloat(document.getElementById('tasaBCV').value);
+    const tasa = parseFloat(document.getElementById('tasaBCV').value);
+    if (!tasa || tasa <= 0) return showToast('Ingrese tasa válida', 'error');
 
-    if (!nuevaTasa || nuevaTasa <= 0) { showToast("Ingrese una tasa BCV válida", 'error'); return; }
+    tasaBCVGuardada = tasa;
+    localStorage.setItem(STORAGE_KEYS.TASA, tasa);
 
-    tasaBCVGuardada = nuevaTasa;
-    localStorage.setItem('tasaBCV', tasaBCVGuardada);
-
-    productos.forEach(producto => {
-        producto.precioUnitarioBolivar = producto.precioUnitarioDolar * nuevaTasa;
-        producto.precioMayorBolivar = producto.precioMayorDolar * nuevaTasa;
+    productos.forEach(p => {
+        p.precioUnitarioBolivar = p.precioUnitarioDolar * tasa;
+        p.precioMayorBolivar = p.precioMayorDolar * tasa;
     });
 
-    localStorage.setItem('productos', JSON.stringify(productos));
-    actualizarLista();
-    actualizarGananciaTotal();
-
-    showToast(`Tasa BCV actualizada a: ${nuevaTasa}`, 'success');
+    safeSetItem(STORAGE_KEYS.PRODUCTOS, productos);
+    actualizarTodo();
+    showToast(`Tasa actualizada: ${tasa}`, 'success');
 }
 
-function toggleCopyrightNotice() {
-    const notice = document.getElementById('copyrightNotice');
-    if (!notice) return;
-    notice.style.display = notice.style.display === 'block' ? 'none' : 'block';
-}
-
-/* ===== LISTA DE COSTOS ===== */
+// ===== REPORTES Y PDF =====
 function mostrarListaCostos() {
     const container = document.getElementById('listaCostosContainer');
-    const buscarCostosInput = document.getElementById('buscarCostos');
-    if (!container) return;
+    const lista = document.getElementById('listaCostos');
+    
     if (container.style.display === 'none' || container.style.display === '') {
         container.style.display = 'block';
-        if (buscarCostosInput) buscarCostosInput.style.display = 'inline-block';
-        llenarListaCostos();
-        actualizarTotalInvertido();
+        
+        lista.innerHTML = '';
+        const sorted = [...productos].sort((a, b) => a.nombre.localeCompare(b.nombre));
+        
+        sorted.forEach(p => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <span>${p.nombre} (${p.descripcion})</span>
+                <span>$${(p.costo / p.unidadesPorCaja).toFixed(2)} / Bs ${p.precioUnitarioBolivar.toFixed(2)}</span>
+            `;
+            lista.appendChild(li);
+        });
     } else {
         container.style.display = 'none';
-        if (buscarCostosInput) buscarCostosInput.style.display = 'none';
     }
 }
 
-function llenarListaCostos() {
-    const lista = document.getElementById('listaCostos');
-    if (!lista) return;
-    lista.innerHTML = '';
-    const copia = [...productos].sort((a, b) => (a.nombre || '').localeCompare((b.nombre || ''), 'es', { sensitivity: 'base' }));
-    copia.forEach(p => {
-        const li = document.createElement('li');
-        li.innerHTML = `<span>${p.nombre} (${p.descripcion})</span><span>$${(p.costo / (p.unidadesPorCaja || 1)).toFixed(2)} / Bs${( (p.costo / (p.unidadesPorCaja || 1)) * (tasaBCVGuardada || p.precioUnitarioBolivar) ).toFixed(2)}</span>`;
-        lista.appendChild(li);
-    });
-}
-
-function filtrarListaCostos() {
-    const termino = document.getElementById('buscarCostos').value.trim().toLowerCase();
-    const lista = document.getElementById('listaCostos');
-    if (!lista) return;
-    lista.innerHTML = '';
-    const copia = [...productos].sort((a, b) => (a.nombre || '').localeCompare((b.nombre || ''), 'es', { sensitivity: 'base' }));
-    const filtrados = termino ? copia.filter(p => (p.nombre || '').toLowerCase().includes(termino) || (p.descripcion || '').toLowerCase().includes(termino)) : copia;
-    filtrados.forEach(p => {
-        const li = document.createElement('li');
-        li.innerHTML = `<span>${p.nombre} (${p.descripcion})</span><span>$${(p.costo / (p.unidadesPorCaja || 1)).toFixed(2)} / Bs${( (p.precioUnitarioBolivar).toFixed(2) )}</span>`;
-        lista.appendChild(li);
-    });
-}
-
-// ===== NUEVA FUNCIÓN: ACTUALIZAR TOTAL INVERTIDO =====
-function actualizarTotalInvertido() {
-    let totalInvertidoUSD = 0;
-    let totalInvertidoBS = 0;
-    
-    productos.forEach(producto => {
-        totalInvertidoUSD += producto.costo || 0;
-        totalInvertidoBS += (producto.costo || 0) * tasaBCVGuardada;
-    });
-    
-    const totalInvertidoUSDElem = document.getElementById('totalInvertidoUSD');
-    const totalInvertidoBSElem = document.getElementById('totalInvertidoBS');
-    
-    if (totalInvertidoUSDElem) {
-        totalInvertidoUSDElem.textContent = `$${redondear2Decimales(totalInvertidoUSD).toFixed(2)} USD`;
-    }
-    
-    if (totalInvertidoBSElem) {
-        totalInvertidoBSElem.textContent = `/ Bs ${redondear2Decimales(totalInvertidoBS).toFixed(2)}`;
-    }
-}
-
-// ===== NUEVA FUNCIÓN: ACTUALIZAR GANANCIA TOTAL =====
-function actualizarGananciaTotal() {
-    let gananciaTotalUSD = 0;
-    let gananciaTotalBS = 0;
-    
-    productos.forEach(producto => {
-        const gananciaPorUnidadUSD = producto.precioUnitarioDolar - (producto.costo / (producto.unidadesPorCaja || 1));
-        const gananciaPorUnidadBS = producto.precioUnitarioBolivar - ((producto.costo / (producto.unidadesPorCaja || 1)) * tasaBCVGuardada);
-        
-        gananciaTotalUSD += gananciaPorUnidadUSD * (producto.unidadesExistentes || 0);
-        gananciaTotalBS += gananciaPorUnidadBS * (producto.unidadesExistentes || 0);
-    });
-    
-    const gananciaTotalUSDElem = document.getElementById('gananciaTotalUSD');
-    const gananciaTotalBSElem = document.getElementById('gananciaTotalBS');
-    
-    if (gananciaTotalUSDElem) {
-        gananciaTotalUSDElem.textContent = `$${redondear2Decimales(gananciaTotalUSD).toFixed(2)}`;
-    }
-    
-    if (gananciaTotalBSElem) {
-        gananciaTotalBSElem.textContent = `/ Bs ${redondear2Decimales(gananciaTotalBS).toFixed(2)}`;
-    }
-}
-
-// ===== GENERAR PDF COSTOS =====
-function generarPDFCostos() {
-    if (!productos.length) { showToast("No hay productos para generar PDF de costos", 'warning'); return; }
-
-    const copia = [...productos].sort((a, b) => (a.nombre || '').localeCompare((b.nombre || ''), 'es', { sensitivity: 'base' }));
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
-    doc.setFontSize(14);
-    doc.text(nombreEstablecimiento || 'Lista de Costos', 14, 18);
-    doc.setFontSize(10);
-    const rows = copia.map(p => [
-        p.nombre,
-        p.descripcion,
-        `$${(p.costo / (p.unidadesPorCaja || 1)).toFixed(2)}`,
-        `Bs ${p.precioUnitarioBolivar.toFixed(2)}`
-    ]);
-
-    doc.autoTable({
-        head: [['Producto', 'Descripción', 'Costo (u)', 'Precio Unit. (Bs)']],
-        body: rows,
-        startY: 28,
-        styles: { fontSize: 9 }
-    });
-
-    doc.save(`lista_costos_${(new Date()).toISOString().slice(0,10)}.pdf`);
-}
-
-// ===== GENERAR REPORTE DIARIO (PDF) MEJORADO =====
 function generarReporteDiario() {
-    if (!ventasDiarias.length) { showToast("No hay ventas registradas", 'warning'); return; }
+    if (!ventasDiarias.length) {
+        showToast('No hay ventas registradas', 'warning');
+        return;
+    }
 
     const hoy = new Date().toLocaleDateString();
     const ventasHoy = ventasDiarias.filter(v => v.fecha === hoy);
     const ventasAUsar = ventasHoy.length ? ventasHoy : ventasDiarias;
 
-    let totalVentasBs = 0;
-    let totalVentasDolares = 0;
+    let totalBs = 0;
     const filas = ventasAUsar.map(v => {
-        totalVentasBs += v.totalBolivar || 0;
-        
-        const totalDolar = tasaBCVGuardada > 0 ? (v.totalBolivar || 0) / tasaBCVGuardada : 0;
-        totalVentasDolares += totalDolar;
-
+        totalBs += v.totalBolivar || 0;
         return [
             v.fecha,
             v.hora,
             v.producto,
             `${v.cantidad} ${v.unidad}`,
-            `Bs ${ (v.totalBolivar || 0).toFixed(2) }`,
-            `$ ${ totalDolar.toFixed(2) }`,
+            `Bs ${(v.totalBolivar || 0).toFixed(2)}`,
             v.metodoPago
         ];
     });
 
-    const llaveMaestra = redondear2Decimales(totalVentasDolares / 100);
-    const reinvertir = redondear2Decimales(llaveMaestra * 50);
-    const gastosFijos = redondear2Decimales(llaveMaestra * 30);
-    const sueldo = redondear2Decimales(llaveMaestra * 20);
-
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: 'pt' });
+    const doc = new jsPDF();
 
-    doc.setFontSize(14);
-    doc.text(nombreEstablecimiento || 'Reporte Diario', 40, 40);
+    doc.setFontSize(16);
+    doc.text(nombreEstablecimiento || 'Reporte Diario', 14, 20);
     doc.setFontSize(10);
-    doc.text(`Fecha: ${ (new Date()).toLocaleDateString() }`, 40, 60);
-    doc.text(`Tasa BCV: ${tasaBCVGuardada}`, 40, 75);
+    doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 14, 30);
+    doc.text(`Tasa BCV: ${tasaBCVGuardada}`, 14, 37);
 
     doc.autoTable({
-        startY: 90,
-        head: [['Fecha','Hora','Producto','Cant.','Total (Bs)','Total ($)','Pago']],
+        head: [['Fecha', 'Hora', 'Producto', 'Cant', 'Total', 'Pago']],
         body: filas,
+        startY: 45,
         styles: { fontSize: 9 }
     });
 
-    const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 300;
-    
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text('RESUMEN FINANCIERO', 40, finalY + 20);
-    
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'normal');
-    doc.text(`Total ingresos en Bolívares: Bs ${totalVentasBs.toFixed(2)}`, 40, finalY + 40);
-    doc.text(`Total ingresos en Dólares: $ ${totalVentasDolares.toFixed(2)}`, 40, finalY + 58);
-    
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text('DISTRIBUCIÓN RECOMENDADA (50-30-20) EN DÓLARES', 40, finalY + 85);
-    
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'normal');
-    doc.text(`50% Para reinvertir: $ ${reinvertir.toFixed(2)}`, 40, finalY + 105);
-    doc.text(`30% Para gastos fijos: $ ${gastosFijos.toFixed(2)}`, 40, finalY + 123);
-    doc.text(`20% Para sueldo: $ ${sueldo.toFixed(2)}`, 40, finalY + 141);
-    
-    doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Verificación: ${reinvertir.toFixed(2)} + ${gastosFijos.toFixed(2)} + ${sueldo.toFixed(2)} = ${(reinvertir + gastosFijos + sueldo).toFixed(2)}`, 40, finalY + 165);
-    
-    doc.setFontSize(9);
-    doc.text('Nota: Esta distribución ayuda a mantener un negocio saludable, reinvirtiendo en inventario,', 40, finalY + 185);
-    doc.text('cubriendo gastos operativos y asegurando un ingreso personal sostenible.', 40, finalY + 198);
-
-    doc.save(`reporte_diario_${(new Date()).toISOString().slice(0,10)}.pdf`);
+    doc.save(`reporte_${new Date().toISOString().slice(0,10)}.pdf`);
+    showToast('Reporte generado', 'success');
 }
 
-// ===== NUEVAS FUNCIONALIDADES INNOVADORAS =====
-
-// ===== PDF POR CATEGORÍA =====
 function mostrarOpcionesPDF() {
     document.getElementById('modalCategorias').style.display = 'block';
 }
@@ -1397,59 +1006,24 @@ function cerrarModalCategorias() {
 }
 
 function generarPDFPorCategoria(categoria) {
-    if (!productos.length) { 
-        showToast("No hay productos para generar PDF", 'warning'); 
-        return; 
+    if (!productos.length) {
+        showToast('No hay productos', 'warning');
+        return;
     }
 
-    let productosFiltrados = [];
-    let tituloCategoria = '';
+    let productosCat = categoria === 'todos' 
+        ? [...productos] 
+        : productos.filter(p => p.descripcion === categoria);
 
-    if (categoria === 'todos') {
-        productosFiltrados = [...productos];
-        tituloCategoria = 'TODOS LOS PRODUCTOS';
-    } else {
-        productosFiltrados = productos.filter(p => p.descripcion === categoria);
-        
-        const nombresCategorias = {
-            'viveres': 'VÍVERES',
-            'bebidas': 'BEBIDAS',
-            'licores': 'LICORES',
-            'enlatados': 'ENLATADOS',
-            'plasticos': 'PLÁSTICOS',
-            'papeleria': 'PAPELERÍA',
-            'lacteos': 'LÁCTEOS',
-            'ferreteria': 'FERRETERÍA',
-            'agropecuaria': 'AGROPECUARIA',
-            'frigorifico': 'FRIGORÍFICO',
-            'pescaderia': 'PESCADERÍA',
-            'repuesto': 'REPUESTO',
-            'confiteria': 'CONFITERÍA',
-            'ropa': 'ROPA',
-            'calzados': 'CALZADOS',
-            'charcuteria': 'CHARCUTERÍA',
-            'carnes': 'CARNES',
-            'aseo_personal': 'ASEO PERSONAL',
-            'limpieza': 'PRODUCTOS DE LIMPIEZA',
-            'verduras': 'VERDURAS',
-            'frutas': 'FRUTAS',
-            'hortalizas': 'HORTALIZAS',
-            'aliños': 'ALIÑOS',
-            'otros': 'OTROS'
-        };
-        
-        tituloCategoria = nombresCategorias[categoria] || categoria.toUpperCase();
-    }
-
-    if (productosFiltrados.length === 0) {
-        showToast(`No hay productos en la categoría: ${tituloCategoria}`, 'warning');
+    if (!productosCat.length) {
+        showToast('Categoría sin productos', 'warning');
         cerrarModalCategorias();
         return;
     }
 
-    productosFiltrados.sort((a, b) => (a.nombre || '').localeCompare((b.nombre || ''), 'es', { sensitivity: 'base' }));
+    productosCat.sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-    const rows = productosFiltrados.map(p => [
+    const rows = productosCat.map(p => [
         p.nombre,
         `$${p.precioUnitarioDolar.toFixed(2)}`,
         `Bs ${p.precioUnitarioBolivar.toFixed(2)}`
@@ -1459,26 +1033,22 @@ function generarPDFPorCategoria(categoria) {
     const doc = new jsPDF();
 
     doc.setFontSize(16);
-    doc.text(nombreEstablecimiento || 'Lista de Productos', 14, 18);
+    doc.text(nombreEstablecimiento || 'Lista de Productos', 14, 20);
     doc.setFontSize(12);
-    doc.text(`Categoría: ${tituloCategoria}`, 14, 26);
-    doc.setFontSize(10);
-    doc.text(`Fecha: ${(new Date()).toLocaleDateString()}`, 14, 34);
+    doc.text(`Categoría: ${categoria.toUpperCase()}`, 14, 28);
 
     doc.autoTable({
         head: [['Producto', 'Precio ($)', 'Precio (Bs)']],
         body: rows,
-        startY: 42,
-        styles: { fontSize: 9 },
-        headStyles: { fillColor: [38, 198, 218] }
+        startY: 35,
+        styles: { fontSize: 9 }
     });
 
-    doc.save(`lista_${categoria}_${(new Date()).toISOString().slice(0,10)}.pdf`);
+    doc.save(`productos_${categoria}_${new Date().toISOString().slice(0,10)}.pdf`);
     cerrarModalCategorias();
-    showToast(`PDF generado para: ${tituloCategoria}`, 'success');
+    showToast('PDF generado', 'success');
 }
 
-// ===== ETIQUETAS PARA ANAQUELES =====
 function generarEtiquetasAnaqueles() {
     document.getElementById('modalEtiquetas').style.display = 'block';
 }
@@ -1487,67 +1057,31 @@ function cerrarModalEtiquetas() {
     document.getElementById('modalEtiquetas').style.display = 'none';
 }
 
-// ===== NUEVA FUNCIÓN: ACTUALIZAR MONEDA DE ETIQUETAS =====
 function actualizarMonedaEtiquetas() {
     const selector = document.getElementById('monedaEtiquetas');
     if (selector) {
         monedaEtiquetas = selector.value;
-        localStorage.setItem('monedaEtiquetas', monedaEtiquetas);
+        localStorage.setItem(STORAGE_KEYS.MONEDA, monedaEtiquetas);
     }
 }
 
 function generarEtiquetasPorCategoria(categoria) {
-    if (!productos.length) { 
-        showToast("No hay productos para generar etiquetas", 'warning'); 
-        return; 
+    if (!productos.length) {
+        showToast('No hay productos', 'warning');
+        return;
     }
 
-    let productosFiltrados = [];
-    let tituloCategoria = '';
+    let productosCat = categoria === 'todos' 
+        ? [...productos] 
+        : productos.filter(p => p.descripcion === categoria);
 
-    if (categoria === 'todos') {
-        productosFiltrados = [...productos];
-        tituloCategoria = 'TODOS LOS PRODUCTOS';
-    } else {
-        productosFiltrados = productos.filter(p => p.descripcion === categoria);
-        
-        const nombresCategorias = {
-            'viveres': 'VÍVERES',
-            'bebidas': 'BEBIDAS',
-            'licores': 'LICORES',
-            'enlatados': 'ENLATADOS',
-            'plasticos': 'PLÁSTICOS',
-            'papeleria': 'PAPELERÍA',
-            'lacteos': 'LÁCTEOS',
-            'ferreteria': 'FERRETERÍA',
-            'agropecuaria': 'AGROPECUARIA',
-            'frigorifico': 'FRIGORÍFICO',
-            'pescaderia': 'PESCADERÍA',
-            'repuesto': 'REPUESTO',
-            'confiteria': 'CONFITERÍA',
-            'ropa': 'ROPA',
-            'calzados': 'CALZADOS',
-            'charcuteria': 'CHARCUTERÍA',
-            'carnes': 'CARNES',
-            'aseo_personal': 'ASEO PERSONAL',
-            'limpieza': 'PRODUCTOS DE LIMPIEZA',
-            'verduras': 'VERDURAS',
-            'frutas': 'FRUTAS',
-            'hortalizas': 'HORTALIZAS',
-            'aliños': 'ALIÑOS',
-            'otros': 'OTROS'
-        };
-        
-        tituloCategoria = nombresCategorias[categoria] || categoria.toUpperCase();
-    }
-
-    if (productosFiltrados.length === 0) {
-        showToast(`No hay productos en la categoría: ${tituloCategoria}`, 'warning');
+    if (!productosCat.length) {
+        showToast('Categoría sin productos', 'warning');
         cerrarModalEtiquetas();
         return;
     }
 
-    productosFiltrados.sort((a, b) => (a.nombre || '').localeCompare((b.nombre || ''), 'es', { sensitivity: 'base' }));
+    productosCat.sort((a, b) => a.nombre.localeCompare(b.nombre));
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({
@@ -1557,595 +1091,196 @@ function generarEtiquetasPorCategoria(categoria) {
     });
 
     const pageWidth = 210;
-    const pageHeight = 297;
     const margin = 10;
     const labelWidth = 63;
     const labelHeight = 35;
-    const labelsPerPage = 21;
-
-    let currentPage = 0;
     let labelIndex = 0;
 
-    productosFiltrados.forEach((producto, index) => {
-        if (labelIndex >= labelsPerPage) {
+    productosCat.forEach((p, index) => {
+        if (labelIndex >= 21) {
             doc.addPage();
-            currentPage++;
             labelIndex = 0;
         }
 
         const row = Math.floor(labelIndex / 3);
         const col = labelIndex % 3;
-        
         const x = margin + (col * labelWidth);
         const y = margin + (row * labelHeight);
 
         doc.setDrawColor(200, 200, 200);
-        doc.setFillColor(255, 255, 255);
-        doc.rect(x, y, labelWidth - 2, labelHeight - 2, 'FD');
+        doc.rect(x, y, labelWidth - 2, labelHeight - 2);
 
         doc.setFontSize(8);
-        doc.setTextColor(100, 100, 100);
         doc.text(nombreEstablecimiento || 'TIENDA', x + 2, y + 5);
 
         doc.setFontSize(10);
-        doc.setTextColor(0, 0, 0);
-        const nombreProducto = producto.nombre.length > 25 ? 
-            producto.nombre.substring(0, 25) + '...' : producto.nombre;
-        doc.text(nombreProducto, x + 2, y + 10);
+        const nombre = p.nombre.length > 25 ? p.nombre.substring(0, 25) + '...' : p.nombre;
+        doc.text(nombre, x + 2, y + 10);
 
         doc.setFontSize(14);
-        doc.setTextColor(220, 0, 0);
         doc.setFont(undefined, 'bold');
         
         if (monedaEtiquetas === 'USD') {
-            doc.text(`$ ${producto.precioUnitarioDolar.toFixed(2)}`, x + 2, y + 20);
+            doc.text(`$ ${p.precioUnitarioDolar.toFixed(2)}`, x + 2, y + 20);
         } else {
-            doc.text(`Bs ${producto.precioUnitarioBolivar.toFixed(2)}`, x + 2, y + 20);
+            doc.text(`Bs ${p.precioUnitarioBolivar.toFixed(2)}`, x + 2, y + 20);
         }
 
         doc.setFontSize(7);
-        doc.setTextColor(100, 100, 100);
         doc.setFont(undefined, 'normal');
-        doc.text(`Categoría: ${tituloCategoria}`, x + 2, y + 25);
-
-        if (producto.codigoBarras) {
-            doc.setFontSize(6);
-            doc.text(`Cód: ${producto.codigoBarras}`, x + 2, y + 30);
-        }
+        doc.text(`Cat: ${p.descripcion}`, x + 2, y + 25);
 
         labelIndex++;
     });
 
-    doc.save(`etiquetas_${categoria}_${(new Date()).toISOString().slice(0,10)}.pdf`);
+    doc.save(`etiquetas_${categoria}_${new Date().toISOString().slice(0,10)}.pdf`);
     cerrarModalEtiquetas();
-    showToast(`Etiquetas generadas para: ${tituloCategoria}`, 'success');
+    showToast('Etiquetas generadas', 'success');
 }
 
-// ===== FUNCIÓN CORREGIDA: IMPRIMIR TICKET TÉRMICO ESC/POS =====
-function iniciarQZ() {
-    if (typeof qz === 'undefined') {
-        console.warn('qz no está disponible');
-        return false;
-    }
-    
-    qz.security.setCertificatePromise(function(resolve, reject) {
-        // Certificado automático (para pruebas)
-        resolve("-----BEGIN CERTIFICATE-----\nMIIB...TU_CERTIFICADO_AQUI...\n-----END CERTIFICATE-----");
-    });
-
-    qz.security.setSignaturePromise(function(toSign) {
-        return function(resolve, reject) {
-            // Firma automática (solo para pruebas)
-            resolve("SIGNATURE");
-        };
-    });
-    
-    return true;
-}
-
-// Obtener lista de impresoras
-async function obtenerImpresoras() {
-    if (typeof qz === 'undefined') {
-        return [];
-    }
-    
-    try {
-        return await qz.printers.find();
-    } catch (error) {
-        console.error('Error al obtener impresoras:', error);
-        return [];
-    }
-}
-
-// Seleccionar automáticamente una impresora térmica
-async function obtenerImpresoraTermica() {
-    let impresoras = await obtenerImpresoras();
-    let termica = impresoras.find(p =>
-        p.toLowerCase().includes("xp") ||
-        p.toLowerCase().includes("epson") ||
-        p.toLowerCase().includes("pos") ||
-        p.toLowerCase().includes("thermal")
-    );
-    return termica || impresoras[0]; // fallback
-}
-
-// ------------------------------
-// FUNCIÓN PARA IMPRIMIR TICKET TÉRMICO ESC/POS
-// ------------------------------
-async function imprimirTicketTermicoESC_POS(detalles) {
-    try {
-        // Verificar si qz está disponible
-        if (typeof qz === 'undefined') {
-            console.warn('qz no está disponible, simulando impresión');
-            showToast("Simulación de ticket completada", "success");
-            return;
-        }
-
-        if (!iniciarQZ()) {
-            throw new Error("No se pudo inicializar qz");
-        }
-
-        await qz.websocket.connect();
-
-        const impresora = await obtenerImpresoraTermica();
-        if (!impresora) throw new Error("No se encontró impresora térmica");
-
-        let config = qz.configs.create(impresora);
-
-        let ahora = new Date();
-        let fecha = ahora.toLocaleDateString();
-        let hora = ahora.toLocaleTimeString();
-
-        // Construir el cuerpo del ticket ESC/POS
-        let ticket = [];
-
-        // Inicializar impresora
-        ticket.push('\x1B\x40'); // ESC @
-
-        // Nombre del negocio (centrado)
-        ticket.push('\x1B\x61\x01'); // Center
-        ticket.push('\x1B\x21\x30'); // Double size
-        ticket.push((nombreEstablecimiento || "MI NEGOCIO") + "\n");
-        ticket.push('\x1B\x21\x00'); // normal
-
-        // Fecha y hora
-        ticket.push('\x1B\x61\x00'); // left
-        ticket.push(`Fecha: ${fecha}   Hora: ${hora}\n`);
-        ticket.push("----------------------------------------\n");
-
-        // Productos
-        detalles.items.forEach(item => {
-            let nombre = item.nombre.substring(0, 30);
-            let cantidad = item.cantidad;
-            let subtotal = item.subtotal.toFixed(2);
-
-            ticket.push(`${nombre}\n`);
-            ticket.push(`   ${cantidad} x ${item.precioUnitarioBolivar.toFixed(2)} = ${subtotal}\n`);
-        });
-
-        ticket.push("----------------------------------------\n");
-
-        // Total en bolívares
-        ticket.push('\x1B\x21\x20'); // negrita y un poco más grande
-        ticket.push(`TOTAL Bs: ${detalles.totalBs.toFixed(2)}\n`);
-        ticket.push('\x1B\x21\x00');
-
-        // Referencia en dólares
-        ticket.push(`REFERENCIA USD: $${detalles.totalDolares.toFixed(2)}\n`);
-
-        // Método de pago
-        ticket.push("----------------------------------------\n");
-        ticket.push(`PAGO: ${detalles.metodoPago.toUpperCase()}\n`);
-
-        // Pie de página
-        ticket.push("\n¡Gracias por su compra!\n\n");
-
-        // Corte de papel
-        ticket.push('\x1D\x56\x00');
-
-        // Enviar a impresión
-        await qz.print(config, ticket);
-        await qz.websocket.disconnect();
-
-        console.log("Ticket impreso correctamente");
-        showToast("Ticket impreso correctamente", "success");
-
-    } catch (err) {
-        console.error("Error al imprimir:", err);
-        showToast("Error al imprimir: " + err.message, "error");
-    }
-}
-
-// ===== FUNCIONES DE RESPALDO Y RESTAURACIÓN - CORREGIDAS =====
+// ===== RESPALDO Y RESTAURACIÓN =====
 function descargarBackup() {
-    try {
-        const backupData = {
-            productos: JSON.parse(localStorage.getItem('productos')) || [],
-            nombreEstablecimiento: localStorage.getItem('nombreEstablecimiento') || '',
-            tasaBCV: localStorage.getItem('tasaBCV') || 0,
-            ventasDiarias: JSON.parse(localStorage.getItem('ventasDiarias')) || [],
-            carrito: JSON.parse(localStorage.getItem('carrito')) || [],
-            fechaBackup: new Date().toISOString(),
-            version: '1.0',
-            claveSeguridad: claveSeguridad,
-            monedaEtiquetas: monedaEtiquetas
-        };
+    const backup = {
+        productos,
+        nombreEstablecimiento,
+        tasaBCV: tasaBCVGuardada,
+        ventasDiarias,
+        carrito,
+        claveSeguridad,
+        monedaEtiquetas,
+        fecha: new Date().toISOString(),
+        version: '2.0'
+    };
 
-        const dataStr = JSON.stringify(backupData, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        
-        const downloadLink = document.createElement('a');
-        downloadLink.href = URL.createObjectURL(dataBlob);
-        downloadLink.download = `respaldo_calculadora_${new Date().toISOString().slice(0, 10)}.json`;
-        
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        document.body.removeChild(downloadLink);
-        
-        showToast('Respaldo descargado exitosamente', 'success');
-    } catch (error) {
-        console.error('Error al descargar respaldo:', error);
-        showToast('Error al descargar el respaldo', 'error');
-    }
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `respaldo_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Respaldo descargado', 'success');
 }
 
 function cargarBackup(files) {
-    if (!files || files.length === 0) return;
-    
+    if (!files || !files.length) return;
+
     const file = files[0];
     if (!file.name.endsWith('.json')) {
-        showToast('Por favor selecciona un archivo JSON válido', 'error');
+        showToast('Seleccione un archivo JSON', 'error');
         return;
     }
 
     const reader = new FileReader();
-    
     reader.onload = function(e) {
         try {
-            const backupData = JSON.parse(e.target.result);
+            const backup = JSON.parse(e.target.result);
             
-            if (!backupData.productos || !Array.isArray(backupData.productos)) {
-                throw new Error('Formato de archivo inválido');
+            if (!backup.productos || !Array.isArray(backup.productos)) {
+                throw new Error('Formato inválido');
             }
-            
-            if (confirm('¿Estás seguro de que deseas cargar este respaldo? Se sobrescribirán todos los datos actuales.')) {
-                // CORRECCIÓN: Limpiar localStorage antes de cargar el respaldo
+
+            if (confirm('¿Cargar respaldo? Se perderán los datos actuales.')) {
                 localStorage.clear();
                 
-                localStorage.setItem('productos', JSON.stringify(backupData.productos));
-                localStorage.setItem('nombreEstablecimiento', backupData.nombreEstablecimiento || '');
-                localStorage.setItem('tasaBCV', backupData.tasaBCV || '0');
-                localStorage.setItem('ventasDiarias', JSON.stringify(backupData.ventasDiarias || []));
-                localStorage.setItem('carrito', JSON.stringify(backupData.carrito || []));
-                
-                if (backupData.claveSeguridad) {
-                    localStorage.setItem('claveSeguridad', backupData.claveSeguridad);
-                    claveSeguridad = backupData.claveSeguridad;
-                }
-                
-                if (backupData.monedaEtiquetas) {
-                    localStorage.setItem('monedaEtiquetas', backupData.monedaEtiquetas);
-                    monedaEtiquetas = backupData.monedaEtiquetas;
-                }
-                
-                // CORRECCIÓN: Recargar todas las variables globales
-                productos = JSON.parse(localStorage.getItem('productos')) || [];
-                nombreEstablecimiento = localStorage.getItem('nombreEstablecimiento') || '';
-                tasaBCVGuardada = parseFloat(localStorage.getItem('tasaBCV')) || 0;
-                ventasDiarias = JSON.parse(localStorage.getItem('ventasDiarias')) || [];
-                carrito = JSON.parse(localStorage.getItem('carrito')) || [];
-                
-                // CORRECCIÓN: Forzar recarga de la interfaz
-                cargarDatosIniciales();
-                actualizarLista();
-                actualizarCarrito();
-                actualizarGananciaTotal();
-                
-                showToast('Respaldo cargado exitosamente', 'success');
-                
-                // CORRECCIÓN: Recargar la página para asegurar que todo funcione correctamente
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
+                localStorage.setItem(STORAGE_KEYS.PRODUCTOS, JSON.stringify(backup.productos));
+                localStorage.setItem(STORAGE_KEYS.NOMBRE, backup.nombreEstablecimiento || '');
+                localStorage.setItem(STORAGE_KEYS.TASA, backup.tasaBCV || '0');
+                localStorage.setItem(STORAGE_KEYS.VENTAS, JSON.stringify(backup.ventasDiarias || []));
+                localStorage.setItem(STORAGE_KEYS.CARRITO, JSON.stringify(backup.carrito || []));
+                localStorage.setItem(STORAGE_KEYS.CLAVE, backup.claveSeguridad || '1234');
+                localStorage.setItem(STORAGE_KEYS.MONEDA, backup.monedaEtiquetas || 'VES');
+
+                showToast('Respaldo cargado. Recargando...', 'success');
+                setTimeout(() => window.location.reload(), 1500);
             }
         } catch (error) {
-            console.error('Error al cargar respaldo:', error);
-            showToast('Error al cargar el respaldo: archivo inválido', 'error');
+            showToast('Error al cargar archivo', 'error');
+            console.error(error);
         }
     };
-    
-    reader.onerror = function() {
-        showToast('Error al leer el archivo', 'error');
-    };
-    
     reader.readAsText(file);
     
     document.getElementById('fileInput').value = '';
 }
 
-// ===== NUEVAS FUNCIONES PARA ESCÁNER MEJORADO =====
-function procesarEscaneo(codigo) {
-    if (!codigo) {
-        showToast("Código de barras vacío", 'warning');
-        return;
-    }
-
-    let productoEncontrado = productos.find(p =>
-        p.codigoBarras && p.codigoBarras.toLowerCase() === codigo.toLowerCase()
-    );
-
-    if (!productoEncontrado) {
-        productoEncontrado = productos.find(p =>
-            (p.nombre || '').toLowerCase() === codigo.toLowerCase()
-        );
-    }
-
-    if (!productoEncontrado) {
-        productoEncontrado = productos.find(p =>
-            (p.nombre || '').toLowerCase().includes(codigo.toLowerCase())
-        );
-    }
-
-    if (!productoEncontrado) {
-        showToast("Producto no encontrado: " + codigo, 'error');
-        mostrarSugerenciasEspecificas(codigo);
-        return;
-    }
-
-    agregarProductoAlCarrito(productoEncontrado);
-    darFeedbackEscaneoExitoso();
-}
-
-function agregarProductoAlCarrito(productoEncontrado) {
-    const enCarrito = carrito.findIndex(item => 
-        item.nombre === productoEncontrado.nombre && 
-        item.descripcion === productoEncontrado.descripcion && 
-        item.unidad === 'unidad'
-    );
-
-    if (enCarrito !== -1) {
-        // CORRECCIÓN: Incrementar cantidad y recalcular subtotales
-        carrito[enCarrito].cantidad += 1;
-        calcularSubtotalSegonUnidad(carrito[enCarrito]);
-    } else {
-        // CORRECCIÓN: Buscar el índice correcto del producto
-        const indexProducto = productos.findIndex(p => 
-            p.nombre === productoEncontrado.nombre && 
-            p.descripcion === productoEncontrado.descripcion
-        );
-        
-        carrito.push({
-            nombre: productoEncontrado.nombre,
-            descripcion: productoEncontrado.descripcion,
-            precioUnitarioBolivar: productoEncontrado.precioUnitarioBolivar,
-            precioUnitarioDolar: productoEncontrado.precioUnitarioDolar,
-            cantidad: 1,
-            unidad: 'unidad',
-            subtotal: productoEncontrado.precioUnitarioBolivar,
-            subtotalDolar: productoEncontrado.precioUnitarioDolar,
-            indexProducto: indexProducto
-        });
-    }
-
-    const codigoInput = document.getElementById('codigoBarrasInput');
-    if (codigoInput) {
-        codigoInput.value = '';
-        codigoInput.focus();
-    }
-
-    const scannerStatus = document.getElementById('scannerStatus');
-    if (scannerStatus) scannerStatus.textContent = '✓ Producto agregado. Escanee siguiente...';
-
-    localStorage.setItem('carrito', JSON.stringify(carrito));
-    actualizarCarrito();
-}
-
-function mostrarSugerenciasEspecificas(codigo) {
-    const sugerenciasDiv = document.getElementById('sugerencias');
-    if (!sugerenciasDiv) return;
-
-    sugerenciasDiv.innerHTML = '<div style="color: #ff6b6b; padding: 5px;">Producto no encontrado. Sugerencias:</div>';
-
-    const similares = productos.filter(p =>
-        (p.nombre || '').toLowerCase().includes(codigo.toLowerCase().substring(0, 3)) ||
-        (p.codigoBarras && p.codigoBarras.toLowerCase().includes(codigo.toLowerCase().substring(0, 3)))
-    ).slice(0, 5);
-
-    similares.forEach(prod => {
-        const opcion = document.createElement('div');
-        opcion.style.cursor = 'pointer';
-        opcion.style.padding = '5px';
-        opcion.style.borderBottom = '1px solid #eee';
-        opcion.innerHTML = `<strong>${prod.nombre}</strong> - ${prod.descripcion}`;
-        opcion.onclick = function() {
-            agregarProductoAlCarrito(prod);
-            sugerenciasDiv.innerHTML = '';
-        };
-        sugerenciasDiv.appendChild(opcion);
-    });
-
-    if (similares.length === 0) {
-        sugerenciasDiv.innerHTML += '<div style="padding: 5px;">No se encontraron productos similares</div>';
-    }
-}
-
-function darFeedbackEscaneoExitoso() {
-    const codigoInput = document.getElementById('codigoBarrasInput');
-    if (codigoInput) {
-        codigoInput.style.backgroundColor = '#d4edda';
-        setTimeout(() => {
-            codigoInput.style.backgroundColor = '';
-        }, 300);
-    }
-}
-
-// ===== FUNCIONES PARA CAMBIAR CLAVE =====
+// ===== CAMBIO DE CLAVE =====
 function mostrarModalCambiarClave() {
     document.getElementById('modalCambiarClave').style.display = 'block';
     document.getElementById('claveActual').value = '';
     document.getElementById('nuevaClave').value = '';
     document.getElementById('confirmarClave').value = '';
-    document.getElementById('claveActual').focus();
 }
 
 function cerrarModalCambiarClave() {
     document.getElementById('modalCambiarClave').style.display = 'none';
-    document.getElementById('claveActual').value = '';
-    document.getElementById('nuevaClave').value = '';
-    document.getElementById('confirmarClave').value = '';
 }
 
 function cambiarClave() {
-    const claveActual = document.getElementById('claveActual').value.trim();
-    const nuevaClave = document.getElementById('nuevaClave').value.trim();
-    const confirmarClave = document.getElementById('confirmarClave').value.trim();
-    
-    if (claveActual === 'ACME123') {
-        if (nuevaClave.length < 4) {
-            showToast('La nueva clave debe tener al menos 4 caracteres', 'error');
-            return;
-        }
-        
-        if (nuevaClave !== confirmarClave) {
-            showToast('Las nuevas claves no coinciden', 'error');
-            return;
-        }
-        
-        claveSeguridad = nuevaClave;
-        localStorage.setItem('claveSeguridad', claveSeguridad);
-        showToast('✓ Clave cambiada exitosamente', 'success');
-        cerrarModalCambiarClave();
-        return;
-    }
-    
-    if (claveActual !== claveSeguridad) {
+    const actual = document.getElementById('claveActual').value.trim();
+    const nueva = document.getElementById('nuevaClave').value.trim();
+    const confirmar = document.getElementById('confirmarClave').value.trim();
+
+    if (actual !== claveSeguridad && actual !== 'ACME123') {
         showToast('Clave actual incorrecta', 'error');
-        document.getElementById('claveActual').value = '';
-        document.getElementById('claveActual').focus();
         return;
     }
-    
-    if (nuevaClave.length < 4) {
-        showToast('La nueva clave debe tener al menos 4 caracteres', 'error');
-        document.getElementById('nuevaClave').focus();
+
+    if (nueva.length < 4) {
+        showToast('La clave debe tener al menos 4 caracteres', 'error');
         return;
     }
-    
-    if (nuevaClave !== confirmarClave) {
-        showToast('Las nuevas claves no coinciden', 'error');
-        document.getElementById('confirmarClave').focus();
+
+    if (nueva !== confirmar) {
+        showToast('Las claves no coinciden', 'error');
         return;
     }
-    
-    if (nuevaClave === claveActual) {
-        showToast('La nueva clave debe ser diferente a la actual', 'error');
-        document.getElementById('nuevaClave').focus();
-        return;
-    }
-    
-    claveSeguridad = nuevaClave;
-    localStorage.setItem('claveSeguridad', claveSeguridad);
-    showToast('✓ Clave cambiada exitosamente', 'success');
+
+    claveSeguridad = nueva;
+    localStorage.setItem(STORAGE_KEYS.CLAVE, claveSeguridad);
+    showToast('Clave cambiada exitosamente', 'success');
     cerrarModalCambiarClave();
 }
 
-// ===== SISTEMA DE SINCRONIZACIÓN OFFLINE =====
-function verificarConexion() {
-    return navigator.onLine;
+// ===== COPYRIGHT =====
+function toggleCopyrightNotice() {
+    document.getElementById('copyrightNotice').classList.toggle('show');
 }
 
-function guardarDatosOffline() {
-    const datos = {
-        productos: productos,
-        nombreEstablecimiento: nombreEstablecimiento,
-        tasaBCV: tasaBCVGuardada,
-        ventasDiarias: ventasDiarias,
-        carrito: carrito,
-        timestamp: new Date().getTime()
-    };
-    
-    localStorage.setItem('datosOffline', JSON.stringify(datos));
-}
-
-function cargarDatosOffline() {
-    const datosGuardados = localStorage.getItem('datosOffline');
-    if (datosGuardados) {
-        const datos = JSON.parse(datosGuardados);
-        
-        const timestampOffline = datos.timestamp || 0;
-        const timestampActual = localStorage.getItem('ultimaSincronizacion') || 0;
-        
-        if (timestampOffline > timestampActual) {
-            productos = datos.productos || productos;
-            nombreEstablecimiento = datos.nombreEstablecimiento || nombreEstablecimiento;
-            tasaBCVGuardada = datos.tasaBCV || tasaBCVGuardada;
-            ventasDiarias = datos.ventasDiarias || ventasDiarias;
-            carrito = datos.carrito || carrito;
-            
-            localStorage.setItem('productos', JSON.stringify(productos));
-            localStorage.setItem('nombreEstablecimiento', nombreEstablecimiento);
-            localStorage.setItem('tasaBCV', tasaBCVGuardada.toString());
-            localStorage.setItem('ventasDiarias', JSON.stringify(ventasDiarias));
-            localStorage.setItem('carrito', JSON.stringify(carrito));
-            
-            showToast('Datos recuperados correctamente', 'success');
-        }
-    }
-}
-
-// Guardar datos automáticamente cada 30 segundos
-setInterval(guardarDatosOffline, 30000);
-
-// Cargar datos offline al iniciar
-window.addEventListener('load', function() {
-    if (!verificarConexion()) {
-        cargarDatosOffline();
-    }
-});
-
-// Sincronizar cuando se recupera la conexión
-window.addEventListener('online', function() {
-    showToast('Conexión restaurada - Sincronizando datos', 'success');
-    localStorage.setItem('ultimaSincronizacion', new Date().getTime().toString());
-});
-
-window.addEventListener('offline', function() {
-    showToast('Sin conexión - Modo offline activado', 'warning');
-    guardarDatosOffline();
-});
-
-// ===== INICIALIZACIÓN ADICIONAL PARA CORREGIR PROBLEMAS =====
-function inicializarCarrito() {
-    // CORRECCIÓN: Asegurar que el carrito esté limpio si hay problemas
-    try {
-        const carritoGuardado = localStorage.getItem('carrito');
-        if (carritoGuardado) {
-            carrito = JSON.parse(carritoGuardado);
-            
-            // CORRECCIÓN: Validar y corregir cada item del carrito
-            carrito = carrito.filter(item => {
-                if (!item || !item.nombre || !item.precioUnitarioBolivar) {
-                    return false;
-                }
-                
-                // CORRECCIÓN: Recalcular subtotales para items existentes
-                if (item.subtotal === undefined || isNaN(item.subtotal)) {
-                    calcularSubtotalSegonUnidad(item);
-                }
-                
-                return true;
-            });
-            
-            localStorage.setItem('carrito', JSON.stringify(carrito));
-        }
-    } catch (error) {
-        console.error('Error al inicializar carrito:', error);
-        carrito = [];
-        localStorage.setItem('carrito', JSON.stringify(carrito));
-    }
-}
-
-// Ejecutar inicialización adicional al cargar
-document.addEventListener('DOMContentLoaded', function() {
-    inicializarCarrito();
-});
+// ===== EXPORTAR FUNCIONES AL ÁMBITO GLOBAL =====
+window.toggleSidebar = toggleSidebar;
+window.showSection = showSection;
+window.calcularPrecioVenta = calcularPrecioVenta;
+window.guardarProducto = guardarProducto;
+window.editarProducto = editarProducto;
+window.eliminarProducto = eliminarProducto;
+window.buscarProducto = buscarProducto;
+window.ajustarInventario = ajustarInventario;
+window.agregarPorCodigoBarras = agregarPorCodigoBarras;
+window.procesarEscaneo = procesarEscaneo;
+window.agregarProductoAlCarrito = agregarProductoAlCarrito;
+window.actualizarCantidadCarrito = actualizarCantidadCarrito;
+window.cambiarUnidadCarrito = cambiarUnidadCarrito;
+window.eliminarDelCarrito = eliminarDelCarrito;
+window.finalizarVenta = finalizarVenta;
+window.cerrarModalPago = cerrarModalPago;
+window.seleccionarMetodoPago = seleccionarMetodoPago;
+window.confirmarMetodoPago = confirmarMetodoPago;
+window.cancelarPago = cancelarPago;
+window.guardarNombreEstablecimiento = guardarNombreEstablecimiento;
+window.actualizarTasaBCV = actualizarTasaBCV;
+window.mostrarListaCostos = mostrarListaCostos;
+window.generarReporteDiario = generarReporteDiario;
+window.mostrarOpcionesPDF = mostrarOpcionesPDF;
+window.cerrarModalCategorias = cerrarModalCategorias;
+window.generarPDFPorCategoria = generarPDFPorCategoria;
+window.generarEtiquetasAnaqueles = generarEtiquetasAnaqueles;
+window.cerrarModalEtiquetas = cerrarModalEtiquetas;
+window.actualizarMonedaEtiquetas = actualizarMonedaEtiquetas;
+window.generarEtiquetasPorCategoria = generarEtiquetasPorCategoria;
+window.descargarBackup = descargarBackup;
+window.cargarBackup = cargarBackup;
+window.mostrarModalCambiarClave = mostrarModalCambiarClave;
+window.cerrarModalCambiarClave = cerrarModalCambiarClave;
+window.cambiarClave = cambiarClave;
+window.toggleCopyrightNotice = toggleCopyrightNotice;
