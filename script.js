@@ -17,6 +17,9 @@ const MIN_INTERVALO_MS = 80;
 let tiempoUltimaTecla = 0;
 let bufferEscaneo = '';
 
+// ===== NUEVA VARIABLE PARA CONTROL DE REDIRECCIÓN =====
+let redireccionEnCurso = false;
+
 // --- Función de rate limit ---
 function permitirEjecucion() {
     const ahora = Date.now();
@@ -49,6 +52,99 @@ function cargarDatosSeguros() {
         ventasDiarias = [];
         carrito = [];
     }
+}
+
+// ===== NUEVA LÓGICA DE REDIRECCIÓN CORREGIDA =====
+(function() {
+    const SESSION_KEY = 'calculadora_magica_session';
+    const URL_REDIRECCION_PORTAL = "http://portal.calculadoramagica.lat/";
+    
+    // Verificar si venimos de una redirección por inactividad
+    const urlParams = new URLSearchParams(window.location.search);
+    const vieneDeRedireccion = urlParams.has('from') && urlParams.get('from') === 'inactivity';
+    const sessionValida = sessionStorage.getItem(SESSION_KEY);
+    
+    // Si NO hay sesión válida Y NO venimos de una redirección, redirigir al portal
+    if (!sessionValida && !vieneDeRedireccion) {
+        console.log('No hay sesión activa. Redirigiendo al portal...');
+        window.location.href = URL_REDIRECCION_PORTAL;
+        return;
+    }
+    
+    // Si venimos de una redirección, establecer sesión automáticamente
+    if (vieneDeRedireccion) {
+        console.log('Acceso desde redirección por inactividad. Estableciendo sesión.');
+        sessionStorage.setItem(SESSION_KEY, 'activa_' + Date.now());
+        
+        // Limpiar el parámetro de la URL sin recargar la página
+        const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+    }
+})();
+
+// ===== SISTEMA DE REDIRECCIÓN POR INACTIVIDAD MEJORADO =====
+const TIEMPO_INACTIVIDAD = 4 * 60 * 1000; // 4 minutos
+const URL_REDIRECCION = "http://portal.calculadoramagica.lat/";
+
+let temporizadorInactividad;
+let ultimaActividad = Date.now();
+
+function registrarActividad() {
+    ultimaActividad = Date.now();
+    reiniciarTemporizador();
+}
+
+function reiniciarTemporizador() {
+    // Guardar última actividad
+    localStorage.setItem('ultimaActividad', Date.now().toString());
+    
+    // Limpiar temporizador anterior
+    if (temporizadorInactividad) {
+        clearTimeout(temporizadorInactividad);
+    }
+    
+    // Establecer nuevo temporizador
+    temporizadorInactividad = setTimeout(() => {
+        // Verificar si realmente ha pasado el tiempo suficiente
+        const tiempoTranscurrido = Date.now() - ultimaActividad;
+        
+        if (tiempoTranscurrido >= TIEMPO_INACTIVIDAD && !redireccionEnCurso) {
+            console.log('Redirigiendo por inactividad después de', Math.round(tiempoTranscurrido / 1000), 'segundos');
+            redireccionEnCurso = true;
+            
+            // Limpiar sesión
+            sessionStorage.removeItem('calculadora_magica_session');
+            
+            // Redirigir CON un parámetro para indicar que es por inactividad
+            window.location.href = URL_REDIRECCION + '?from=inactivity';
+        }
+    }, TIEMPO_INACTIVIDAD);
+}
+
+function inicializarSistemaInactividad() {
+    // Registrar eventos de actividad
+    ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click', 'input'].forEach(evento => {
+        document.addEventListener(evento, registrarActividad, { passive: true });
+    });
+    
+    // Verificar si hay una última actividad guardada
+    const ultimaActividadGuardada = localStorage.getItem('ultimaActividad');
+    if (ultimaActividadGuardada) {
+        ultimaActividad = parseInt(ultimaActividadGuardada);
+        
+        // Si ha pasado más del tiempo de inactividad, redirigir
+        const tiempoTranscurrido = Date.now() - ultimaActividad;
+        if (tiempoTranscurrido >= TIEMPO_INACTIVIDAD && !redireccionEnCurso) {
+            console.log('Sesión expirada al cargar. Redirigiendo...');
+            redireccionEnCurso = true;
+            sessionStorage.removeItem('calculadora_magica_session');
+            window.location.href = URL_REDIRECCION + '?from=inactivity';
+            return;
+        }
+    }
+    
+    // Iniciar temporizador
+    reiniciarTemporizador();
 }
 
 // ===== NUEVA FUNCIÓN: LIMPIEZA DE DATOS ANTIGUOS =====
@@ -91,9 +187,9 @@ function limpiarDatosViejos() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Calculadora Optimizada iniciada');
     cargarDatosSeguros();
-    inicializarSistemaInactividad();
-    llenarModalesCategorias(); // Llenar los modales dinámicamente
-    llenarMetodosPago(); // Llenar métodos de pago
+    inicializarSistemaInactividad(); // Inicializar sistema de inactividad
+    llenarModalesCategorias();
+    llenarMetodosPago();
     actualizarLista();
     actualizarCarrito();
     configurarEventos();
@@ -103,7 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
     cargarDatosInicialesUI();
 });
 
-// ===== LLENAR MODALES DE CATEGORÍAS (Dinámico) =====
+// ===== LLENAR MODALES DE CATEGORÍAS =====
 function llenarModalesCategorias() {
     const categorias = [
         { valor: 'todos', texto: 'TODOS LOS PRODUCTOS' },
@@ -241,7 +337,7 @@ function actualizarTasaBCV() {
     showToast(`Tasa BCV actualizada a: ${nuevaTasa}`, 'success');
 }
 
-// ===== GUARDAR PRODUCTO (Optimizado) =====
+// ===== GUARDAR PRODUCTO =====
 function guardarProducto() {
     if (!permitirEjecucion()) return;
 
@@ -301,7 +397,7 @@ function guardarProducto() {
     document.getElementById('precioUnitario').innerHTML = 'Precio unitario: ';
 }
 
-// ===== LISTA DE PRODUCTOS (Optimizada) =====
+// ===== LISTA DE PRODUCTOS =====
 function actualizarLista() {
     const tbody = document.querySelector('#listaProductos tbody');
     if (!tbody) return;
@@ -340,7 +436,7 @@ function actualizarLista() {
     tbody.appendChild(fragment);
 }
 
-// ===== BUSCAR PRODUCTO (Optimizado con debounce) =====
+// ===== BUSCAR PRODUCTO =====
 let timeoutBusqueda;
 function buscarProducto() {
     clearTimeout(timeoutBusqueda);
@@ -358,10 +454,10 @@ function buscarProducto() {
             (p.codigoBarras && p.codigoBarras.toLowerCase().includes(termino))
         );
         actualizarLista();
-    }, 300); // Debounce de 300ms
+    }, 300);
 }
 
-// ===== AJUSTAR INVENTARIO (Simplificado) =====
+// ===== AJUSTAR INVENTARIO =====
 function ajustarInventario(index, operacion) {
     if (!permitirEjecucion()) return;
 
@@ -465,7 +561,7 @@ function actualizarGananciaTotal() {
     if (elemBS) elemBS.textContent = `/ Bs ${redondear2Decimales(gananciaBS).toFixed(2)}`;
 }
 
-// ===== CARRITO (Corregido) =====
+// ===== CARRITO =====
 function calcularSubtotalSegunUnidad(item) {
     const producto = productos[item.indexProducto];
     if (!producto) return;
@@ -652,7 +748,7 @@ function eliminarDelCarrito(index) {
     actualizarCarrito();
 }
 
-// ===== FUNCIONES DE VENTA (Simplificadas) =====
+// ===== FUNCIONES DE VENTA =====
 function finalizarVenta() {
     if (carrito.length === 0) return showToast("El carrito está vacío", 'warning');
     const totalBs = carrito.reduce((sum, item) => sum + (item.subtotal || 0), 0);
@@ -824,7 +920,7 @@ function cambiarClave() {
     cerrarModalCambiarClave();
 }
 
-// ===== LISTA DE COSTOS (Simplificada) =====
+// ===== LISTA DE COSTOS =====
 function mostrarListaCostos() {
     const container = document.getElementById('listaCostosContainer');
     const buscarInput = document.getElementById('buscarCostos');
@@ -912,7 +1008,7 @@ function cargarBackup(files) {
     document.getElementById('fileInput').value = '';
 }
 
-// ===== FUNCIONES DE PDF (Simplificadas) =====
+// ===== FUNCIONES DE PDF =====
 function generarPDFPorCategoria(categoria) {
     cerrarModalCategorias();
     if (!productos.length) return showToast("No hay productos", 'warning');
@@ -1107,38 +1203,6 @@ function toggleCopyrightNotice() {
     if (notice) notice.style.display = notice.style.display === 'block' ? 'none' : 'block';
 }
 
-// ===== INACTIVIDAD =====
-const TIEMPO_INACTIVIDAD = 4 * 60 * 1000;
-const URL_REDIRECCION = "http://portal.calculadoramagica.lat/";
-let temporizadorInactividad, ultimaActividad = Date.now(), redireccionEnCurso = false;
-
-function registrarActividad() { ultimaActividad = Date.now(); reiniciarTemporizador(); }
-
-function reiniciarTemporizador() {
-    localStorage.setItem('ultimaActividad', Date.now().toString());
-    clearTimeout(temporizadorInactividad);
-    temporizadorInactividad = setTimeout(() => {
-        if (!redireccionEnCurso) {
-            redireccionEnCurso = true;
-            sessionStorage.removeItem('calculadora_magica_session');
-            sessionStorage.removeItem('portal_access_granted');
-            window.location.href = URL_REDIRECCION;
-        }
-    }, TIEMPO_INACTIVIDAD);
-}
-
-function inicializarSistemaInactividad() {
-    ['mousedown','mousemove','keypress','scroll','touchstart','click','input'].forEach(e => 
-        document.addEventListener(e, registrarActividad, { passive: true })
-    );
-    const ultima = localStorage.getItem('ultimaActividad');
-    if (ultima && (Date.now() - parseInt(ultima)) >= TIEMPO_INACTIVIDAD) {
-        window.location.href = URL_REDIRECCION;
-        return;
-    }
-    reiniciarTemporizador();
-}
-
 // ===== TOAST =====
 function showToast(message, type = 'success', duration = 3000) {
     const container = document.getElementById('toastContainer');
@@ -1153,7 +1217,7 @@ function showToast(message, type = 'success', duration = 3000) {
     }, duration);
 }
 
-// ===== IMPRESIÓN TÉRMICA (Simplificada) =====
+// ===== IMPRESIÓN TÉRMICA =====
 async function imprimirTicketTermicoESC_POS(detalles) {
     try {
         if (typeof qz === 'undefined') {
