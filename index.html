@@ -2,341 +2,171 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
     <meta http-equiv="Pragma" content="no-cache"/>
     <meta http-equiv="Expires" content="0"/>
-    <title>Calculadora Mágica · Profesional</title>
 
-    <!-- Librerías JS -->
+    <title>Calculadora Mágica</title>
+
+    <!-- Librerías JS - Versiones específicas para compatibilidad -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <!-- QZ-Tray para impresión térmica ESC/POS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qz-tray/2.1.0/qz-tray.js"></script>
-    
-    <!-- Font Awesome para iconos -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    
-    <!-- Estilos -->
+
     <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+    <div class="copyright-icon" onclick="toggleCopyrightNotice()">©</div>
 
-    <!-- ===== MENÚ LATERAL PROFESIONAL ===== -->
-    <nav class="sidebar" id="mainSidebar">
-        <div class="sidebar-header">
-            <div class="logo">
-                <i class="fas fa-calculator"></i>
-                <span class="logo-text">Calculadora Mágica</span>
-            </div>
-            <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">
-                <i class="fas fa-bars"></i>
-            </button>
-        </div>
-        <div class="sidebar-user">
-            <i class="fas fa-store"></i>
-            <span id="sidebarStoreName">Mi Negocio</span>
-        </div>
-        <ul class="sidebar-menu">
-            <li class="menu-item active" data-section="dashboard" onclick="showSection('dashboard')">
-                <i class="fas fa-chart-line"></i> <span>Dashboard</span>
-            </li>
-            <li class="menu-item" data-section="punto-venta" onclick="showSection('punto-venta')">
-                <i class="fas fa-shopping-cart"></i> <span>Punto de Venta</span>
-            </li>
-            <li class="menu-item" data-section="productos" onclick="showSection('productos')">
-                <i class="fas fa-boxes"></i> <span>Gestión Productos</span>
-            </li>
-            <li class="menu-item" data-section="inventario" onclick="showSection('inventario')">
-                <i class="fas fa-clipboard-list"></i> <span>Inventario</span>
-            </li>
-            <li class="menu-item" data-section="reportes" onclick="showSection('reportes')">
-                <i class="fas fa-file-pdf"></i> <span>Reportes</span>
-            </li>
-            <li class="menu-item" data-section="configuracion" onclick="showSection('configuracion')">
-                <i class="fas fa-cog"></i> <span>Configuración</span>
-            </li>
-            <li class="menu-item" data-section="respaldo" onclick="showSection('respaldo')">
-                <i class="fas fa-database"></i> <span>Respaldo</span>
-            </li>
-        </ul>
-        <div class="sidebar-footer">
-            <span>© <span id="currentYear"></span> - v2.0</span>
-            <div class="copyright-icon" onclick="toggleCopyrightNotice()">©</div>
-        </div>
-    </nav>
+    <div class="copyright-notice" id="copyrightNotice">
+        <button class="close-btn" onclick="toggleCopyrightNotice()">×</button>
+        <strong>ADVERTENCIA:</strong> Este sistema está protegido por derechos de autor.
+        <strong>No revendas tu código de acceso</strong> o será bloqueado y perderás tu dinero.
+        Cualquier uso no autorizado será penalizado según las leyes aplicables.
+    </div>
 
-    <!-- ===== CONTENIDO PRINCIPAL ===== -->
-    <main class="main-content" id="mainContent">
+    <div class="calculator">
+        <h2>Calculadora Mágica</h2>
 
-        <!-- Mensaje de Copyright -->
-        <div class="copyright-notice" id="copyrightNotice">
-            <button class="close-btn" onclick="toggleCopyrightNotice()">×</button>
-            <strong>ADVERTENCIA:</strong> Este sistema está protegido por derechos de autor.
-            <strong>No revendas tu código de acceso</strong> o será bloqueado y perderás tu dinero.
-        </div>
-
-        <!-- SECCIÓN DASHBOARD -->
-        <section id="dashboard-section" class="content-section active">
-            <h1><i class="fas fa-chart-line"></i> Dashboard</h1>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
-                    <div class="stat-details">
-                        <span class="stat-label">Ganancia Total Estimada</span>
-                        <span class="stat-value" id="gananciaTotalUSD">$0.00</span>
-                        <span class="stat-value-small" id="gananciaTotalBS">Bs 0.00</span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon"><i class="fas fa-box"></i></div>
-                    <div class="stat-details">
-                        <span class="stat-label">Total Productos</span>
-                        <span class="stat-value" id="totalProductosCount">0</span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
-                    <div class="stat-details">
-                        <span class="stat-label">Stock Bajo</span>
-                        <span class="stat-value" id="stockBajoCount">0</span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon"><i class="fas fa-chart-pie"></i></div>
-                    <div class="stat-details">
-                        <span class="stat-label">Total Invertido</span>
-                        <span class="stat-value" id="totalInvertidoUSD">$0.00</span>
-                        <span class="stat-value-small" id="totalInvertidoBS">Bs 0.00</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2>Accesos Rápidos</h2>
-                <div class="quick-actions">
-                    <button onclick="showSection('punto-venta')" class="quick-btn"><i class="fas fa-cash-register"></i> Ir a Vender</button>
-                    <button onclick="showSection('productos')" class="quick-btn"><i class="fas fa-plus-circle"></i> Nuevo Producto</button>
-                    <button onclick="generarReporteDiario()" class="quick-btn"><i class="fas fa-file-pdf"></i> Reporte Diario</button>
-                </div>
-            </div>
+        <!-- Sección para respaldo/restauración de datos -->
+        <section>
+            <h3>Respaldo y Restauración de Datos</h3>
+            <button onclick="descargarBackup()" class="backup-button">Descargar Respaldo</button>
+            <button onclick="document.getElementById('fileInput').click()" class="restore-button">Cargar Respaldo</button>
+            <input type="file" id="fileInput" accept=".json" style="display: none" onchange="cargarBackup(this.files)" />
         </section>
 
-        <!-- SECCIÓN PUNTO DE VENTA -->
-        <section id="punto-venta-section" class="content-section">
-            <h1><i class="fas fa-shopping-cart"></i> Punto de Venta</h1>
-
-            <div class="card scanner-card">
-                <div class="scanner-input">
-                    <input type="text" id="codigoBarrasInput" placeholder="🔍 Escanea o busca producto..." autocomplete="off" />
-                    <button onclick="agregarPorCodigoBarras()">Agregar</button>
-                </div>
-                <div id="sugerencias" class="sugerencias-lista"></div>
-                <div class="scanner-status" id="scannerStatus">
-                    <i class="fas fa-barcode"></i> Esperando escaneo...
-                </div>
-            </div>
-
-            <div class="carrito-ventas card">
-                <h2>Carrito de Ventas</h2>
-                <div class="carrito-totales">
-                    <div class="carrito-total" id="totalCarritoBs">
-                        <strong>Total Bs:</strong> 0,00
-                    </div>
-                    <div class="carrito-total" id="totalCarritoDolares">
-                        <strong>Total USD:</strong> 0,00
-                    </div>
-                </div>
-
-                <div class="table-responsive">
-                    <table class="carrito-table">
-                        <thead>
-                            <tr>
-                                <th>Producto</th>
-                                <th>P/U (Bs)</th>
-                                <th>Cantidad</th>
-                                <th>Unidad</th>
-                                <th>Subtotal (Bs)</th>
-                                <th>Acc.</th>
-                            </tr>
-                        </thead>
-                        <tbody id="carritoBody"></tbody>
-                    </table>
-                </div>
-
-                <div class="finalizar-venta">
-                    <button id="finalizarVenta" onclick="finalizarVenta()"><i class="fas fa-check-circle"></i> Finalizar Venta</button>
-                </div>
-            </div>
+         <section>
+            <h3>Nombre del Establecimiento</h3>
+            <input type="text" id="nombreEstablecimiento" placeholder="Ej: Tienda La Bendición" />
+            <button onclick="guardarNombreEstablecimiento()">Guardar Nombre</button>
         </section>
 
-        <!-- SECCIÓN PRODUCTOS -->
-        <section id="productos-section" class="content-section">
-            <h1><i class="fas fa-boxes"></i> Gestión de Productos</h1>
-
-            <div class="card">
-                <h2>Agregar / Editar Producto</h2>
-                <div class="form-grid">
-                    <input type="text" id="producto" placeholder="Nombre del producto" />
-                    <input type="text" id="codigoBarras" placeholder="Código de barras (opcional)" />
-                    <select id="descripcion" required>
-                        <option value="">Selecciona una categoría</option>
-                        <option value="viveres">Víveres</option>
-                        <option value="bebidas">Bebidas</option>
-                        <option value="licores">Licores</option>
-                        <option value="enlatados">Enlatados</option>
-                        <option value="lacteos">Lácteos</option>
-                        <option value="carnes">Carnes</option>
-                        <option value="frutas">Frutas</option>
-                        <option value="verduras">Verduras</option>
-                        <option value="aseo_personal">Aseo Personal</option>
-                        <option value="limpieza">Limpieza</option>
-                        <option value="otros">Otros</option>
-                    </select>
-                    <input type="number" id="costo" placeholder="Costo del producto (en $)" step="0.01" />
-                    <input type="number" id="ganancia" placeholder="Porcentaje de ganancia %" step="0.1" />
-                    <input type="number" id="unidadesPorCaja" placeholder="Unidades por caja / kg" step="0.01" />
-                    <input type="number" id="unidadesExistentes" placeholder="Unidades existentes" step="0.01" />
-                </div>
-                <div class="form-actions">
-                    <button onclick="calcularPrecioVenta()" class="btn-secondary"><i class="fas fa-calculator"></i> Calcular Precio</button>
-                    <button onclick="guardarProducto()" class="btn-primary"><i class="fas fa-save"></i> Guardar Producto</button>
-                </div>
-                <p id="precioUnitario" class="info-message"></p>
-            </div>
+        <section>
+            <h3>Gestión de Clave de Seguridad</h3>
+            <button onclick="mostrarModalCambiarClave()" class="backup-button">Cambiar Clave de Seguridad</button>
         </section>
 
-        <!-- SECCIÓN INVENTARIO -->
-        <section id="inventario-section" class="content-section">
-            <h1><i class="fas fa-clipboard-list"></i> Inventario</h1>
-
-            <div class="card">
-                <div class="inventory-toolbar">
-                    <input type="text" id="buscar" placeholder="Buscar producto..." />
-                    <button onclick="buscarProducto()"><i class="fas fa-search"></i></button>
-                </div>
-                <div class="table-responsive">
-                    <table id="productosTable">
-                        <thead>
-                            <tr>
-                                <th>Producto</th>
-                                <th>Cat.</th>
-                                <th>Existencias</th>
-                                <th>P/U ($)</th>
-                                <th>P/U (Bs)</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
+        <section>
+            <h3>Tasa BCV</h3>
+            <input type="number" id="tasaBCV" placeholder="Tasa BCV" required />
+            <button onclick="actualizarTasaBCV()">Actualizar Tasa BCV</button>
         </section>
 
-        <!-- SECCIÓN REPORTES -->
-        <section id="reportes-section" class="content-section">
-            <h1><i class="fas fa-file-pdf"></i> Reportes y Etiquetas</h1>
+        <section>
+            <h3>Datos del Producto</h3>
+            <input type="text" id="producto" placeholder="Nombre del producto" required />
+            <input type="text" id="codigoBarras" placeholder="Código de barras (opcional)" />
+            <input type="number" id="costo" placeholder="Costo del producto (en $)" required />
+            <select id="descripcion" required>
+                <option value="">Selecciona una descripción</option>
+                <option value="viveres">Víveres</option>
+                <option value="bebidas">Bebidas</option>
+                <option value="licores">Licores</option>
+                <option value="enlatados">Enlatados</option>
+                <option value="plasticos">Plásticos</option>
+                <option value="papeleria">Papelería</option>
+                <option value="lacteos">Lácteos</option>
+                <option value="ferreteria">Ferretería</option>
+                <option value="agropecuaria">Agropecuaria</option>
+                <option value="frigorifico">Frigorífico</option>
+                <option value="pescaderia">Pescadería</option>
+                <option value="repuesto">Repuesto</option>
+                <option value="confiteria">Confitería</option>
+                <option value="ropa">Ropa</option>
+                <option value="calzados">Calzados</option>
+                <option value="charcuteria">Charcutería</option>
+                <option value="carnes">Carnes</option>
+                <option value="aseo_personal">Aseo Personal</option>
+                <option value="limpieza">Productos de Limpieza</option>
+                <option value="verduras">Verduras</option>
+                <option value="frutas">Frutas</option>
+                <option value="hortalizas">Hortalizas</option>
+                <option value="aliños">Aliños</option>
+                <option value="otros">Otros</option>
+            </select>
+        </section>
 
-            <div class="card">
-                <h2>Generar Documentos</h2>
-                <div class="action-buttons" style="display: flex; flex-wrap: wrap; gap: 10px;">
-                    <button onclick="generarReporteDiario()" class="report-btn" style="flex: 1; min-width: 200px;">
-                        <i class="fas fa-file-pdf"></i> Reporte Diario
-                    </button>
-                    <button onclick="mostrarListaCostos()" class="report-btn" style="flex: 1; min-width: 200px;">
-                        <i class="fas fa-list"></i> Lista de Costos
-                    </button>
-                    <button onclick="mostrarOpcionesPDF()" class="report-btn" style="flex: 1; min-width: 200px;">
-                        <i class="fas fa-tags"></i> PDF por Categoría
-                    </button>
-                    <button onclick="generarEtiquetasAnaqueles()" class="report-btn" style="flex: 1; min-width: 200px;">
-                        <i class="fas fa-tag"></i> Etiquetas Anaqueles
-                    </button>
-                </div>
-                <div id="listaCostosContainer" style="display: none; margin-top: 20px;">
-                    <h3>Lista de Costos</h3>
-                    <div class="total-invertido" style="margin-bottom: 15px; padding: 10px; background: #e8f5e9; border-radius: 5px;">
+        <section>
+            <h3>Precio de Venta</h3>
+            <input type="number" id="ganancia" placeholder="Porcentaje de ganancia" required />
+            <input type="number" id="unidadesPorCaja" placeholder="Unidades que trae la caja (ej: 1 para Queso en kg)" required />
+            <input type="number" id="unidadesExistentes" placeholder="Unidades existentes (ej: 50 si tienes 50 kg)" required />
+            <button onclick="calcularPrecioVenta()">Calcular Precio de Venta</button>
+            <p id="precioUnitario">Precio unitario: </p>
+        </section>
+
+        <button onclick="guardarProducto()">Guardar Producto</button>
+    </div>
+
+    <div id="listaProductos">
+        <!-- NUEVO: Ganancia total estimada -->
+        <div class="ganancia-total-container">
+            <div class="ganancia-total">
+                <span>Ganancia total estimada:</span>
+                <span id="gananciaTotalUSD">$0.00</span>
+                <span id="gananciaTotalBS">/ Bs 0.00</span>
+            </div>
+        </div>
+
+        <input type="text" id="buscar" placeholder="Buscar producto" />
+        <button onclick="buscarProducto()">Buscar</button>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Descripción</th>
+                    <th>Código Barras</th>
+                    <th>Existencias</th>
+                    <th>Ajustar Inventario</th>
+                    <th>Precio Unitario ($)</th>
+                    <th>Precio Unitario (Bs)</th>
+                    <th>Ganancia (%)</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <div class="action-buttons">
+            <button onclick="generarReporteDiario()" class="generar-pdf">Generar Reporte Diario</button>
+            <button onclick="mostrarListaCostos()" class="lista-costos">Mostrar Lista de Costos</button>
+            <button onclick="mostrarOpcionesPDF()" class="generar-pdf-categoria">PDF POR CATEGORÍA</button>
+            <button onclick="generarEtiquetasAnaqueles()" class="generar-etiquetas">ETIQUETAS ANAQUELES</button>
+        </div>
+
+        <div id="listaCostosContainer" style="display: none;">
+            <div class="costos-header">
+                <h3>Lista de Costos de Productos</h3>
+                <!-- NUEVO: Total invertido -->
+                <div class="total-invertido-container">
+                    <div class="total-invertido">
                         <strong>Total invertido:</strong>
                         <span id="totalInvertidoUSD">X USD</span>
                         <span id="totalInvertidoBS">/ X Bs</span>
                     </div>
-                    <ul id="listaCostos" style="list-style: none; padding: 0; max-height: 300px; overflow-y: auto;"></ul>
+                </div>
+                <div>
+                    <input type="text" id="buscarCostos" placeholder="Buscar en lista de costos" style="display:none" oninput="filtrarListaCostos()" />
+                    <button onclick="generarPDFCostos()" class="generar-pdf-costos">Convertir a PDF</button>
                 </div>
             </div>
-        </section>
-
-        <!-- SECCIÓN CONFIGURACIÓN -->
-        <section id="configuracion-section" class="content-section">
-            <h1><i class="fas fa-cog"></i> Configuración</h1>
-
-            <div class="card">
-                <h2>Nombre del Establecimiento</h2>
-                <input type="text" id="nombreEstablecimiento" placeholder="Ej: Tienda La Bendición" />
-                <button onclick="guardarNombreEstablecimiento()">Guardar</button>
-            </div>
-
-            <div class="card">
-                <h2>Tasa BCV</h2>
-                <input type="number" id="tasaBCV" placeholder="Tasa BCV" step="0.01" />
-                <button onclick="actualizarTasaBCV()">Actualizar Tasa</button>
-            </div>
-
-            <div class="card">
-                <h2>Seguridad</h2>
-                <button onclick="mostrarModalCambiarClave()" class="btn-secondary"><i class="fas fa-key"></i> Cambiar Clave de Seguridad</button>
-            </div>
-        </section>
-
-        <!-- SECCIÓN RESPALDO -->
-        <section id="respaldo-section" class="content-section">
-            <h1><i class="fas fa-database"></i> Respaldo y Restauración</h1>
-
-            <div class="card">
-                <p>Descarga un archivo de respaldo con todos tus datos o restaura desde uno existente.</p>
-                <button onclick="descargarBackup()" class="backup-button"><i class="fas fa-download"></i> Descargar Respaldo</button>
-                <button onclick="document.getElementById('fileInput').click()" class="restore-button"><i class="fas fa-upload"></i> Cargar Respaldo</button>
-                <input type="file" id="fileInput" accept=".json" style="display: none" onchange="cargarBackup(this.files)" />
-            </div>
-        </section>
-    </main>
-
-    <!-- ===== MODALES ===== -->
-
-    <!-- Modal Pago -->
-    <div id="modalPago" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 500px;">
-            <span class="close" onclick="cerrarModalPago()">&times;</span>
-            <h3><i class="fas fa-credit-card"></i> Seleccionar Método de Pago</h3>
-            <div class="resumen-venta" style="background: #e8f5e9; padding: 15px; border-radius: 5px; margin: 15px 0;">
-                <p id="resumenTotalBs" style="font-size: 1.2rem; margin: 5px 0;"><strong>Total: Bs 0,00</strong></p>
-                <p id="resumenTotalDolares" style="font-size: 1.2rem; margin: 5px 0;"><strong>Total: $ 0,00</strong></p>
-            </div>
-            <div class="metodos-pago" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-                <button onclick="seleccionarMetodoPago('efectivo_bs')" style="background: #4CAF50;">Efectivo Bs</button>
-                <button onclick="seleccionarMetodoPago('efectivo_dolares')" style="background: #2196F3;">Efectivo $</button>
-                <button onclick="seleccionarMetodoPago('punto')" style="background: #9C27B0;">Punto</button>
-                <button onclick="seleccionarMetodoPago('pago_movil')" style="background: #FF9800;">Pago Móvil</button>
-                <button onclick="seleccionarMetodoPago('biopago')" style="background: #607D8B;">Biopago</button>
-            </div>
-            <div id="detallesPago" style="display: none; margin-top: 20px;">
-                <h4>Detalles del Pago</h4>
-                <div id="camposPago"></div>
-                <div id="mensajePago" class="mensaje-pago" style="display: none; padding: 10px; border-radius: 5px; margin: 10px 0;"></div>
-                <div class="modal-buttons" style="display: flex; gap: 10px; margin-top: 15px;">
-                    <button onclick="confirmarMetodoPago()" style="flex: 1; background: #4CAF50;">Confirmar Pago</button>
-                    <button onclick="cancelarPago()" style="flex: 1; background: #f44336;">Cancelar</button>
-                </div>
-            </div>
+            <ul id="listaCostos"></ul>
         </div>
     </div>
 
-    <!-- Modal PDF por Categoría -->
+    <!-- Modal para selección de categorías PDF -->
     <div id="modalCategorias" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-content">
             <span class="close" onclick="cerrarModalCategorias()">&times;</span>
-            <h3><i class="fas fa-file-pdf"></i> Generar PDF por Categoría</h3>
-            <div class="categorias-lista" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-height: 400px; overflow-y: auto; padding: 10px;">
-                <button onclick="generarPDFPorCategoria('todos')" class="categoria-btn" style="grid-column: span 3; background: #4CAF50;">TODOS LOS PRODUCTOS</button>
+            <h3>Generar PDF por Categoría</h3>
+            <div class="categorias-lista">
+                <button onclick="generarPDFPorCategoria('todos')" class="categoria-btn">TODOS LOS PRODUCTOS</button>
                 <button onclick="generarPDFPorCategoria('viveres')" class="categoria-btn">VÍVERES</button>
                 <button onclick="generarPDFPorCategoria('bebidas')" class="categoria-btn">BEBIDAS</button>
                 <button onclick="generarPDFPorCategoria('licores')" class="categoria-btn">LICORES</button>
@@ -345,30 +175,41 @@
                 <button onclick="generarPDFPorCategoria('papeleria')" class="categoria-btn">PAPELERÍA</button>
                 <button onclick="generarPDFPorCategoria('lacteos')" class="categoria-btn">LÁCTEOS</button>
                 <button onclick="generarPDFPorCategoria('ferreteria')" class="categoria-btn">FERRETERÍA</button>
+                <button onclick="generarPDFPorCategoria('agropecuaria')" class="categoria-btn">AGROPECUARIA</button>
+                <button onclick="generarPDFPorCategoria('frigorifico')" class="categoria-btn">FRIGORÍFICO</button>
+                <button onclick="generarPDFPorCategoria('pescaderia')" class="categoria-btn">PESCADERÍA</button>
+                <button onclick="generarPDFPorCategoria('repuesto')" class="categoria-btn">REPUESTO</button>
+                <button onclick="generarPDFPorCategoria('confiteria')" class="categoria-btn">CONFITERÍA</button>
+                <button onclick="generarPDFPorCategoria('ropa')" class="categoria-btn">ROPA</button>
+                <button onclick="generarPDFPorCategoria('calzados')" class="categoria-btn">CALZADOS</button>
+                <button onclick="generarPDFPorCategoria('charcuteria')" class="categoria-btn">CHARCUTERÍA</button>
                 <button onclick="generarPDFPorCategoria('carnes')" class="categoria-btn">CARNES</button>
-                <button onclick="generarPDFPorCategoria('frutas')" class="categoria-btn">FRUTAS</button>
+                <button onclick="generarPDFPorCategoria('aseo_personal')" class="categoria-btn">ASEO PERSONAL</button>
+                <button onclick="generarPDFPorCategoria('limpieza')" class="categoria-btn">PRODUCTOS DE LIMPIEZA</button>
                 <button onclick="generarPDFPorCategoria('verduras')" class="categoria-btn">VERDURAS</button>
-                <button onclick="generarPDFPorCategoria('aseo_personal')" class="categoria-btn">ASEO</button>
-                <button onclick="generarPDFPorCategoria('limpieza')" class="categoria-btn">LIMPIEZA</button>
+                <button onclick="generarPDFPorCategoria('frutas')" class="categoria-btn">FRUTAS</button>
+                <button onclick="generarPDFPorCategoria('hortalizas')" class="categoria-btn">HORTALIZAS</button>
+                <button onclick="generarPDFPorCategoria('aliños')" class="categoria-btn">ALIÑOS</button>
                 <button onclick="generarPDFPorCategoria('otros')" class="categoria-btn">OTROS</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal Etiquetas -->
+    <!-- Modal para selección de categorías etiquetas -->
     <div id="modalEtiquetas" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-content">
             <span class="close" onclick="cerrarModalEtiquetas()">&times;</span>
-            <h3><i class="fas fa-tags"></i> Generar Etiquetas para Anaqueles</h3>
-            <div class="selector-moneda" style="margin: 15px 0; padding: 15px; background: #f5f5f5; border-radius: 5px;">
-                <label style="font-weight: bold; margin-right: 10px;">Moneda para precios:</label>
-                <select id="monedaEtiquetas" onchange="actualizarMonedaEtiquetas()" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
-                    <option value="VES">Bolívares (Bs)</option>
-                    <option value="USD">Dólares ($)</option>
+            <h3>Generar Etiquetas para Anaqueles</h3>
+            <!-- NUEVO: Selector de moneda para etiquetas -->
+            <div class="selector-moneda-etiquetas">
+                <label>Mostrar precios en:</label>
+                <select id="monedaEtiquetas" onchange="actualizarMonedaEtiquetas()">
+                    <option value="VES">Bolívares (VES)</option>
+                    <option value="USD">Dólares (USD)</option>
                 </select>
             </div>
-            <div class="categorias-lista" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-height: 400px; overflow-y: auto; padding: 10px;">
-                <button onclick="generarEtiquetasPorCategoria('todos')" class="categoria-btn" style="grid-column: span 3; background: #FF9800;">TODOS LOS PRODUCTOS</button>
+            <div class="categorias-lista">
+                <button onclick="generarEtiquetasPorCategoria('todos')" class="categoria-btn">TODOS LOS PRODUCTOS</button>
                 <button onclick="generarEtiquetasPorCategoria('viveres')" class="categoria-btn">VÍVERES</button>
                 <button onclick="generarEtiquetasPorCategoria('bebidas')" class="categoria-btn">BEBIDAS</button>
                 <button onclick="generarEtiquetasPorCategoria('licores')" class="categoria-btn">LICORES</button>
@@ -377,65 +218,159 @@
                 <button onclick="generarEtiquetasPorCategoria('papeleria')" class="categoria-btn">PAPELERÍA</button>
                 <button onclick="generarEtiquetasPorCategoria('lacteos')" class="categoria-btn">LÁCTEOS</button>
                 <button onclick="generarEtiquetasPorCategoria('ferreteria')" class="categoria-btn">FERRETERÍA</button>
+                <button onclick="generarEtiquetasPorCategoria('agropecuaria')" class="categoria-btn">AGROPECUARIA</button>
+                <button onclick="generarEtiquetasPorCategoria('frigorifico')" class="categoria-btn">FRIGORÍFICO</button>
+                <button onclick="generarEtiquetasPorCategoria('pescaderia')" class="categoria-btn">PESCADERÍA</button>
+                <button onclick="generarEtiquetasPorCategoria('repuesto')" class="categoria-btn">REPUESTO</button>
+                <button onclick="generarEtiquetasPorCategoria('confiteria')" class="categoria-btn">CONFITERÍA</button>
+                <button onclick="generarEtiquetasPorCategoria('ropa')" class="categoria-btn">ROPA</button>
+                <button onclick="generarEtiquetasPorCategoria('calzados')" class="categoria-btn">CALZADOS</button>
+                <button onclick="generarEtiquetasPorCategoria('charcuteria')" class="categoria-btn">CHARCUTERÍA</button>
                 <button onclick="generarEtiquetasPorCategoria('carnes')" class="categoria-btn">CARNES</button>
-                <button onclick="generarEtiquetasPorCategoria('frutas')" class="categoria-btn">FRUTAS</button>
+                <button onclick="generarEtiquetasPorCategoria('aseo_personal')" class="categoria-btn">ASEO PERSONAL</button>
+                <button onclick="generarEtiquetasPorCategoria('limpieza')" class="categoria-btn">PRODUCTOS DE LIMPIEZA</button>
                 <button onclick="generarEtiquetasPorCategoria('verduras')" class="categoria-btn">VERDURAS</button>
-                <button onclick="generarEtiquetasPorCategoria('aseo_personal')" class="categoria-btn">ASEO</button>
-                <button onclick="generarEtiquetasPorCategoria('limpieza')" class="categoria-btn">LIMPIEZA</button>
+                <button onclick="generarEtiquetasPorCategoria('frutas')" class="categoria-btn">FRUTAS</button>
+                <button onclick="generarEtiquetasPorCategoria('hortalizas')" class="categoria-btn">HORTALIZAS</button>
+                <button onclick="generarEtiquetasPorCategoria('aliños')" class="categoria-btn">ALIÑOS</button>
                 <button onclick="generarEtiquetasPorCategoria('otros')" class="categoria-btn">OTROS</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal Cambiar Clave -->
-    <div id="modalCambiarClave" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 400px;">
-            <span class="close" onclick="cerrarModalCambiarClave()">&times;</span>
-            <h3><i class="fas fa-key"></i> Cambiar Clave de Seguridad</h3>
-            <div style="margin: 15px 0;">
-                <label style="display: block; margin-bottom: 5px;">Clave actual:</label>
-                <input type="password" id="claveActual" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+    <div class="carrito-ventas">
+        <h2>Carrito de Ventas</h2>
+
+        <div class="carrito-header">
+            <div class="scanner-input">
+                <input type="text" id="codigoBarrasInput" placeholder="Escanea o ingresa código de barras o nombre del producto" />
+                <button onclick="agregarPorCodigoBarras()">Agregar Producto</button>
+
+                <div id="sugerencias" class="sugerencias-lista" aria-live="polite"></div>
             </div>
-            <div style="margin: 15px 0;">
-                <label style="display: block; margin-bottom: 5px;">Nueva clave:</label>
-                <input type="password" id="nuevaClave" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+
+            <div class="scanner-status" id="scannerStatus">
+                Esperando escaneo de código de barras...
             </div>
-            <div style="margin: 15px 0;">
-                <label style="display: block; margin-bottom: 5px;">Confirmar clave:</label>
-                <input type="password" id="confirmarClave" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+
+            <div class="carrito-totales">
+                <div class="carrito-total" id="totalCarritoBs">
+                    Total: Bs 0,00
+                </div>
+                <div class="carrito-total" id="totalCarritoDolares">
+                    Total: $ 0,00
+                </div>
             </div>
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button onclick="cambiarClave()" style="flex: 1; background: #4CAF50; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer;">Cambiar Clave</button>
-                <button onclick="cerrarModalCambiarClave()" style="flex: 1; background: #f44336; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer;">Cancelar</button>
+        </div>
+
+        <table class="carrito-table">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Precio Unitario (Bs)</th>
+                    <th>Cantidad</th>
+                    <th>Unidad</th>
+                    <th>Subtotal (Bs)</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="carritoBody"></tbody>
+        </table>
+
+        <div class="finalizar-venta">
+           <button id="finalizarVenta" onclick="finalizarVenta()">Finalizar venta</button>
+        </div>
+    </div>
+
+    <div id="modalPago" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModalPago()">&times;</span>
+            <h3>Seleccionar Método de Pago</h3>
+
+            <div class="resumen-venta">
+                <h4>Resumen de Venta</h4>
+                <p id="resumenTotalBs">Total: Bs 0,00</p>
+                <p id="resumenTotalDolares">Total: $ 0,00</p>
+            </div>
+
+            <div class="metodos-pago">
+                <button onclick="seleccionarMetodoPago('efectivo_bs')">Efectivo Bs</button>
+                <button onclick="seleccionarMetodoPago('efectivo_dolares')">Efectivo $</button>
+                <button onclick="seleccionarMetodoPago('punto')">Punto</button>
+                <button onclick="seleccionarMetodoPago('pago_movil')">Pago Móvil</button>
+                <button onclick="seleccionarMetodoPago('biopago')">Biopago</button>
+            </div>
+
+            <div id="detallesPago" style="display: none; margin-top: 20px;">
+                <h4>Detalles del Pago</h4>
+                <div id="camposPago"></div>
+                <!-- NUEVO: Mensaje de falta o cambio -->
+                <div id="mensajePago" class="mensaje-pago" style="display: none;"></div>
+                <div class="modal-buttons">
+                    <button onclick="confirmarMetodoPago()">Confirmar Pago</button>
+                    <button onclick="cancelarPago()" class="btn-cancelar">Cancelar</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal Clave de Seguridad (NUEVO) -->
+    <div class="floating-nav">
+        <button class="go-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">↑</button>
+        <button class="go-bottom" onclick="window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'})">↓</button>
+    </div>
+
+    <!-- Toast container -->
+    <div id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
+   <!-- Modal para clave de seguridad -->
     <div id="modalClave" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-content">
             <span class="close" onclick="cerrarModalClave()">&times;</span>
-            <h3><i class="fas fa-lock"></i> Clave de Seguridad Requerida</h3>
-            <p style="margin: 15px 0; color: #666;">Para editar productos o ajustar inventario, ingrese la clave de seguridad:</p>
-            <input type="password" id="claveSeguridadInput" placeholder="Ingrese la clave" style="width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; font-size: 16px;">
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button onclick="verificarClaveModal()" style="flex: 1; background: #4CAF50; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
-                    <i class="fas fa-check"></i> Verificar
-                </button>
-                <button onclick="cerrarModalClave()" style="flex: 1; background: #f44336; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
-                    <i class="fas fa-times"></i> Cancelar
-                </button>
+            <h3>Clave de Seguridad Requerida</h3>
+            <p>Para editar productos, ingrese la clave de seguridad:</p>
+            <input type="password" id="claveSeguridad" placeholder="Ingrese la clave" class="input-movil" />
+            <div class="modal-buttons" style="margin-top: 15px;">
+                <button onclick="verificarClave()">Verificar Clave</button>
+                <button onclick="cerrarModalClave()" class="btn-cancelar">Cancelar</button>
             </div>
-            <p style="font-size: 12px; color: #999; margin-top: 15px; text-align: center;">
-                Clave por defecto: <strong>1234</strong> | Reseteo: <strong>ACME123</strong>
+            <p style="font-size: 12px; color: #666; margin-top: 10px;">
+                Si olvidó la clave actual, contacte al administrador del sistema.
+            </p>
+        </div>
+    </div>
+  
+   <!-- Modal para cambiar clave -->
+    <div id="modalCambiarClave" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModalCambiarClave()">&times;</span>
+            <h3>Cambiar Clave de Seguridad</h3>
+            
+            <div class="campo-pago">
+                <label>Clave actual:</label>
+                <input type="password" id="claveActual" placeholder="Ingrese clave actual" class="input-movil" />
+            </div>
+            
+            <div class="campo-pago">
+                <label>Nueva clave:</label>
+                <input type="password" id="nuevaClave" placeholder="Ingrese nueva clave" class="input-movil" />
+            </div>
+            
+            <div class="campo-pago">
+                <label>Confirmar nueva clave:</label>
+                <input type="password" id="confirmarClave" placeholder="Confirme nueva clave" class="input-movil" />
+            </div>
+            
+            <div class="modal-buttons" style="margin-top: 15px;">
+                <button onclick="cambiarClave()">Cambiar Clave</button>
+                <button onclick="cerrarModalCambiarClave()" class="btn-cancelar">Cancelar</button>
+            </div>
+            
+            <p style="font-size: 12px; color: #666; margin-top: 10px;">
+                Si olvidó la clave actual, contacte al administrador del sistema.
             </p>
         </div>
     </div>
 
-    <!-- Toast container -->
-    <div id="toastContainer" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;"></div>
-
-    <!-- Script -->
     <script src="script.js"></script>
 </body>
 </html>
