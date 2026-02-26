@@ -3,6 +3,201 @@
 // CON SISTEMA DE CRÉDITOS INTEGRADO
 // ============================================
 
+// ===== PROTECCIÓN AVANZADA CONTRA INSPECCIÓN Y HERRAMIENTAS =====
+// Esta sección protege tu script sin afectar su funcionalidad
+(function() {
+    // Detectar si es dispositivo móvil
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+    
+    // Solo aplicar protecciones completas en escritorio
+    if (!isMobile) {
+        // 1. BLOQUEO DE TECLAS ESPECÍFICAS
+        document.addEventListener('keydown', function(e) {
+            // Bloquear F2 (inspeccionar elemento)
+            if (e.key === 'F2' || e.keyCode === 113) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+            
+            // Bloquear atajos de desarrollador comunes
+            if (e.ctrlKey && e.shiftKey) {
+                // Ctrl+Shift+I (abrir herramientas)
+                // Ctrl+Shift+J (consola)
+                // Ctrl+Shift+C (inspeccionar elemento)
+                if (e.key === 'I' || e.key === 'J' || e.key === 'C') {
+                    e.preventDefault();
+                    return false;
+                }
+            }
+            
+            // Bloquear Ctrl+U (ver código fuente)
+            if (e.ctrlKey && e.key === 'u') {
+                e.preventDefault();
+                return false;
+            }
+            
+            // Bloquear Ctrl+S (guardar página)
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                return false;
+            }
+            
+            // Bloquear Ctrl+P (imprimir)
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                return false;
+            }
+        }, false);
+        
+        // 2. BLOQUEO DE CLIC DERECHO
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
+        
+        // 3. PROTECCIÓN CONTRA COPIA DE TEXTO
+        document.addEventListener('copy', function(e) {
+            e.preventDefault();
+            // Mostrar notificación sutil (opcional)
+            const toast = document.createElement('div');
+            toast.style.cssText = 'position:fixed; bottom:20px; right:20px; background:#f44336; color:white; padding:8px 15px; border-radius:5px; font-size:14px; z-index:9999;';
+            toast.textContent = '📋 Copia deshabilitada por seguridad';
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+            return false;
+        });
+        
+        document.addEventListener('cut', function(e) {
+            e.preventDefault();
+            return false;
+        });
+        
+        document.addEventListener('selectstart', function(e) {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                return false;
+            }
+        });
+        
+        // 4. DETECCIÓN DE HERRAMIENTAS DE DESARROLLO
+        let devtoolsOpen = false;
+        
+        // Método 1: Detectar por cambio de tamaño
+        setInterval(function() {
+            const widthThreshold = window.outerWidth - window.innerWidth > 160;
+            const heightThreshold = window.outerHeight - window.innerHeight > 160;
+            
+            if (widthThreshold || heightThreshold) {
+                if (!devtoolsOpen) {
+                    devtoolsOpen = true;
+                    console.clear();
+                    console.warn('%c⚠️ ACCESO A HERRAMIENTAS DETECTADO', 'color: #f44336; font-size: 16px; font-weight: bold;');
+                    
+                    // Opción: mostrar toast de advertencia
+                    const toast = document.createElement('div');
+                    toast.style.cssText = 'position:fixed; top:20px; right:20px; background:#ff9800; color:white; padding:10px 20px; border-radius:5px; font-size:14px; z-index:9999; animation: slideIn 0.3s;';
+                    toast.textContent = '🔒 Modo seguro activado';
+                    document.body.appendChild(toast);
+                    setTimeout(() => toast.remove(), 3000);
+                }
+            } else {
+                devtoolsOpen = false;
+            }
+        }, 1000);
+        
+        // Método 2: Detectar por debugger
+        setInterval(function() {
+            const start = performance.now();
+            debugger;
+            const end = performance.now();
+            
+            if (end - start > 100) {
+                console.clear();
+                console.warn('%c🚫 DEBUGGING DETECTADO', 'color: #f44336; font-size: 16px;');
+            }
+        }, 2000);
+        
+        // 5. LIMPIEZA DE CONSOLA EN PRODUCCIÓN
+        if (isProduction) {
+            // Limpiar consola periódicamente
+            setInterval(function() {
+                console.clear();
+            }, 3000);
+            
+            // Deshabilitar console.log en producción
+            const originalConsole = {
+                log: console.log,
+                info: console.info,
+                warn: console.warn,
+                debug: console.debug
+            };
+            
+            console.log = function() {};
+            console.info = function() {};
+            console.warn = function() {};
+            console.debug = function() {};
+            
+            // Mantener console.error para errores críticos
+            // console.error se mantiene funcional
+        }
+        
+        // 6. PROTECCIÓN CONTRA SELECCIÓN DE TEXTO (excepto en inputs)
+        const style = document.createElement('style');
+        style.textContent = `
+            body {
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+            }
+            input, textarea, [contenteditable="true"] {
+                -webkit-user-select: text;
+                -moz-user-select: text;
+                -ms-user-select: text;
+                user-select: text;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // 7. VERIFICACIÓN DE DOMINIO (solo en producción)
+if (isProduction) {
+    const dominiosPermitidos = [
+        'portal.calculadoramagica.lat',
+        'calculadoramagica.lat',
+        'clientes.calculadoramagica.lat',  // ✅ NUEVO DOMINIO AGREGADO
+        'codepen.io',
+        'cdpn.io',
+        'github.io',
+        'github.com',
+        'raw.githubusercontent.com',
+        'localhost',
+        '127.0.0.1'
+    ];
+    
+    const hostname = window.location.hostname;
+    const permitido = dominiosPermitidos.some(dominio => 
+        hostname === dominio || 
+        hostname.endsWith('.' + dominio) ||
+        hostname.includes(dominio)  // Para CodePen que tiene subdominios
+    );
+    
+    if (!permitido) {
+        // En lugar de bloquear, mostrar advertencia pero permitir
+        console.warn('%c⚠️ Ejecutando en dominio no autorizado: ' + hostname, 'color: orange; font-size: 12px;');
+        // No bloqueamos, solo advertimos
+    } else {
+        console.log('%c✅ Dominio autorizado: ' + hostname, 'color: green;');
+    }
+}
+        
+        console.log('%c🛡️ PROTECCIONES ACTIVADAS - MODO SEGURO', 'color: #4CAF50; font-size: 14px; font-weight: bold;');
+    } else {
+        console.log('%c📱 MODO MÓVIL DETECTADO - SIN RESTRICCIONES', 'color: #2196F3; font-size: 14px;');
+    }
+})();
+
 // ----- VARIABLES GLOBALES -----
 let productos = [];
 let nombreEstablecimiento = '';
@@ -45,7 +240,7 @@ const STORAGE_KEYS = {
     CARRITO: 'carrito',
     CLAVE: 'claveSeguridad',
     MONEDA: 'monedaEtiquetas',
-    CREDITOS: 'creditos' // NUEVO
+    CREDITOS: 'creditos'
 };
 
 // ===== FUNCIONES UTILITARIAS =====
