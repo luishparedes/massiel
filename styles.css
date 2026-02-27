@@ -555,11 +555,15 @@ tr.editing {
     outline: 2px solid #ffc107;
 }
 
-/* Tooltip para días restantes */
-.dias-restante {
-    font-weight: bold;
+/* Tooltip para productos */
+.producto-tooltip {
     cursor: help;
     border-bottom: 1px dotted #999;
+    color: var(--primary);
+}
+
+.producto-tooltip:hover {
+    color: var(--primary-dark);
 }
 
 /* Resaltado para créditos por vencer en la tabla */
