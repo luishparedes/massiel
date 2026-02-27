@@ -53,7 +53,6 @@
             <li class="menu-item" data-section="reportes" onclick="showSection('reportes')">
                 <i class="fas fa-file-pdf"></i> <span>Reportes</span>
             </li>
-            <!-- NUEVO: Acceso directo a Créditos -->
             <li class="menu-item" data-section="creditos" onclick="showSection('creditos')">
                 <i class="fas fa-credit-card"></i> <span>Créditos</span>
             </li>
@@ -65,7 +64,7 @@
             </li>
         </ul>
         <div class="sidebar-footer">
-            <span>© <span id="currentYear"></span> - v2.0</span>
+            <span>© <span id="currentYear"></span> - v2.1</span>
             <div class="copyright-icon" onclick="toggleCopyrightNotice()">©</div>
         </div>
     </nav>
@@ -281,10 +280,18 @@
                             <strong>Cantidad Ventas:</strong>
                             <span id="reporteCantidadVentas" style="font-size: 1.4rem; display: block;">0</span>
                         </div>
+                        <div>
+                            <strong>Total Productos Vendidos:</strong>
+                            <span id="reporteTotalProductosVendidos" style="font-size: 1.4rem; display: block;">0</span>
+                        </div>
                     </div>
                     <div style="margin-top: 15px;">
                         <strong>Totales por Método de Pago:</strong>
                         <div id="reporteTotalesMetodos" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px;"></div>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <strong>Productos Vendidos:</strong>
+                        <div id="reporteProductosVendidos" style="max-height: 200px; overflow-y: auto; background: white; padding: 10px; border-radius: 5px; margin-top: 10px;"></div>
                     </div>
                 </div>
                 <h3>Detalle de Ventas</h3>
@@ -301,15 +308,19 @@
                         <tbody id="reporteDetalleBody"></tbody>
                     </table>
                 </div>
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <div style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;">
                     <button onclick="generarPDFReporteDiario()" style="background: #4CAF50;"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
                     <button onclick="cerrarReporteDiario()" style="background: #f44336;"><i class="fas fa-times"></i> Cerrar Reporte</button>
                     <button onclick="limpiarVentasDiarias()" style="background: #ff9800;" id="btnLimpiarReporte"><i class="fas fa-trash-alt"></i> Limpiar Ventas del Día</button>
                 </div>
+                <div style="margin-top: 15px; padding: 10px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 4px;">
+                    <i class="fas fa-info-circle"></i> 
+                    <strong>Recomendación:</strong> Después de descargar el reporte, limpia las ventas del día para liberar espacio en el sistema.
+                </div>
             </div>
         </section>
 
-        <!-- NUEVA SECCIÓN: CRÉDITOS -->
+        <!-- SECCIÓN CRÉDITOS MEJORADA -->
         <section id="creditos-section" class="content-section">
             <h1><i class="fas fa-credit-card"></i> Gestión de Créditos</h1>
 
@@ -408,6 +419,7 @@
                                 <th>Vence</th>
                                 <th>Estado</th>
                                 <th>Días restantes</th>
+                                <th>Productos</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -464,7 +476,6 @@
                 <button onclick="seleccionarMetodoPago('punto')" style="background: #9C27B0;">Punto</button>
                 <button onclick="seleccionarMetodoPago('pago_movil')" style="background: #FF9800;">Pago Móvil</button>
                 <button onclick="seleccionarMetodoPago('biopago')" style="background: #607D8B;">Biopago</button>
-                <!-- NUEVO: Botón Crédito -->
                 <button onclick="seleccionarMetodoPago('credito')" style="background: #9C27B0;">Crédito</button>
             </div>
             <div id="detallesPago" style="display: none; margin-top: 20px;">
@@ -544,6 +555,15 @@
                     <i class="fas fa-times"></i> Cancelar
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal para mostrar productos del crédito (hover mejorado) -->
+    <div id="modalProductosCredito" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 400px;">
+            <span class="close" onclick="cerrarModalProductosCredito()">&times;</span>
+            <h3><i class="fas fa-shopping-basket"></i> Productos del Crédito</h3>
+            <div id="contenidoProductosCredito" style="max-height: 300px; overflow-y: auto; margin: 15px 0;"></div>
         </div>
     </div>
 
