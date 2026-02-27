@@ -1,71 +1,44 @@
 // ============================================
 // CALCULADORA MÁGICA - VERSIÓN PROFESIONAL COMPLETA
-// CON SISTEMA DE CRÉDITOS INTEGRADO
+// CON SISTEMA DE CRÉDITOS MEJORADO Y REPORTE DIARIO OPTIMIZADO
 // ============================================
 
 // ===== PROTECCIÓN AVANZADA CONTRA INSPECCIÓN Y HERRAMIENTAS =====
-// Esta sección protege tu script sin afectar su funcionalidad
 (function() {
-    // Detectar si es dispositivo móvil
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
     
-    // Solo aplicar protecciones completas en escritorio
     if (!isMobile) {
-        // 1. BLOQUEO DE TECLAS ESPECÍFICAS
         document.addEventListener('keydown', function(e) {
-            // Bloquear F2 (inspeccionar elemento)
             if (e.key === 'F2' || e.keyCode === 113) {
                 e.preventDefault();
-                e.stopPropagation();
                 return false;
             }
-            
-            // Bloquear atajos de desarrollador comunes
-            if (e.ctrlKey && e.shiftKey) {
-                // Ctrl+Shift+I (abrir herramientas)
-                // Ctrl+Shift+J (consola)
-                // Ctrl+Shift+C (inspeccionar elemento)
-                if (e.key === 'I' || e.key === 'J' || e.key === 'C') {
-                    e.preventDefault();
-                    return false;
-                }
+            if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) {
+                e.preventDefault();
+                return false;
             }
-            
-            // Bloquear Ctrl+U (ver código fuente)
             if (e.ctrlKey && e.key === 'u') {
                 e.preventDefault();
                 return false;
             }
-            
-            // Bloquear Ctrl+S (guardar página)
             if (e.ctrlKey && e.key === 's') {
                 e.preventDefault();
                 return false;
             }
-            
-            // Bloquear Ctrl+P (imprimir)
             if (e.ctrlKey && e.key === 'p') {
                 e.preventDefault();
                 return false;
             }
         }, false);
         
-        // 2. BLOQUEO DE CLIC DERECHO
         document.addEventListener('contextmenu', function(e) {
             e.preventDefault();
             return false;
         });
         
-        // 3. PROTECCIÓN CONTRA COPIA DE TEXTO
         document.addEventListener('copy', function(e) {
             e.preventDefault();
-            // Mostrar notificación sutil (opcional)
-            const toast = document.createElement('div');
-            toast.style.cssText = 'position:fixed; bottom:20px; right:20px; background:#f44336; color:white; padding:8px 15px; border-radius:5px; font-size:14px; z-index:9999;';
-            toast.textContent = '📋 Copia deshabilitada por seguridad';
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 2000);
             return false;
         });
         
@@ -81,69 +54,26 @@
             }
         });
         
-        // 4. DETECCIÓN DE HERRAMIENTAS DE DESARROLLO
-        let devtoolsOpen = false;
-        
-        // Método 1: Detectar por cambio de tamaño
         setInterval(function() {
             const widthThreshold = window.outerWidth - window.innerWidth > 160;
             const heightThreshold = window.outerHeight - window.innerHeight > 160;
             
             if (widthThreshold || heightThreshold) {
-                if (!devtoolsOpen) {
-                    devtoolsOpen = true;
-                    console.clear();
-                    console.warn('%c⚠️ ACCESO A HERRAMIENTAS DETECTADO', 'color: #f44336; font-size: 16px; font-weight: bold;');
-                    
-                    // Opción: mostrar toast de advertencia
-                    const toast = document.createElement('div');
-                    toast.style.cssText = 'position:fixed; top:20px; right:20px; background:#ff9800; color:white; padding:10px 20px; border-radius:5px; font-size:14px; z-index:9999; animation: slideIn 0.3s;';
-                    toast.textContent = '🔒 Modo seguro activado';
-                    document.body.appendChild(toast);
-                    setTimeout(() => toast.remove(), 3000);
-                }
-            } else {
-                devtoolsOpen = false;
+                console.clear();
             }
         }, 1000);
         
-        // Método 2: Detectar por debugger
-        setInterval(function() {
-            const start = performance.now();
-            debugger;
-            const end = performance.now();
-            
-            if (end - start > 100) {
-                console.clear();
-                console.warn('%c🚫 DEBUGGING DETECTADO', 'color: #f44336; font-size: 16px;');
-            }
-        }, 2000);
-        
-        // 5. LIMPIEZA DE CONSOLA EN PRODUCCIÓN
         if (isProduction) {
-            // Limpiar consola periódicamente
             setInterval(function() {
                 console.clear();
             }, 3000);
-            
-            // Deshabilitar console.log en producción
-            const originalConsole = {
-                log: console.log,
-                info: console.info,
-                warn: console.warn,
-                debug: console.debug
-            };
             
             console.log = function() {};
             console.info = function() {};
             console.warn = function() {};
             console.debug = function() {};
-            
-            // Mantener console.error para errores críticos
-            // console.error se mantiene funcional
         }
         
-        // 6. PROTECCIÓN CONTRA SELECCIÓN DE TEXTO (excepto en inputs)
         const style = document.createElement('style');
         style.textContent = `
             body {
@@ -161,40 +91,33 @@
         `;
         document.head.appendChild(style);
         
-        // 7. VERIFICACIÓN DE DOMINIO (solo en producción)
-if (isProduction) {
-    const dominiosPermitidos = [
-        'portal.calculadoramagica.lat',
-        'calculadoramagica.lat',
-        'clientes.calculadoramagica.lat',  // ✅ NUEVO DOMINIO AGREGADO
-        'codepen.io',
-        'cdpn.io',
-        'github.io',
-        'github.com',
-        'raw.githubusercontent.com',
-        'localhost',
-        '127.0.0.1'
-    ];
-    
-    const hostname = window.location.hostname;
-    const permitido = dominiosPermitidos.some(dominio => 
-        hostname === dominio || 
-        hostname.endsWith('.' + dominio) ||
-        hostname.includes(dominio)  // Para CodePen que tiene subdominios
-    );
-    
-    if (!permitido) {
-        // En lugar de bloquear, mostrar advertencia pero permitir
-        console.warn('%c⚠️ Ejecutando en dominio no autorizado: ' + hostname, 'color: orange; font-size: 12px;');
-        // No bloqueamos, solo advertimos
-    } else {
-        console.log('%c✅ Dominio autorizado: ' + hostname, 'color: green;');
-    }
-}
-        
-        console.log('%c🛡️ PROTECCIONES ACTIVADAS - MODO SEGURO', 'color: #4CAF50; font-size: 14px; font-weight: bold;');
-    } else {
-        console.log('%c📱 MODO MÓVIL DETECTADO - SIN RESTRICCIONES', 'color: #2196F3; font-size: 14px;');
+        if (isProduction) {
+            const dominiosPermitidos = [
+                'portal.calculadoramagica.lat',
+                'calculadoramagica.lat',
+                'clientes.calculadoramagica.lat',
+                'codepen.io',
+                'cdpn.io',
+                'github.io',
+                'github.com',
+                'raw.githubusercontent.com',
+                'localhost',
+                '127.0.0.1'
+            ];
+            
+            const hostname = window.location.hostname;
+            const permitido = dominiosPermitidos.some(dominio => 
+                hostname === dominio || 
+                hostname.endsWith('.' + dominio) ||
+                hostname.includes(dominio)
+            );
+            
+            if (!permitido) {
+                console.warn('%c⚠️ Ejecutando en dominio no autorizado: ' + hostname, 'color: orange;');
+            } else {
+                console.log('%c✅ Dominio autorizado: ' + hostname, 'color: green;');
+            }
+        }
     }
 })();
 
@@ -211,7 +134,7 @@ let detallesPago = {};
 let productoEditando = null;
 let productosFiltrados = [];
 
-// ----- VARIABLES DE CRÉDITOS -----
+// ----- VARIABLES DE CRÉDITOS MEJORADAS -----
 let creditos = [];
 let creditoEditando = null;
 let creditosFiltrados = [];
@@ -285,7 +208,7 @@ function safeSetItem(key, data) {
 
 // ===== INICIALIZACIÓN =====
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Calculadora Mágica v2.0 iniciando');
+    console.log('🚀 Calculadora Mágica v2.1 iniciando');
     cargarDatosStorage();
     inicializarSistemaInactividad();
     configurarEventos();
@@ -293,7 +216,6 @@ document.addEventListener('DOMContentLoaded', function() {
     actualizarTodo();
     actualizarAnioCopyright();
     
-    // Inicializar créditos
     setTimeout(() => {
         inicializarCreditos();
     }, 100);
@@ -311,6 +233,11 @@ function cargarDatosStorage() {
         creditos = JSON.parse(localStorage.getItem(STORAGE_KEYS.CREDITOS)) || [];
 
         carrito = carrito.filter(item => item && item.nombre);
+        
+        creditos = creditos.map(c => ({
+            ...c,
+            productos: c.productos || [] // Asegurar que exista el array de productos
+        }));
     } catch (error) {
         console.error('Error cargando datos:', error);
         productos = [];
@@ -354,7 +281,6 @@ function showSection(sectionId) {
         setTimeout(() => document.getElementById('codigoBarrasInput')?.focus(), 300);
     }
     
-    // Si vamos a créditos, actualizar vista
     if (sectionId === 'creditos') {
         actualizarVistaCreditos();
     }
@@ -427,7 +353,6 @@ function configurarEventos() {
         });
     }
     
-    // Evento para búsqueda en créditos
     const buscarCreditoInput = document.getElementById('buscarCredito');
     if (buscarCreditoInput) {
         buscarCreditoInput.addEventListener('input', function() {
@@ -585,7 +510,7 @@ function cancelarEdicion() {
     }
 }
 
-// ===== FUNCIÓN DE EDICIÓN POR DOBLE CLIC =====
+// ===== FUNCIÓN DE EDICIÓN POR DOBLE CLIC MEJORADA =====
 function editarProducto(index) {
     event?.stopPropagation();
     
@@ -625,6 +550,11 @@ function editarProducto(index) {
     
     showSection('productos');
     showToast(`Editando: ${producto.nombre}`, 'info');
+}
+
+// Agregar fallback: botón de edición en inventario
+function editarProductoConBoton(index) {
+    editarProducto(index);
 }
 
 // ===== FUNCIÓN DE ELIMINACIÓN =====
@@ -698,6 +628,9 @@ function actualizarListaProductos() {
             <td>Bs ${p.precioUnitarioBolivar.toFixed(2)}</td>
             <td>
                 <div class="ajuste-inventario">
+                    <button onclick="editarProductoConBoton(${idx})" class="btn-secondary" title="Editar producto">
+                        <i class="fas fa-edit"></i>
+                    </button>
                     <button onclick="eliminarProducto(${idx})" class="btn-danger" title="Eliminar producto">
                         <i class="fas fa-trash"></i>
                     </button>
@@ -1042,6 +975,7 @@ function cancelarPago() {
     detallesPago = {};
 }
 
+// ===== PROCESO DE PAGO CON CRÉDITO MEJORADO =====
 function seleccionarMetodoPago(metodo) {
     if (metodo === 'credito') {
         if (carrito.length === 0) {
@@ -1200,16 +1134,22 @@ function confirmarMetodoPago() {
     const hora = ahora.toLocaleTimeString();
 
     let stockActualizado = false;
+    let productosVendidos = [];
+    
     carrito.forEach(item => {
         const producto = productos[item.indexProducto];
         if (producto) {
             const stockAnterior = producto.unidadesExistentes;
+            const cantidadVendida = item.unidad === 'gramo' ? item.cantidad / 1000 : item.cantidad;
             
-            if (item.unidad === 'gramo') {
-                producto.unidadesExistentes = redondear2Decimales(producto.unidadesExistentes - (item.cantidad / 1000));
-            } else {
-                producto.unidadesExistentes = redondear2Decimales(producto.unidadesExistentes - item.cantidad);
-            }
+            producto.unidadesExistentes = redondear2Decimales(producto.unidadesExistentes - cantidadVendida);
+            
+            productosVendidos.push({
+                nombre: item.nombre,
+                cantidad: item.cantidad,
+                unidad: item.unidad,
+                subtotal: item.subtotal
+            });
             
             if (producto.unidadesExistentes < 0) {
                 producto.unidadesExistentes = 0;
@@ -1228,6 +1168,36 @@ function confirmarMetodoPago() {
     if (!stockActualizado) {
         showToast('Error: No se pudo actualizar el inventario', 'error');
         return;
+    }
+
+    // Si es crédito, guardar productos en el crédito
+    if (metodoPagoSeleccionado === 'credito') {
+        const cliente = document.getElementById('clienteNombre').value.trim();
+        const monto = parseFloat(document.getElementById('montoCredito').value);
+        const moneda = document.getElementById('monedaCredito').value;
+        const dias = parseInt(document.getElementById('diasCredito').value);
+        let fechaInicio = document.getElementById('fechaInicioCredito').value;
+        
+        if (!fechaInicio) {
+            fechaInicio = new Date().toISOString().split('T')[0];
+        }
+        
+        const fechaVencimiento = calcularFechaVencimiento(fechaInicio, dias);
+        
+        const nuevoCredito = {
+            cliente,
+            monto,
+            moneda,
+            dias,
+            fechaInicio,
+            fechaVencimiento,
+            fechaRegistro: new Date().toISOString(),
+            estado: 'activo',
+            productos: productosVendidos
+        };
+        
+        creditos.push(nuevoCredito);
+        guardarCreditosStorage();
     }
 
     const ventaRegistro = {
@@ -1357,7 +1327,7 @@ function actualizarTasaBCV() {
     showToast(`Tasa actualizada: ${tasa}`, 'success');
 }
 
-// ===== REPORTE DIARIO DETALLADO =====
+// ===== REPORTE DIARIO MEJORADO =====
 function mostrarReporteDiario() {
     const container = document.getElementById('reporteDiarioContainer');
     if (!container) return;
@@ -1371,7 +1341,9 @@ function mostrarReporteDiario() {
     }
 
     let totalGeneral = 0;
+    let totalProductosVendidos = 0;
     const totalesPorMetodo = {};
+    const productosResumen = {};
 
     ventasHoy.forEach(venta => {
         totalGeneral += venta.total || 0;
@@ -1381,10 +1353,27 @@ function mostrarReporteDiario() {
             totalesPorMetodo[metodo] = 0;
         }
         totalesPorMetodo[metodo] += venta.total || 0;
+        
+        if (venta.items && Array.isArray(venta.items)) {
+            venta.items.forEach(item => {
+                totalProductosVendidos += item.cantidad || 0;
+                
+                const key = item.nombre;
+                if (!productosResumen[key]) {
+                    productosResumen[key] = {
+                        cantidad: 0,
+                        subtotal: 0
+                    };
+                }
+                productosResumen[key].cantidad += item.cantidad || 0;
+                productosResumen[key].subtotal += item.subtotal || 0;
+            });
+        }
     });
 
     document.getElementById('reporteTotalGeneral').textContent = `Bs ${totalGeneral.toFixed(2)}`;
     document.getElementById('reporteCantidadVentas').textContent = ventasHoy.length;
+    document.getElementById('reporteTotalProductosVendidos').textContent = totalProductosVendidos;
 
     const metodosContainer = document.getElementById('reporteTotalesMetodos');
     metodosContainer.innerHTML = '';
@@ -1395,6 +1384,7 @@ function mostrarReporteDiario() {
         'punto': 'Punto',
         'pago_movil': 'Pago Móvil',
         'biopago': 'Biopago',
+        'credito': 'Crédito',
         'otro': 'Otro'
     };
 
@@ -1406,6 +1396,30 @@ function mostrarReporteDiario() {
         `;
         metodosContainer.appendChild(div);
     });
+
+    const productosContainer = document.getElementById('reporteProductosVendidos');
+    productosContainer.innerHTML = '';
+    
+    const productosArray = Object.entries(productosResumen).sort((a, b) => a[0].localeCompare(b[0]));
+    
+    if (productosArray.length > 0) {
+        const ul = document.createElement('ul');
+        ul.style.cssText = 'list-style: none; padding: 0; margin: 0;';
+        
+        productosArray.forEach(([nombre, datos]) => {
+            const li = document.createElement('li');
+            li.style.cssText = 'padding: 5px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between;';
+            li.innerHTML = `
+                <span><strong>${nombre}</strong></span>
+                <span>Cantidad: ${datos.cantidad.toFixed(2)} | Total: Bs ${datos.subtotal.toFixed(2)}</span>
+            `;
+            ul.appendChild(li);
+        });
+        
+        productosContainer.appendChild(ul);
+    } else {
+        productosContainer.innerHTML = '<p style="color: #999; text-align: center;">No hay productos vendidos</p>';
+    }
 
     const tbody = document.getElementById('reporteDetalleBody');
     tbody.innerHTML = '';
@@ -1422,6 +1436,8 @@ function mostrarReporteDiario() {
     });
 
     container.style.display = 'block';
+    
+    showToast('📊 Reporte generado. Recuerda descargar y limpiar los datos.', 'info', 5000);
 }
 
 function cerrarReporteDiario() {
@@ -1453,19 +1469,42 @@ function generarPDFReporteDiario() {
         doc.text(`Tasa BCV: ${tasaBCVGuardada}`, 14, 35);
 
         let totalGeneral = 0;
+        let totalProductosVendidos = 0;
         const totalesPorMetodo = {};
+        const productosResumen = {};
 
-        ventasHoy.forEach(v => {
-            totalGeneral += v.total || 0;
-            const metodo = v.metodoPago || 'otro';
-            totalesPorMetodo[metodo] = (totalesPorMetodo[metodo] || 0) + (v.total || 0);
+        ventasHoy.forEach(venta => {
+            totalGeneral += venta.total || 0;
+            
+            const metodo = venta.metodoPago || 'otro';
+            if (!totalesPorMetodo[metodo]) {
+                totalesPorMetodo[metodo] = 0;
+            }
+            totalesPorMetodo[metodo] += venta.total || 0;
+            
+            if (venta.items && Array.isArray(venta.items)) {
+                venta.items.forEach(item => {
+                    totalProductosVendidos += item.cantidad || 0;
+                    
+                    const key = item.nombre;
+                    if (!productosResumen[key]) {
+                        productosResumen[key] = {
+                            cantidad: 0,
+                            subtotal: 0
+                        };
+                    }
+                    productosResumen[key].cantidad += item.cantidad || 0;
+                    productosResumen[key].subtotal += item.subtotal || 0;
+                });
+            }
         });
 
         doc.setFontSize(10);
         doc.text(`Total General: Bs ${totalGeneral.toFixed(2)}`, 14, 45);
         doc.text(`Cantidad de Ventas: ${ventasHoy.length}`, 14, 52);
+        doc.text(`Total Productos Vendidos: ${totalProductosVendidos}`, 14, 59);
 
-        let yPos = 60;
+        let yPos = 67;
         doc.text('Totales por Método de Pago:', 14, yPos);
         yPos += 7;
 
@@ -1474,12 +1513,28 @@ function generarPDFReporteDiario() {
             'efectivo_dolares': 'Efectivo $',
             'punto': 'Punto',
             'pago_movil': 'Pago Móvil',
-            'biopago': 'Biopago'
+            'biopago': 'Biopago',
+            'credito': 'Crédito'
         };
 
         Object.keys(totalesPorMetodo).forEach(metodo => {
             doc.text(`${nombresMetodos[metodo] || metodo}: Bs ${totalesPorMetodo[metodo].toFixed(2)}`, 20, yPos);
             yPos += 5;
+        });
+
+        yPos += 5;
+        doc.text('Productos Vendidos:', 14, yPos);
+        yPos += 7;
+
+        const productosArray = Object.entries(productosResumen).sort((a, b) => a[0].localeCompare(b[0]));
+        productosArray.forEach(([nombre, datos]) => {
+            doc.text(`${nombre}: ${datos.cantidad.toFixed(2)} unidades - Bs ${datos.subtotal.toFixed(2)}`, 20, yPos);
+            yPos += 5;
+            
+            if (yPos > 270) {
+                doc.addPage();
+                yPos = 20;
+            }
         });
 
         const ventasOrdenadas = [...ventasHoy].sort((a, b) => a.hora.localeCompare(b.hora));
@@ -1798,7 +1853,7 @@ function descargarBackup() {
         monedaEtiquetas,
         creditos,
         fecha: new Date().toISOString(),
-        version: '2.0'
+        version: '2.1'
     };
 
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
@@ -1860,12 +1915,13 @@ function toggleCopyrightNotice() {
 }
 
 // ============================================
-// MÓDULO DE CRÉDITOS
+// MÓDULO DE CRÉDITOS MEJORADO
 // ============================================
 
 function inicializarCreditos() {
     creditos = creditos.map(c => ({
         ...c,
+        productos: c.productos || [],
         estado: calcularEstadoCredito(c)
     }));
     actualizarVistaCreditos();
@@ -1885,6 +1941,8 @@ function calcularFechaVencimiento(fechaInicio, dias) {
 }
 
 function calcularEstadoCredito(credito) {
+    if (credito.estado === 'pagado') return 'pagado';
+    
     const hoy = new Date();
     const fechaVencimiento = new Date(credito.fechaVencimiento || 
         calcularFechaVencimiento(credito.fechaInicio, credito.dias));
@@ -1898,6 +1956,8 @@ function calcularEstadoCredito(credito) {
 }
 
 function calcularDiasRestantes(credito) {
+    if (credito.estado === 'pagado') return 0;
+    
     const hoy = new Date();
     const fechaVencimiento = new Date(credito.fechaVencimiento || 
         calcularFechaVencimiento(credito.fechaInicio, credito.dias));
@@ -1916,6 +1976,9 @@ function verificarCreditosPorVencer() {
     creditos.forEach(credito => {
         if (credito.estado === 'pagado') return;
         
+        const estado = calcularEstadoCredito(credito);
+        credito.estado = estado;
+        
         const fechaVencimiento = new Date(credito.fechaVencimiento || 
             calcularFechaVencimiento(credito.fechaInicio, credito.dias));
         const diffTime = fechaVencimiento - hoy;
@@ -1932,6 +1995,7 @@ function verificarCreditosPorVencer() {
         }
     });
     
+    guardarCreditosStorage();
     actualizarVistaCreditos();
 }
 
@@ -1960,6 +2024,45 @@ function actualizarEstadisticasCreditos() {
     document.getElementById('creditosPorVencer').textContent = porVencer;
     document.getElementById('creditosVencidos').textContent = vencidos;
     document.getElementById('totalAdeudado').textContent = `Bs ${totalAdeudado.toFixed(2)}`;
+}
+
+function verProductosCredito(index) {
+    let indiceReal = index;
+    
+    if (creditosFiltrados.length > 0) {
+        const credFiltrado = creditosFiltrados[index];
+        indiceReal = creditos.findIndex(c => 
+            c.cliente === credFiltrado.cliente && 
+            c.fechaRegistro === credFiltrado.fechaRegistro
+        );
+    }
+    
+    const credito = creditos[indiceReal];
+    const modal = document.getElementById('modalProductosCredito');
+    const contenido = document.getElementById('contenidoProductosCredito');
+    
+    if (credito.productos && credito.productos.length > 0) {
+        let html = '<ul style="list-style: none; padding: 0;">';
+        credito.productos.forEach(prod => {
+            html += `
+                <li style="padding: 8px; border-bottom: 1px solid #eee;">
+                    <strong>${prod.nombre}</strong><br>
+                    Cantidad: ${prod.cantidad} ${prod.unidad === 'gramo' ? 'g' : 'und'} | 
+                    Subtotal: Bs ${prod.subtotal.toFixed(2)}
+                </li>
+            `;
+        });
+        html += '</ul>';
+        contenido.innerHTML = html;
+    } else {
+        contenido.innerHTML = '<p style="color: #999; text-align: center;">No hay productos registrados para este crédito</p>';
+    }
+    
+    modal.style.display = 'block';
+}
+
+function cerrarModalProductosCredito() {
+    document.getElementById('modalProductosCredito').style.display = 'none';
 }
 
 function actualizarListaCreditos() {
@@ -2006,7 +2109,12 @@ function actualizarListaCreditos() {
         } else if (estado === 'porVencer') {
             claseEstado = 'estado-por-vencer';
             textoEstado = 'Por vencer';
+        } else if (estado === 'pagado') {
+            claseEstado = 'estado-pagado';
+            textoEstado = 'Pagado';
         }
+        
+        const tieneProductos = credito.productos && credito.productos.length > 0;
         
         fila.innerHTML = `
             <td><strong>${credito.cliente}</strong></td>
@@ -2019,6 +2127,13 @@ function actualizarListaCreditos() {
                 ${diasRestantes < 0 ? ' (vencido)' : ''}
             </td>
             <td>
+                ${tieneProductos ? 
+                    `<span onclick="verProductosCredito(${idx})" class="producto-tooltip" title="Ver productos del crédito">
+                        <i class="fas fa-eye"></i> Ver productos
+                    </span>` : 
+                    '<span style="color: #999;">Sin productos</span>'}
+            </td>
+            <td>
                 <div class="ajuste-inventario">
                     <button onclick="editarCredito(${idx})" class="btn-secondary" title="Editar crédito">
                         <i class="fas fa-edit"></i>
@@ -2026,9 +2141,11 @@ function actualizarListaCreditos() {
                     <button onclick="eliminarCredito(${idx})" class="btn-danger" title="Eliminar crédito">
                         <i class="fas fa-trash"></i>
                     </button>
-                    <button onclick="marcarComoPagado(${idx})" class="btn-success" title="Marcar como pagado">
-                        <i class="fas fa-check"></i>
-                    </button>
+                    ${estado !== 'pagado' ? 
+                        `<button onclick="marcarComoPagado(${idx})" class="btn-success" title="Marcar como pagado">
+                            <i class="fas fa-check"></i>
+                        </button>` : ''
+                    }
                 </div>
             </td>
         `;
@@ -2053,6 +2170,17 @@ function guardarCredito() {
     
     const fechaVencimiento = calcularFechaVencimiento(fechaInicio, dias);
     
+    // Si viene del carrito, tomar los productos
+    let productosCredito = [];
+    if (carrito && carrito.length > 0 && confirm('¿Incluir los productos del carrito en este crédito?')) {
+        productosCredito = carrito.map(item => ({
+            nombre: item.nombre,
+            cantidad: item.cantidad,
+            unidad: item.unidad,
+            subtotal: item.subtotal
+        }));
+    }
+    
     const credito = {
         cliente,
         monto,
@@ -2061,11 +2189,22 @@ function guardarCredito() {
         fechaInicio,
         fechaVencimiento,
         fechaRegistro: new Date().toISOString(),
-        estado: 'activo'
+        estado: 'activo',
+        productos: productosCredito
     };
     
     if (creditoEditando !== null) {
-        creditos[creditoEditando] = { ...creditos[creditoEditando], ...credito };
+        let indiceReal = creditoEditando;
+        
+        if (creditosFiltrados.length > 0) {
+            const credFiltrado = creditosFiltrados[creditoEditando];
+            indiceReal = creditos.findIndex(c => 
+                c.cliente === credFiltrado.cliente && 
+                c.fechaRegistro === credFiltrado.fechaRegistro
+            );
+        }
+        
+        creditos[indiceReal] = { ...creditos[indiceReal], ...credito };
         showToast('Crédito actualizado', 'success');
         creditoEditando = null;
         
@@ -2083,6 +2222,13 @@ function guardarCredito() {
     filtroActual = 'todos';
     actualizarFiltrosUI();
     actualizarVistaCreditos();
+    
+    // Si había carrito y se incluyeron productos, limpiar carrito
+    if (carrito.length > 0 && productosCredito.length > 0) {
+        carrito = [];
+        safeSetItem(STORAGE_KEYS.CARRITO, carrito);
+        actualizarCarrito();
+    }
 }
 
 function editarCredito(index) {
@@ -2222,6 +2368,7 @@ window.calcularPrecioVenta = calcularPrecioVenta;
 window.guardarProducto = guardarProducto;
 window.guardarCambiosProducto = guardarCambiosProducto;
 window.editarProducto = editarProducto;
+window.editarProductoConBoton = editarProductoConBoton;
 window.eliminarProducto = eliminarProducto;
 window.confirmarEliminacionProducto = confirmarEliminacionProducto;
 window.cerrarModalConfirmacionEliminar = cerrarModalConfirmacionEliminar;
@@ -2257,7 +2404,7 @@ window.cargarBackup = cargarBackup;
 window.toggleCopyrightNotice = toggleCopyrightNotice;
 window.cancelarEdicion = cancelarEdicion;
 
-// Exportar funciones de créditos
+// Exportar funciones de créditos mejoradas
 window.guardarCredito = guardarCredito;
 window.editarCredito = editarCredito;
 window.cancelarEdicionCredito = cancelarEdicionCredito;
@@ -2266,3 +2413,5 @@ window.marcarComoPagado = marcarComoPagado;
 window.buscarCreditos = buscarCreditos;
 window.mostrarTodosCreditos = mostrarTodosCreditos;
 window.filtrarCreditos = filtrarCreditos;
+window.verProductosCredito = verProductosCredito;
+window.cerrarModalProductosCredito = cerrarModalProductosCredito;
