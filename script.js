@@ -136,7 +136,7 @@ let productosFiltrados = [];
 
 // ----- VARIABLES DE CRÉDITOS MEJORADAS -----
 let creditos = [];
-let creditoEditando = null;
+let creditoEditando = null; // Guarda el índice REAL del crédito que se está editando
 let creditosFiltrados = [];
 let filtroActual = 'todos';
 
@@ -1133,6 +1133,7 @@ function confirmarMetodoPago() {
     const fechaHoy = ahora.toLocaleDateString();
     const hora = ahora.toLocaleTimeString();
 
+    // ===== DESCUENTO DE INVENTARIO PARA TODOS LOS MÉTODOS =====
     let stockActualizado = false;
     let productosVendidos = [];
     
@@ -1148,7 +1149,9 @@ function confirmarMetodoPago() {
                 nombre: item.nombre,
                 cantidad: item.cantidad,
                 unidad: item.unidad,
-                subtotal: item.subtotal
+                subtotal: item.subtotal,
+                precioUnitarioBolivar: item.precioUnitarioBolivar,
+                precioUnitarioDolar: item.precioUnitarioDolar
             });
             
             if (producto.unidadesExistentes < 0) {
@@ -1170,13 +1173,27 @@ function confirmarMetodoPago() {
         return;
     }
 
-    // Si es crédito, guardar productos en el crédito
+    // ===== SI ES CRÉDITO, GUARDAR EN CRÉDITOS CON LOS PRODUCTOS =====
     if (metodoPagoSeleccionado === 'credito') {
         const cliente = document.getElementById('clienteNombre').value.trim();
         const monto = parseFloat(document.getElementById('montoCredito').value);
         const moneda = document.getElementById('monedaCredito').value;
         const dias = parseInt(document.getElementById('diasCredito').value);
         let fechaInicio = document.getElementById('fechaInicioCredito').value;
+        
+        if (!cliente) {
+            showToast('Ingrese el nombre del cliente para el crédito', 'error');
+            // Revertir inventario
+            carrito.forEach(item => {
+                const producto = productos[item.indexProducto];
+                if (producto) {
+                    const cantidadDevuelta = item.unidad === 'gramo' ? item.cantidad / 1000 : item.cantidad;
+                    producto.unidadesExistentes = redondear2Decimales(producto.unidadesExistentes + cantidadDevuelta);
+                }
+            });
+            safeSetItem(STORAGE_KEYS.PRODUCTOS, productos);
+            return;
+        }
         
         if (!fechaInicio) {
             fechaInicio = new Date().toISOString().split('T')[0];
@@ -1198,8 +1215,10 @@ function confirmarMetodoPago() {
         
         creditos.push(nuevoCredito);
         guardarCreditosStorage();
+        showToast(`✅ Crédito registrado para ${cliente}`, 'success');
     }
 
+    // ===== REGISTRAR VENTA EN EL REPORTE DIARIO =====
     const ventaRegistro = {
         fecha: fechaHoy,
         hora: hora,
@@ -1915,7 +1934,7 @@ function toggleCopyrightNotice() {
 }
 
 // ============================================
-// MÓDULO DE CRÉDITOS MEJORADO
+// MÓDULO DE CRÉDITOS MEJORADO Y CORREGIDO
 // ============================================
 
 function inicializarCreditos() {
@@ -2026,15 +2045,24 @@ function actualizarEstadisticasCreditos() {
     document.getElementById('totalAdeudado').textContent = `Bs ${totalAdeudado.toFixed(2)}`;
 }
 
-function verProductosCredito(index) {
-    let indiceReal = index;
+// Función para obtener el índice real a partir del índice de la lista filtrada
+function obtenerIndiceRealDesdeFiltro(indexFiltro) {
+    if (creditosFiltrados.length === 0) return indexFiltro;
     
-    if (creditosFiltrados.length > 0) {
-        const credFiltrado = creditosFiltrados[index];
-        indiceReal = creditos.findIndex(c => 
-            c.cliente === credFiltrado.cliente && 
-            c.fechaRegistro === credFiltrado.fechaRegistro
-        );
+    if (indexFiltro < 0 || indexFiltro >= creditosFiltrados.length) return -1;
+    
+    const credFiltrado = creditosFiltrados[indexFiltro];
+    return creditos.findIndex(c => 
+        c.cliente === credFiltrado.cliente && 
+        c.fechaRegistro === credFiltrado.fechaRegistro
+    );
+}
+
+function verProductosCredito(index) {
+    const indiceReal = obtenerIndiceRealDesdeFiltro(index);
+    if (indiceReal === -1) {
+        showToast('Error: Crédito no encontrado', 'error');
+        return;
     }
     
     const credito = creditos[indiceReal];
@@ -2096,8 +2124,15 @@ function actualizarListaCreditos() {
         if (estado === 'vencido') fila.classList.add('vencido');
         else if (estado === 'porVencer') fila.classList.add('por-vencer');
         
-        if (creditoEditando && creditos[creditoEditando] === credito) {
-            fila.classList.add('editing');
+        // Verificar si este crédito es el que está en edición
+        if (creditoEditando !== null) {
+            const indiceReal = creditos.findIndex(c => 
+                c.cliente === credito.cliente && 
+                c.fechaRegistro === credito.fechaRegistro
+            );
+            if (indiceReal === creditoEditando) {
+                fila.classList.add('editing');
+            }
         }
         
         let claseEstado = 'estado-activo';
@@ -2172,39 +2207,40 @@ function guardarCredito() {
     
     // Si viene del carrito, tomar los productos
     let productosCredito = [];
-    if (carrito && carrito.length > 0 && confirm('¿Incluir los productos del carrito en este crédito?')) {
-        productosCredito = carrito.map(item => ({
-            nombre: item.nombre,
-            cantidad: item.cantidad,
-            unidad: item.unidad,
-            subtotal: item.subtotal
-        }));
+    if (carrito && carrito.length > 0) {
+        if (confirm('¿Incluir los productos del carrito en este crédito?')) {
+            productosCredito = carrito.map(item => ({
+                nombre: item.nombre,
+                cantidad: item.cantidad,
+                unidad: item.unidad,
+                subtotal: item.subtotal,
+                precioUnitarioBolivar: item.precioUnitarioBolivar,
+                precioUnitarioDolar: item.precioUnitarioDolar
+            }));
+        }
     }
     
-    const credito = {
-        cliente,
-        monto,
-        moneda,
-        dias,
-        fechaInicio,
-        fechaVencimiento,
-        fechaRegistro: new Date().toISOString(),
-        estado: 'activo',
-        productos: productosCredito
-    };
-    
     if (creditoEditando !== null) {
-        let indiceReal = creditoEditando;
+        // ESTAMOS EDITANDO UN CRÉDITO EXISTENTE
+        const indiceReal = creditoEditando;
         
-        if (creditosFiltrados.length > 0) {
-            const credFiltrado = creditosFiltrados[creditoEditando];
-            indiceReal = creditos.findIndex(c => 
-                c.cliente === credFiltrado.cliente && 
-                c.fechaRegistro === credFiltrado.fechaRegistro
-            );
-        }
+        // Conservar los productos existentes si no vienen nuevos del carrito
+        const productosExistentes = creditos[indiceReal].productos || [];
         
-        creditos[indiceReal] = { ...creditos[indiceReal], ...credito };
+        creditos[indiceReal] = {
+            ...creditos[indiceReal],
+            cliente,
+            monto,
+            moneda,
+            dias,
+            fechaInicio,
+            fechaVencimiento,
+            // Si hay productos nuevos, se añaden; si no, se conservan los existentes
+            productos: productosCredito.length > 0 ? 
+                [...productosExistentes, ...productosCredito] : 
+                productosExistentes
+        };
+        
         showToast('Crédito actualizado', 'success');
         creditoEditando = null;
         
@@ -2212,8 +2248,30 @@ function guardarCredito() {
         document.getElementById('btnGuardarCredito').innerHTML = '<i class="fas fa-save"></i> Guardar Crédito';
         document.getElementById('btnCancelarCredito').style.display = 'none';
     } else {
-        creditos.push(credito);
+        // NUEVO CRÉDITO
+        const nuevoCredito = {
+            cliente,
+            monto,
+            moneda,
+            dias,
+            fechaInicio,
+            fechaVencimiento,
+            fechaRegistro: new Date().toISOString(),
+            estado: 'activo',
+            productos: productosCredito
+        };
+        
+        creditos.push(nuevoCredito);
         showToast('Crédito registrado', 'success');
+        
+        // Si había carrito y se incluyeron productos, descontar inventario y limpiar carrito
+        if (carrito.length > 0 && productosCredito.length > 0) {
+            // Descontar inventario (ya debería estar descontado en confirmarMetodoPago)
+            // Pero por si acaso, verificamos
+            carrito = [];
+            safeSetItem(STORAGE_KEYS.CARRITO, carrito);
+            actualizarCarrito();
+        }
     }
     
     guardarCreditosStorage();
@@ -2222,24 +2280,13 @@ function guardarCredito() {
     filtroActual = 'todos';
     actualizarFiltrosUI();
     actualizarVistaCreditos();
-    
-    // Si había carrito y se incluyeron productos, limpiar carrito
-    if (carrito.length > 0 && productosCredito.length > 0) {
-        carrito = [];
-        safeSetItem(STORAGE_KEYS.CARRITO, carrito);
-        actualizarCarrito();
-    }
 }
 
 function editarCredito(index) {
-    let indiceReal = index;
-    
-    if (creditosFiltrados.length > 0) {
-        const credFiltrado = creditosFiltrados[index];
-        indiceReal = creditos.findIndex(c => 
-            c.cliente === credFiltrado.cliente && 
-            c.fechaRegistro === credFiltrado.fechaRegistro
-        );
+    const indiceReal = obtenerIndiceRealDesdeFiltro(index);
+    if (indiceReal === -1) {
+        showToast('Error: Crédito no encontrado', 'error');
+        return;
     }
     
     const credito = creditos[indiceReal];
@@ -2268,14 +2315,10 @@ function cancelarEdicionCredito() {
 }
 
 function eliminarCredito(index) {
-    let indiceReal = index;
-    
-    if (creditosFiltrados.length > 0) {
-        const credFiltrado = creditosFiltrados[index];
-        indiceReal = creditos.findIndex(c => 
-            c.cliente === credFiltrado.cliente && 
-            c.fechaRegistro === credFiltrado.fechaRegistro
-        );
+    const indiceReal = obtenerIndiceRealDesdeFiltro(index);
+    if (indiceReal === -1) {
+        showToast('Error: Crédito no encontrado', 'error');
+        return;
     }
     
     if (confirm(`¿Eliminar crédito de ${creditos[indiceReal].cliente}?`)) {
@@ -2289,14 +2332,10 @@ function eliminarCredito(index) {
 }
 
 function marcarComoPagado(index) {
-    let indiceReal = index;
-    
-    if (creditosFiltrados.length > 0) {
-        const credFiltrado = creditosFiltrados[index];
-        indiceReal = creditos.findIndex(c => 
-            c.cliente === credFiltrado.cliente && 
-            c.fechaRegistro === credFiltrado.fechaRegistro
-        );
+    const indiceReal = obtenerIndiceRealDesdeFiltro(index);
+    if (indiceReal === -1) {
+        showToast('Error: Crédito no encontrado', 'error');
+        return;
     }
     
     if (confirm(`¿Marcar como pagado el crédito de ${creditos[indiceReal].cliente}?`)) {
@@ -2404,7 +2443,7 @@ window.cargarBackup = cargarBackup;
 window.toggleCopyrightNotice = toggleCopyrightNotice;
 window.cancelarEdicion = cancelarEdicion;
 
-// Exportar funciones de créditos mejoradas
+// Exportar funciones de créditos mejoradas y corregidas
 window.guardarCredito = guardarCredito;
 window.editarCredito = editarCredito;
 window.cancelarEdicionCredito = cancelarEdicionCredito;
