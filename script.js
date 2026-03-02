@@ -1133,89 +1133,49 @@ function confirmarMetodoPago() {
     const fechaHoy = ahora.toLocaleDateString();
     const hora = ahora.toLocaleTimeString();
 
-    // ===== DESCUENTO DE INVENTARIO PARA TODOS LOS MÉTODOS =====
-    let stockActualizado = false;
-    let productosVendidos = [];
-    
-    carrito.forEach(item => {
-        const producto = productos[item.indexProducto];
-        if (producto) {
-            const stockAnterior = producto.unidadesExistentes;
-            const cantidadVendida = item.unidad === 'gramo' ? item.cantidad / 1000 : item.cantidad;
-            
-            producto.unidadesExistentes = redondear2Decimales(producto.unidadesExistentes - cantidadVendida);
-            
-            productosVendidos.push({
-                nombre: item.nombre,
-                cantidad: item.cantidad,
-                unidad: item.unidad,
-                subtotal: item.subtotal,
-                precioUnitarioBolivar: item.precioUnitarioBolivar,
-                precioUnitarioDolar: item.precioUnitarioDolar
-            });
-            
-            if (producto.unidadesExistentes < 0) {
-                producto.unidadesExistentes = 0;
-            }
-            
-            stockActualizado = true;
-            
-            if (producto.unidadesExistentes < 4 && producto.unidadesExistentes > 0) {
-                showToast(`⚠️ ${producto.nombre} tiene stock bajo: ${producto.unidadesExistentes} unidades`, 'warning');
-            } else if (producto.unidadesExistentes === 0) {
-                showToast(`❌ ${producto.nombre} se ha agotado`, 'error');
-            }
-        }
-    });
-
-    if (!stockActualizado) {
-        showToast('Error: No se pudo actualizar el inventario', 'error');
-        return;
-    }
-
-    // ===== SI ES CRÉDITO, GUARDAR EN CRÉDITOS CON LOS PRODUCTOS =====
-    if (metodoPagoSeleccionado === 'credito') {
-        const cliente = document.getElementById('clienteNombre').value.trim();
-        const monto = parseFloat(document.getElementById('montoCredito').value);
-        const moneda = document.getElementById('monedaCredito').value;
-        const dias = parseInt(document.getElementById('diasCredito').value);
-        let fechaInicio = document.getElementById('fechaInicioCredito').value;
+    // ===== DESCUENTO DE INVENTARIO PARA TODOS LOS MÉTODOS EXCEPTO CRÉDITO =====
+    // (El crédito descuenta en guardarCredito)
+    if (metodoPagoSeleccionado !== 'credito') {
+        let stockActualizado = false;
+        let productosVendidos = [];
         
-        if (!cliente) {
-            showToast('Ingrese el nombre del cliente para el crédito', 'error');
-            // Revertir inventario
-            carrito.forEach(item => {
-                const producto = productos[item.indexProducto];
-                if (producto) {
-                    const cantidadDevuelta = item.unidad === 'gramo' ? item.cantidad / 1000 : item.cantidad;
-                    producto.unidadesExistentes = redondear2Decimales(producto.unidadesExistentes + cantidadDevuelta);
+        carrito.forEach(item => {
+            const producto = productos[item.indexProducto];
+            if (producto) {
+                const stockAnterior = producto.unidadesExistentes;
+                const cantidadVendida = item.unidad === 'gramo' ? item.cantidad / 1000 : item.cantidad;
+                
+                producto.unidadesExistentes = redondear2Decimales(producto.unidadesExistentes - cantidadVendida);
+                
+                productosVendidos.push({
+                    nombre: item.nombre,
+                    cantidad: item.cantidad,
+                    unidad: item.unidad,
+                    subtotal: item.subtotal,
+                    precioUnitarioBolivar: item.precioUnitarioBolivar,
+                    precioUnitarioDolar: item.precioUnitarioDolar
+                });
+                
+                if (producto.unidadesExistentes < 0) {
+                    producto.unidadesExistentes = 0;
                 }
-            });
-            safeSetItem(STORAGE_KEYS.PRODUCTOS, productos);
+                
+                stockActualizado = true;
+                
+                if (producto.unidadesExistentes < 4 && producto.unidadesExistentes > 0) {
+                    showToast(`⚠️ ${producto.nombre} tiene stock bajo: ${producto.unidadesExistentes} unidades`, 'warning');
+                } else if (producto.unidadesExistentes === 0) {
+                    showToast(`❌ ${producto.nombre} se ha agotado`, 'error');
+                }
+            }
+        });
+
+        if (!stockActualizado) {
+            showToast('Error: No se pudo actualizar el inventario', 'error');
             return;
         }
-        
-        if (!fechaInicio) {
-            fechaInicio = new Date().toISOString().split('T')[0];
-        }
-        
-        const fechaVencimiento = calcularFechaVencimiento(fechaInicio, dias);
-        
-        const nuevoCredito = {
-            cliente,
-            monto,
-            moneda,
-            dias,
-            fechaInicio,
-            fechaVencimiento,
-            fechaRegistro: new Date().toISOString(),
-            estado: 'activo',
-            productos: productosVendidos
-        };
-        
-        creditos.push(nuevoCredito);
-        guardarCreditosStorage();
-        showToast(`✅ Crédito registrado para ${cliente}`, 'success');
+
+        safeSetItem(STORAGE_KEYS.PRODUCTOS, productos);
     }
 
     // ===== REGISTRAR VENTA EN EL REPORTE DIARIO =====
@@ -1234,8 +1194,6 @@ function confirmarMetodoPago() {
     };
 
     ventasDiarias.push(ventaRegistro);
-
-    safeSetItem(STORAGE_KEYS.PRODUCTOS, productos);
     safeSetItem(STORAGE_KEYS.VENTAS, ventasDiarias);
 
     showToast(`✅ Venta completada por Bs ${totalBs.toFixed(2)}`, 'success');
@@ -2205,10 +2163,39 @@ function guardarCredito() {
     
     const fechaVencimiento = calcularFechaVencimiento(fechaInicio, dias);
     
-    // Si viene del carrito, tomar los productos
+    // ===== VARIABLES PARA EL REPORTE Y DESCUENTO =====
+    const ahora = new Date();
+    const fechaHoy = ahora.toLocaleDateString();
+    const hora = ahora.toLocaleTimeString();
+    
+    // ===== SI VIENE DEL CARRITO, TOMAR LOS PRODUCTOS Y DESCONTAR INVENTARIO =====
     let productosCredito = [];
+    let totalBs = 0;
+    let totalDolares = 0;
+    
     if (carrito && carrito.length > 0) {
-        if (confirm('¿Incluir los productos del carrito en este crédito?')) {
+        // Verificar si el usuario quiere incluir los productos
+        if (confirm('¿Incluir los productos del carrito en este crédito? Se descontarán del inventario.')) {
+            // Descontar inventario
+            carrito.forEach(item => {
+                const producto = productos[item.indexProducto];
+                if (producto) {
+                    const cantidadVendida = item.unidad === 'gramo' ? item.cantidad / 1000 : item.cantidad;
+                    producto.unidadesExistentes = redondear2Decimales(producto.unidadesExistentes - cantidadVendida);
+                    
+                    if (producto.unidadesExistentes < 0) {
+                        producto.unidadesExistentes = 0;
+                    }
+                    
+                    totalBs += item.subtotal;
+                    totalDolares += item.subtotalDolar;
+                }
+            });
+            
+            // Guardar cambios en inventario
+            safeSetItem(STORAGE_KEYS.PRODUCTOS, productos);
+            
+            // Preparar productos para el crédito
             productosCredito = carrito.map(item => ({
                 nombre: item.nombre,
                 cantidad: item.cantidad,
@@ -2217,14 +2204,38 @@ function guardarCredito() {
                 precioUnitarioBolivar: item.precioUnitarioBolivar,
                 precioUnitarioDolar: item.precioUnitarioDolar
             }));
+            
+            // Registrar la venta en el reporte diario
+            const ventaRegistro = {
+                fecha: fechaHoy,
+                hora: hora,
+                total: totalBs,
+                totalDolares: totalDolares,
+                metodoPago: 'credito',
+                items: carrito.map(item => ({
+                    nombre: item.nombre,
+                    cantidad: item.cantidad,
+                    unidad: item.unidad,
+                    subtotal: item.subtotal
+                }))
+            };
+            
+            ventasDiarias.push(ventaRegistro);
+            safeSetItem(STORAGE_KEYS.VENTAS, ventasDiarias);
+            
+            // Limpiar carrito
+            carrito = [];
+            safeSetItem(STORAGE_KEYS.CARRITO, carrito);
+            actualizarCarrito();
         }
     }
     
+    // ===== GUARDAR O ACTUALIZAR CRÉDITO =====
     if (creditoEditando !== null) {
         // ESTAMOS EDITANDO UN CRÉDITO EXISTENTE
         const indiceReal = creditoEditando;
         
-        // Conservar los productos existentes si no vienen nuevos del carrito
+        // Conservar los productos existentes y añadir los nuevos si los hay
         const productosExistentes = creditos[indiceReal].productos || [];
         
         creditos[indiceReal] = {
@@ -2263,15 +2274,6 @@ function guardarCredito() {
         
         creditos.push(nuevoCredito);
         showToast('Crédito registrado', 'success');
-        
-        // Si había carrito y se incluyeron productos, descontar inventario y limpiar carrito
-        if (carrito.length > 0 && productosCredito.length > 0) {
-            // Descontar inventario (ya debería estar descontado en confirmarMetodoPago)
-            // Pero por si acaso, verificamos
-            carrito = [];
-            safeSetItem(STORAGE_KEYS.CARRITO, carrito);
-            actualizarCarrito();
-        }
     }
     
     guardarCreditosStorage();
