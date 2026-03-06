@@ -667,9 +667,13 @@ function actualizarEstadisticas() {
     let totalInvertidoUSD = 0;
     
     productos.forEach(p => {
-        const gananciaUnidad = p.precioUnitarioDolar - (p.costo / p.unidadesPorCaja);
+        // Ganancia potencial: (precio unitario - costo unitario) * existencias
+        const costoUnitario = p.costo / (p.unidadesPorCaja || 1);
+        const gananciaUnidad = p.precioUnitarioDolar - costoUnitario;
         gananciaUSD += gananciaUnidad * (p.unidadesExistentes || 0);
-        totalInvertidoUSD += p.costo || 0;
+        
+        // Inversión real: existencias * costo unitario
+        totalInvertidoUSD += (p.unidadesExistentes || 0) * costoUnitario;
     });
 
     document.getElementById('gananciaTotalUSD').textContent = `$${redondear2Decimales(gananciaUSD).toFixed(2)}`;
@@ -1318,7 +1322,6 @@ function mostrarReporteDiario() {
     }
 
     let totalGeneral = 0;
-    let totalProductosVendidos = 0;
     const totalesPorMetodo = {};
     const productosResumen = {};
 
@@ -1333,8 +1336,6 @@ function mostrarReporteDiario() {
         
         if (venta.items && Array.isArray(venta.items)) {
             venta.items.forEach(item => {
-                totalProductosVendidos += item.cantidad || 0;
-                
                 const key = item.nombre;
                 if (!productosResumen[key]) {
                     productosResumen[key] = {
@@ -1350,7 +1351,8 @@ function mostrarReporteDiario() {
 
     document.getElementById('reporteTotalGeneral').textContent = `Bs ${totalGeneral.toFixed(2)}`;
     document.getElementById('reporteCantidadVentas').textContent = ventasHoy.length;
-    document.getElementById('reporteTotalProductosVendidos').textContent = totalProductosVendidos;
+    // El total de productos vendidos se elimina del reporte para evitar confusiones
+    document.getElementById('reporteTotalProductosVendidos').textContent = 'Ver detalle por producto';
 
     const metodosContainer = document.getElementById('reporteTotalesMetodos');
     metodosContainer.innerHTML = '';
@@ -1446,7 +1448,6 @@ function generarPDFReporteDiario() {
         doc.text(`Tasa BCV: ${tasaBCVGuardada}`, 14, 35);
 
         let totalGeneral = 0;
-        let totalProductosVendidos = 0;
         const totalesPorMetodo = {};
         const productosResumen = {};
 
@@ -1461,8 +1462,6 @@ function generarPDFReporteDiario() {
             
             if (venta.items && Array.isArray(venta.items)) {
                 venta.items.forEach(item => {
-                    totalProductosVendidos += item.cantidad || 0;
-                    
                     const key = item.nombre;
                     if (!productosResumen[key]) {
                         productosResumen[key] = {
@@ -1479,9 +1478,9 @@ function generarPDFReporteDiario() {
         doc.setFontSize(10);
         doc.text(`Total General: Bs ${totalGeneral.toFixed(2)}`, 14, 45);
         doc.text(`Cantidad de Ventas: ${ventasHoy.length}`, 14, 52);
-        doc.text(`Total Productos Vendidos: ${totalProductosVendidos}`, 14, 59);
+        // El total de productos vendidos se omite en el PDF
 
-        let yPos = 67;
+        let yPos = 60;
         doc.text('Totales por Método de Pago:', 14, yPos);
         yPos += 7;
 
