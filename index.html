@@ -161,7 +161,7 @@
                                 <th>Unidad</th>
                                 <th>Subtotal (Bs)</th>
                                 <th>Acc.</th>
-                            </tr>
+                             </tr>
                         </thead>
                         <tbody id="carritoBody"></tbody>
                     </table>
@@ -182,20 +182,14 @@
                 <div class="form-grid">
                     <input type="text" id="producto" placeholder="Nombre del producto" />
                     <input type="text" id="codigoBarras" placeholder="Código de barras (opcional)" />
-                    <select id="descripcion" required>
-                        <option value="">Selecciona una categoría</option>
-                        <option value="viveres">Víveres</option>
-                        <option value="bebidas">Bebidas</option>
-                        <option value="licores">Licores</option>
-                        <option value="enlatados">Enlatados</option>
-                        <option value="lacteos">Lácteos</option>
-                        <option value="carnes">Carnes</option>
-                        <option value="frutas">Frutas</option>
-                        <option value="verduras">Verduras</option>
-                        <option value="aseo_personal">Aseo Personal</option>
-                        <option value="limpieza">Limpieza</option>
-                        <option value="otros">Otros</option>
-                    </select>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <select id="descripcion" required style="flex: 1;">
+                            <option value="">Selecciona una categoría</option>
+                        </select>
+                        <button type="button" onclick="mostrarGestionCategorias()" style="min-width: auto; padding: 12px 15px;" title="Gestionar categorías">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </div>
                     <input type="number" id="costo" placeholder="Costo del producto (en $)" step="0.01" />
                     <input type="number" id="ganancia" placeholder="Porcentaje de ganancia %" step="0.1" />
                     <input type="number" id="unidadesPorCaja" placeholder="Unidades por caja / kg" step="0.01" />
@@ -229,7 +223,7 @@
                                 <th>P/U ($)</th>
                                 <th>P/U (Bs)</th>
                                 <th>Acciones</th>
-                            </tr>
+                             </tr>
                         </thead>
                         <tbody></tbody>
                     </table>
@@ -303,7 +297,7 @@
                                 <th>Hora</th>
                                 <th>Método</th>
                                 <th>Total</th>
-                            </tr>
+                             </tr>
                         </thead>
                         <tbody id="reporteDetalleBody"></tbody>
                     </table>
@@ -421,7 +415,7 @@
                                 <th>Días restantes</th>
                                 <th>Productos</th>
                                 <th>Acciones</th>
-                            </tr>
+                             </tr>
                         </thead>
                         <tbody id="creditosBody"></tbody>
                     </table>
@@ -490,29 +484,18 @@
         </div>
     </div>
 
-    <!-- Modal PDF por Categoría -->
+    <!-- Modal PDF por Categoría (dinámico) -->
     <div id="modalCategorias" class="modal" style="display: none;">
         <div class="modal-content" style="max-width: 600px;">
             <span class="close" onclick="cerrarModalCategorias()">&times;</span>
             <h3><i class="fas fa-file-pdf"></i> Generar PDF por Categoría</h3>
-            <div class="categorias-lista" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-height: 400px; overflow-y: auto; padding: 10px;">
-                <button onclick="generarPDFPorCategoria('todos')" class="categoria-btn" style="grid-column: span 3; background: #4CAF50;">TODOS LOS PRODUCTOS</button>
-                <button onclick="generarPDFPorCategoria('viveres')" class="categoria-btn">VÍVERES</button>
-                <button onclick="generarPDFPorCategoria('bebidas')" class="categoria-btn">BEBIDAS</button>
-                <button onclick="generarPDFPorCategoria('licores')" class="categoria-btn">LICORES</button>
-                <button onclick="generarPDFPorCategoria('enlatados')" class="categoria-btn">ENLATADOS</button>
-                <button onclick="generarPDFPorCategoria('lacteos')" class="categoria-btn">LÁCTEOS</button>
-                <button onclick="generarPDFPorCategoria('carnes')" class="categoria-btn">CARNES</button>
-                <button onclick="generarPDFPorCategoria('frutas')" class="categoria-btn">FRUTAS</button>
-                <button onclick="generarPDFPorCategoria('verduras')" class="categoria-btn">VERDURAS</button>
-                <button onclick="generarPDFPorCategoria('aseo_personal')" class="categoria-btn">ASEO</button>
-                <button onclick="generarPDFPorCategoria('limpieza')" class="categoria-btn">LIMPIEZA</button>
-                <button onclick="generarPDFPorCategoria('otros')" class="categoria-btn">OTROS</button>
+            <div id="categoriasPDFContainer" class="categorias-lista" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-height: 400px; overflow-y: auto; padding: 10px;">
+                <!-- Botones generados dinámicamente -->
             </div>
         </div>
     </div>
 
-    <!-- Modal Etiquetas -->
+    <!-- Modal Etiquetas (dinámico) -->
     <div id="modalEtiquetas" class="modal" style="display: none;">
         <div class="modal-content" style="max-width: 600px;">
             <span class="close" onclick="cerrarModalEtiquetas()">&times;</span>
@@ -524,19 +507,26 @@
                     <option value="USD">Dólares ($)</option>
                 </select>
             </div>
-            <div class="categorias-lista" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-height: 400px; overflow-y: auto; padding: 10px;">
-                <button onclick="generarEtiquetasPorCategoria('todos')" class="categoria-btn" style="grid-column: span 3; background: #FF9800;">TODOS LOS PRODUCTOS</button>
-                <button onclick="generarEtiquetasPorCategoria('viveres')" class="categoria-btn">VÍVERES</button>
-                <button onclick="generarEtiquetasPorCategoria('bebidas')" class="categoria-btn">BEBIDAS</button>
-                <button onclick="generarEtiquetasPorCategoria('licores')" class="categoria-btn">LICORES</button>
-                <button onclick="generarEtiquetasPorCategoria('enlatados')" class="categoria-btn">ENLATADOS</button>
-                <button onclick="generarEtiquetasPorCategoria('lacteos')" class="categoria-btn">LÁCTEOS</button>
-                <button onclick="generarEtiquetasPorCategoria('carnes')" class="categoria-btn">CARNES</button>
-                <button onclick="generarEtiquetasPorCategoria('frutas')" class="categoria-btn">FRUTAS</button>
-                <button onclick="generarEtiquetasPorCategoria('verduras')" class="categoria-btn">VERDURAS</button>
-                <button onclick="generarEtiquetasPorCategoria('aseo_personal')" class="categoria-btn">ASEO</button>
-                <button onclick="generarEtiquetasPorCategoria('limpieza')" class="categoria-btn">LIMPIEZA</button>
-                <button onclick="generarEtiquetasPorCategoria('otros')" class="categoria-btn">OTROS</button>
+            <div id="categoriasEtiquetasContainer" class="categorias-lista" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-height: 400px; overflow-y: auto; padding: 10px;">
+                <!-- Botones generados dinámicamente -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Gestión de Categorías -->
+    <div id="modalGestionCategorias" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close" onclick="cerrarGestionCategorias()">&times;</span>
+            <h3><i class="fas fa-tags"></i> Gestionar Categorías</h3>
+            <div style="margin: 15px 0; display: flex; gap: 10px;">
+                <input type="text" id="nuevaCategoria" placeholder="Nueva categoría" style="flex: 1;">
+                <button onclick="agregarCategoria()">Agregar</button>
+            </div>
+            <div id="listaCategorias" style="max-height: 300px; overflow-y: auto;">
+                <!-- Lista de categorías con botones editar/eliminar -->
+            </div>
+            <div style="margin-top: 20px;">
+                <button onclick="cerrarGestionCategorias()" class="btn-secondary">Cerrar</button>
             </div>
         </div>
     </div>
@@ -558,7 +548,7 @@
         </div>
     </div>
 
-    <!-- Modal para mostrar productos del crédito (hover mejorado) -->
+    <!-- Modal para mostrar productos del crédito -->
     <div id="modalProductosCredito" class="modal" style="display: none;">
         <div class="modal-content" style="max-width: 400px;">
             <span class="close" onclick="cerrarModalProductosCredito()">&times;</span>
