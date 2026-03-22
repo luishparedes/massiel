@@ -1,6 +1,6 @@
 // ============================================
 // CALCULADORA MÁGICA - VERSIÓN PROFESIONAL COMPLETA
-// CON SISTEMA DE CRÉDITOS MEJORADO Y REPORTE DIARIO OPTIMIZADO
+// CON CATEGORÍAS PERSONALIZADAS
 // ============================================
 
 // ===== PROTECCIÓN AVANZADA CONTRA INSPECCIÓN Y HERRAMIENTAS =====
@@ -140,6 +140,9 @@ let creditoEditando = null; // Guarda el índice REAL del crédito que se está 
 let creditosFiltrados = [];
 let filtroActual = 'todos';
 
+// ----- VARIABLES DE CATEGORÍAS PERSONALIZADAS -----
+let categoriasPersonalizadas = [];
+
 // Variables para escáner
 let tiempoUltimaTecla = 0;
 let bufferEscaneo = '';
@@ -163,7 +166,8 @@ const STORAGE_KEYS = {
     CARRITO: 'carrito',
     CLAVE: 'claveSeguridad',
     MONEDA: 'monedaEtiquetas',
-    CREDITOS: 'creditos'
+    CREDITOS: 'creditos',
+    CATEGORIAS: 'categoriasPersonalizadas'
 };
 
 // ===== FUNCIONES UTILITARIAS =====
@@ -232,18 +236,52 @@ function cargarDatosStorage() {
         monedaEtiquetas = localStorage.getItem(STORAGE_KEYS.MONEDA) || 'VES';
         creditos = JSON.parse(localStorage.getItem(STORAGE_KEYS.CREDITOS)) || [];
 
+        // Cargar categorías personalizadas o inicializar con las por defecto
+        const categoriasGuardadas = localStorage.getItem(STORAGE_KEYS.CATEGORIAS);
+        if (categoriasGuardadas) {
+            categoriasPersonalizadas = JSON.parse(categoriasGuardadas);
+        } else {
+            // Categorías por defecto
+            categoriasPersonalizadas = [
+                "viveres", "bebidas", "licores", "enlatados", "lacteos",
+                "carnes", "frutas", "verduras", "aseo_personal", "limpieza", "otros"
+            ];
+            guardarCategorias();
+        }
+
         carrito = carrito.filter(item => item && item.nombre);
         
         creditos = creditos.map(c => ({
             ...c,
             productos: c.productos || [] // Asegurar que exista el array de productos
         }));
+        
+        // Actualizar el select de categorías
+        actualizarSelectCategorias();
     } catch (error) {
         console.error('Error cargando datos:', error);
         productos = [];
         carrito = [];
         creditos = [];
     }
+}
+
+function guardarCategorias() {
+    localStorage.setItem(STORAGE_KEYS.CATEGORIAS, JSON.stringify(categoriasPersonalizadas));
+}
+
+function actualizarSelectCategorias() {
+    const select = document.getElementById('descripcion');
+    if (!select) return;
+    const valorActual = select.value;
+    select.innerHTML = '<option value="">Selecciona una categoría</option>';
+    categoriasPersonalizadas.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat;
+        option.textContent = cat.charAt(0).toUpperCase() + cat.slice(1).replace(/_/g, ' ');
+        if (valorActual === cat) option.selected = true;
+        select.appendChild(option);
+    });
 }
 
 function actualizarTodo() {
@@ -635,7 +673,7 @@ function actualizarListaProductos() {
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
-            </td>
+             </td>
         `;
         tbody.appendChild(fila);
     });
@@ -845,27 +883,27 @@ function actualizarCarrito() {
 
         const fila = document.createElement('tr');
         fila.innerHTML = `
-            <td>${item.nombre}</td>
-            <td>Bs ${item.precioUnitarioBolivar.toFixed(2)}</td>
-            <td>
+             <td>${item.nombre}</td>
+             <td>Bs ${item.precioUnitarioBolivar.toFixed(2)}</td>
+             <td>
                 <button onclick="actualizarCantidadCarrito(${idx}, -1)" style="padding: 5px 10px;">-</button>
                 <span onclick="cambiarCantidadDirecta(${idx})" style="cursor: pointer; padding: 5px 10px; background: #f0f0f0; border-radius: 4px;" title="Haz clic para editar cantidad">
                     ${item.cantidad} ${item.unidad === 'gramo' ? 'g' : ''}
                 </span>
                 <button onclick="actualizarCantidadCarrito(${idx}, 1)" style="padding: 5px 10px;">+</button>
-            </td>
-            <td>
+             </td>
+             <td>
                 <select onchange="cambiarUnidadCarrito(${idx}, this.value)" style="padding: 5px;">
                     <option value="unidad" ${item.unidad === 'unidad' ? 'selected' : ''}>Unidad</option>
                     <option value="gramo" ${item.unidad === 'gramo' ? 'selected' : ''}>Gramo</option>
                 </select>
-            </td>
-            <td>Bs ${item.subtotal.toFixed(2)}</td>
-            <td>
+             </td>
+             <td>Bs ${item.subtotal.toFixed(2)}</td>
+             <td>
                 <button onclick="eliminarDelCarrito(${idx})" style="background: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 4px;">
                     <i class="fas fa-trash"></i>
                 </button>
-            </td>
+             </td>
         `;
         tbody.appendChild(fila);
     });
@@ -1406,10 +1444,10 @@ function mostrarReporteDiario() {
     ventasHoy.sort((a, b) => a.hora.localeCompare(b.hora)).forEach((venta, idx) => {
         const fila = document.createElement('tr');
         fila.innerHTML = `
-            <td>#${idx + 1}</td>
-            <td>${venta.hora}</td>
-            <td>${nombresMetodos[venta.metodoPago] || venta.metodoPago}</td>
-            <td>Bs ${(venta.total || 0).toFixed(2)}</td>
+             <td>#${idx + 1}</td>
+             <td>${venta.hora}</td>
+             <td>${nombresMetodos[venta.metodoPago] || venta.metodoPago}</td>
+             <td>Bs ${(venta.total || 0).toFixed(2)}</td>
         `;
         tbody.appendChild(fila);
     });
@@ -1580,7 +1618,10 @@ function generarReporteDiario() {
 
 function mostrarOpcionesPDF() {
     const modal = document.getElementById('modalCategorias');
-    if (modal) modal.style.display = 'block';
+    if (modal) {
+        llenarContenedorCategorias('categoriasPDFContainer', 'pdf');
+        modal.style.display = 'block';
+    }
 }
 
 function cerrarModalCategorias() {
@@ -1598,27 +1639,12 @@ function generarPDFPorCategoria(categoria) {
     let productosFiltrados = [];
     let tituloCategoria = '';
 
-    const nombresCategorias = {
-        'todos': 'TODOS LOS PRODUCTOS',
-        'viveres': 'VÍVERES',
-        'bebidas': 'BEBIDAS',
-        'licores': 'LICORES',
-        'enlatados': 'ENLATADOS',
-        'lacteos': 'LÁCTEOS',
-        'carnes': 'CARNES',
-        'frutas': 'FRUTAS',
-        'verduras': 'VERDURAS',
-        'aseo_personal': 'ASEO PERSONAL',
-        'limpieza': 'LIMPIEZA',
-        'otros': 'OTROS'
-    };
-
     if (categoria === 'todos') {
         productosFiltrados = [...productos];
         tituloCategoria = 'TODOS LOS PRODUCTOS';
     } else {
         productosFiltrados = productos.filter(p => p.descripcion === categoria);
-        tituloCategoria = nombresCategorias[categoria] || categoria.toUpperCase();
+        tituloCategoria = categoria.charAt(0).toUpperCase() + categoria.slice(1).replace(/_/g, ' ');
     }
 
     if (productosFiltrados.length === 0) {
@@ -1674,6 +1700,7 @@ function generarPDFPorCategoria(categoria) {
 function generarEtiquetasAnaqueles() {
     const modal = document.getElementById('modalEtiquetas');
     if (modal) {
+        llenarContenedorCategorias('categoriasEtiquetasContainer', 'etiqueta');
         modal.style.display = 'block';
         const selector = document.getElementById('monedaEtiquetas');
         if (selector) selector.value = monedaEtiquetas;
@@ -1693,6 +1720,36 @@ function actualizarMonedaEtiquetas() {
     }
 }
 
+function llenarContenedorCategorias(containerId, tipo) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+
+    // Botón para TODOS
+    const btnTodos = document.createElement('button');
+    btnTodos.textContent = 'TODOS LOS PRODUCTOS';
+    btnTodos.className = 'categoria-btn';
+    btnTodos.style.gridColumn = 'span 3';
+    btnTodos.style.background = tipo === 'pdf' ? '#4CAF50' : '#FF9800';
+    btnTodos.onclick = () => {
+        if (tipo === 'pdf') generarPDFPorCategoria('todos');
+        else generarEtiquetasPorCategoria('todos');
+    };
+    container.appendChild(btnTodos);
+
+    // Botones por cada categoría personalizada
+    categoriasPersonalizadas.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.textContent = cat.charAt(0).toUpperCase() + cat.slice(1).replace(/_/g, ' ');
+        btn.className = 'categoria-btn';
+        btn.onclick = () => {
+            if (tipo === 'pdf') generarPDFPorCategoria(cat);
+            else generarEtiquetasPorCategoria(cat);
+        };
+        container.appendChild(btn);
+    });
+}
+
 function generarEtiquetasPorCategoria(categoria) {
     if (!productos || productos.length === 0) {
         showToast('No hay productos para generar etiquetas', 'warning');
@@ -1703,27 +1760,12 @@ function generarEtiquetasPorCategoria(categoria) {
     let productosFiltrados = [];
     let tituloCategoria = '';
 
-    const nombresCategorias = {
-        'todos': 'TODOS',
-        'viveres': 'VÍVERES',
-        'bebidas': 'BEBIDAS',
-        'licores': 'LICORES',
-        'enlatados': 'ENLATADOS',
-        'lacteos': 'LÁCTEOS',
-        'carnes': 'CARNES',
-        'frutas': 'FRUTAS',
-        'verduras': 'VERDURAS',
-        'aseo_personal': 'ASEO PERSONAL',
-        'limpieza': 'LIMPIEZA',
-        'otros': 'OTROS'
-    };
-
     if (categoria === 'todos') {
         productosFiltrados = [...productos];
         tituloCategoria = 'TODOS';
     } else {
         productosFiltrados = productos.filter(p => p.descripcion === categoria);
-        tituloCategoria = nombresCategorias[categoria] || categoria.toUpperCase();
+        tituloCategoria = categoria.charAt(0).toUpperCase() + categoria.slice(1).replace(/_/g, ' ');
     }
 
     if (productosFiltrados.length === 0) {
@@ -1828,6 +1870,7 @@ function descargarBackup() {
         claveSeguridad,
         monedaEtiquetas,
         creditos,
+        categoriasPersonalizadas,
         fecha: new Date().toISOString(),
         version: '2.1'
     };
@@ -1871,6 +1914,7 @@ function cargarBackup(files) {
                 localStorage.setItem(STORAGE_KEYS.CLAVE, backup.claveSeguridad || '1234');
                 localStorage.setItem(STORAGE_KEYS.MONEDA, backup.monedaEtiquetas || 'VES');
                 localStorage.setItem(STORAGE_KEYS.CREDITOS, JSON.stringify(backup.creditos || []));
+                localStorage.setItem(STORAGE_KEYS.CATEGORIAS, JSON.stringify(backup.categoriasPersonalizadas || []));
 
                 showToast('Respaldo cargado. Recargando...', 'success');
                 setTimeout(() => window.location.reload(), 1500);
@@ -2109,22 +2153,22 @@ function actualizarListaCreditos() {
         const tieneProductos = credito.productos && credito.productos.length > 0;
         
         fila.innerHTML = `
-            <td><strong>${credito.cliente}</strong></td>
-            <td>${formatearMontoCredito(credito)}</td>
-            <td>${new Date(credito.fechaInicio).toLocaleDateString()}</td>
-            <td>${new Date(fechaVencimiento).toLocaleDateString()}</td>
-            <td><span class="${claseEstado}">${textoEstado}</span></td>
+            <td><strong>${credito.cliente}</strong><\/td>
+            <td>${formatearMontoCredito(credito)}<\/td>
+            <td>${new Date(credito.fechaInicio).toLocaleDateString()}<\/td>
+            <td>${new Date(fechaVencimiento).toLocaleDateString()}<\/td>
+            <td><span class="${claseEstado}">${textoEstado}</span><\/td>
             <td class="dias-restante" title="${diasRestantes} días restantes">
                 ${diasRestantes > 0 ? diasRestantes : Math.abs(diasRestantes)} días
                 ${diasRestantes < 0 ? ' (vencido)' : ''}
-            </td>
+             <\/td>
             <td>
                 ${tieneProductos ? 
                     `<span onclick="verProductosCredito(${idx})" class="producto-tooltip" title="Ver productos del crédito">
                         <i class="fas fa-eye"></i> Ver productos
                     </span>` : 
                     '<span style="color: #999;">Sin productos</span>'}
-            </td>
+             <\/td>
             <td>
                 <div class="ajuste-inventario">
                     <button onclick="editarCredito(${idx})" class="btn-secondary" title="Editar crédito">
@@ -2139,7 +2183,7 @@ function actualizarListaCreditos() {
                         </button>` : ''
                     }
                 </div>
-            </td>
+             <\/td>
         `;
         tbody.appendChild(fila);
     });
@@ -2401,6 +2445,120 @@ function actualizarFiltrosUI() {
     }
 }
 
+// ============================================
+// GESTIÓN DE CATEGORÍAS PERSONALIZADAS
+// ============================================
+
+function mostrarGestionCategorias() {
+    const modal = document.getElementById('modalGestionCategorias');
+    if (!modal) return;
+    
+    // Llenar la lista de categorías actuales
+    const listaDiv = document.getElementById('listaCategorias');
+    listaDiv.innerHTML = '';
+    
+    categoriasPersonalizadas.forEach((cat, idx) => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'categoria-item';
+        itemDiv.innerHTML = `
+            <span class="categoria-nombre" ondblclick="editarCategoria(${idx})" title="Doble clic para editar">${cat}</span>
+            <div class="categoria-acciones">
+                <button onclick="editarCategoria(${idx})" title="Editar"><i class="fas fa-edit"></i></button>
+                <button onclick="eliminarCategoria(${idx})" title="Eliminar"><i class="fas fa-trash"></i></button>
+            </div>
+        `;
+        listaDiv.appendChild(itemDiv);
+    });
+    
+    modal.style.display = 'block';
+}
+
+function cerrarGestionCategorias() {
+    const modal = document.getElementById('modalGestionCategorias');
+    if (modal) modal.style.display = 'none';
+}
+
+function agregarCategoria() {
+    const input = document.getElementById('nuevaCategoria');
+    const nombre = input.value.trim();
+    if (!nombre) {
+        showToast('Ingrese un nombre de categoría', 'warning');
+        return;
+    }
+    
+    // Validar que no exista (case-insensitive)
+    if (categoriasPersonalizadas.some(c => c.toLowerCase() === nombre.toLowerCase())) {
+        showToast('La categoría ya existe', 'error');
+        return;
+    }
+    
+    categoriasPersonalizadas.push(nombre);
+    guardarCategorias();
+    actualizarSelectCategorias();
+    mostrarGestionCategorias(); // Recargar lista
+    input.value = '';
+    showToast('Categoría agregada', 'success');
+}
+
+function editarCategoria(index) {
+    const nueva = prompt('Editar nombre de categoría:', categoriasPersonalizadas[index]);
+    if (!nueva || nueva.trim() === '') return;
+    
+    const nombreNuevo = nueva.trim();
+    // Verificar que no sea igual a otra existente (excepto la misma)
+    if (categoriasPersonalizadas.some((c, i) => i !== index && c.toLowerCase() === nombreNuevo.toLowerCase())) {
+        showToast('Ya existe una categoría con ese nombre', 'error');
+        return;
+    }
+    
+    const nombreAnterior = categoriasPersonalizadas[index];
+    categoriasPersonalizadas[index] = nombreNuevo;
+    guardarCategorias();
+    
+    // Actualizar los productos que tenían la categoría anterior
+    productos.forEach(p => {
+        if (p.descripcion === nombreAnterior) {
+            p.descripcion = nombreNuevo;
+        }
+    });
+    safeSetItem(STORAGE_KEYS.PRODUCTOS, productos);
+    
+    actualizarSelectCategorias();
+    mostrarGestionCategorias(); // Recargar lista
+    showToast('Categoría actualizada', 'success');
+}
+
+function eliminarCategoria(index) {
+    const categoria = categoriasPersonalizadas[index];
+    // Verificar si hay productos que usan esta categoría
+    const productosEnCategoria = productos.filter(p => p.descripcion === categoria);
+    if (productosEnCategoria.length > 0) {
+        if (confirm(`La categoría "${categoria}" tiene ${productosEnCategoria.length} productos asociados. ¿Eliminarla? Los productos pasarán a la categoría "otros".`)) {
+            // Reasignar a "otros"
+            productos.forEach(p => {
+                if (p.descripcion === categoria) {
+                    p.descripcion = 'otros';
+                }
+            });
+            safeSetItem(STORAGE_KEYS.PRODUCTOS, productos);
+            // Eliminar categoría
+            categoriasPersonalizadas.splice(index, 1);
+            guardarCategorias();
+            actualizarSelectCategorias();
+            mostrarGestionCategorias();
+            showToast(`Categoría "${categoria}" eliminada. Productos movidos a "otros".`, 'info');
+        }
+    } else {
+        if (confirm(`¿Eliminar categoría "${categoria}"?`)) {
+            categoriasPersonalizadas.splice(index, 1);
+            guardarCategorias();
+            actualizarSelectCategorias();
+            mostrarGestionCategorias();
+            showToast('Categoría eliminada', 'success');
+        }
+    }
+}
+
 // ===== EXPORTAR FUNCIONES AL ÁMBITO GLOBAL =====
 window.toggleSidebar = toggleSidebar;
 window.showSection = showSection;
@@ -2455,3 +2613,10 @@ window.mostrarTodosCreditos = mostrarTodosCreditos;
 window.filtrarCreditos = filtrarCreditos;
 window.verProductosCredito = verProductosCredito;
 window.cerrarModalProductosCredito = cerrarModalProductosCredito;
+
+// Exportar funciones de categorías
+window.mostrarGestionCategorias = mostrarGestionCategorias;
+window.cerrarGestionCategorias = cerrarGestionCategorias;
+window.agregarCategoria = agregarCategoria;
+window.editarCategoria = editarCategoria;
+window.eliminarCategoria = eliminarCategoria;
