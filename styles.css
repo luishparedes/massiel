@@ -640,6 +640,35 @@ tr.vencido {
     font-size: 14px;
 }
 
+/* ===== GESTIÓN DE CATEGORÍAS ===== */
+.categoria-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+.categoria-item:hover {
+    background: #f5f5f5;
+}
+.categoria-nombre {
+    font-weight: 500;
+    cursor: pointer;
+}
+.categoria-acciones button {
+    background: none;
+    border: none;
+    font-size: 1rem;
+    margin-left: 10px;
+    cursor: pointer;
+    color: #666;
+    min-width: auto;
+    padding: 5px;
+}
+.categoria-acciones button:hover {
+    color: var(--danger);
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
     .sidebar {
