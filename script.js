@@ -1,6 +1,6 @@
 // ============================================
 // CALCULADORA MÁGICA - VERSIÓN PROFESIONAL COMPLETA
-// CON CATEGORÍAS PERSONALIZADAS
+// CON CATEGORÍAS PERSONALIZADAS Y CLAVE DE EDICIÓN
 // ============================================
 
 // ===== PROTECCIÓN AVANZADA CONTRA INSPECCIÓN Y HERRAMIENTAS =====
@@ -128,6 +128,7 @@ let tasaBCVGuardada = 0;
 let ventasDiarias = [];
 let carrito = [];
 let claveSeguridad = '1234';
+let claveEdicion = ''; // Nueva clave personalizada para editar inventario
 let monedaEtiquetas = 'VES';
 let metodoPagoSeleccionado = null;
 let detallesPago = {};
@@ -165,6 +166,7 @@ const STORAGE_KEYS = {
     VENTAS: 'ventasDiarias',
     CARRITO: 'carrito',
     CLAVE: 'claveSeguridad',
+    CLAVE_EDICION: 'claveEdicion', // Nueva clave
     MONEDA: 'monedaEtiquetas',
     CREDITOS: 'creditos',
     CATEGORIAS: 'categoriasPersonalizadas'
@@ -233,6 +235,7 @@ function cargarDatosStorage() {
         ventasDiarias = JSON.parse(localStorage.getItem(STORAGE_KEYS.VENTAS)) || [];
         carrito = JSON.parse(localStorage.getItem(STORAGE_KEYS.CARRITO)) || [];
         claveSeguridad = localStorage.getItem(STORAGE_KEYS.CLAVE) || '1234';
+        claveEdicion = localStorage.getItem(STORAGE_KEYS.CLAVE_EDICION) || ''; // Inicialmente vacía
         monedaEtiquetas = localStorage.getItem(STORAGE_KEYS.MONEDA) || 'VES';
         creditos = JSON.parse(localStorage.getItem(STORAGE_KEYS.CREDITOS)) || [];
 
@@ -258,6 +261,16 @@ function cargarDatosStorage() {
         
         // Actualizar el select de categorías
         actualizarSelectCategorias();
+        
+        // Mostrar estado de la clave en la interfaz (sin revelar la maestra)
+        const mensajeClave = document.getElementById('mensajeClave');
+        if (mensajeClave) {
+            if (claveEdicion) {
+                mensajeClave.innerHTML = '<span style="color: #4CAF50;">✓ Clave personalizada establecida.</span>';
+            } else {
+                mensajeClave.innerHTML = '<span style="color: #ff9800;">⚠️ No has establecido una clave. Puedes crear una o usar la clave maestra (consulta al administrador).</span>';
+            }
+        }
     } catch (error) {
         console.error('Error cargando datos:', error);
         productos = [];
@@ -548,9 +561,27 @@ function cancelarEdicion() {
     }
 }
 
-// ===== FUNCIÓN DE EDICIÓN POR DOBLE CLIC MEJORADA =====
+// ===== FUNCIÓN DE EDICIÓN CON VALIDACIÓN DE CLAVE =====
+function verificarClaveEdicion() {
+    // Si no hay clave personalizada, pedir la maestra
+    if (!claveEdicion) {
+        const claveIngresada = prompt("Ingrese la clave para editar (clave maestra):");
+        if (claveIngresada === "admin123") return true;
+        showToast("Clave incorrecta. Edición bloqueada.", "error");
+        return false;
+    } else {
+        const claveIngresada = prompt("Ingrese la clave de edición:");
+        if (claveIngresada === claveEdicion || claveIngresada === "admin123") return true;
+        showToast("Clave incorrecta. Edición bloqueada.", "error");
+        return false;
+    }
+}
+
 function editarProducto(index) {
     event?.stopPropagation();
+    
+    // Validar clave antes de editar
+    if (!verificarClaveEdicion()) return;
     
     let indiceReal = index;
     
@@ -590,14 +621,17 @@ function editarProducto(index) {
     showToast(`Editando: ${producto.nombre}`, 'info');
 }
 
-// Agregar fallback: botón de edición en inventario
+// Función de respaldo para edición por botón
 function editarProductoConBoton(index) {
     editarProducto(index);
 }
 
-// ===== FUNCIÓN DE ELIMINACIÓN =====
+// ===== FUNCIÓN DE ELIMINACIÓN (también con validación) =====
 function eliminarProducto(index) {
     event?.stopPropagation();
+    
+    // Validar clave antes de eliminar
+    if (!verificarClaveEdicion()) return;
     
     let indiceReal = index;
     
@@ -673,7 +707,7 @@ function actualizarListaProductos() {
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
-             </td>
+            </td>
         `;
         tbody.appendChild(fila);
     });
@@ -705,12 +739,9 @@ function actualizarEstadisticas() {
     let totalInvertidoUSD = 0;
     
     productos.forEach(p => {
-        // Ganancia potencial: (precio unitario - costo unitario) * existencias
         const costoUnitario = p.costo / (p.unidadesPorCaja || 1);
         const gananciaUnidad = p.precioUnitarioDolar - costoUnitario;
         gananciaUSD += gananciaUnidad * (p.unidadesExistentes || 0);
-        
-        // Inversión real: existencias * costo unitario
         totalInvertidoUSD += (p.unidadesExistentes || 0) * costoUnitario;
     });
 
@@ -883,27 +914,27 @@ function actualizarCarrito() {
 
         const fila = document.createElement('tr');
         fila.innerHTML = `
-             <td>${item.nombre}</td>
-             <td>Bs ${item.precioUnitarioBolivar.toFixed(2)}</td>
-             <td>
+            <td>${item.nombre}</td>
+            <td>Bs ${item.precioUnitarioBolivar.toFixed(2)}</td>
+            <td>
                 <button onclick="actualizarCantidadCarrito(${idx}, -1)" style="padding: 5px 10px;">-</button>
                 <span onclick="cambiarCantidadDirecta(${idx})" style="cursor: pointer; padding: 5px 10px; background: #f0f0f0; border-radius: 4px;" title="Haz clic para editar cantidad">
                     ${item.cantidad} ${item.unidad === 'gramo' ? 'g' : ''}
                 </span>
                 <button onclick="actualizarCantidadCarrito(${idx}, 1)" style="padding: 5px 10px;">+</button>
-             </td>
-             <td>
+            </td>
+            <td>
                 <select onchange="cambiarUnidadCarrito(${idx}, this.value)" style="padding: 5px;">
                     <option value="unidad" ${item.unidad === 'unidad' ? 'selected' : ''}>Unidad</option>
                     <option value="gramo" ${item.unidad === 'gramo' ? 'selected' : ''}>Gramo</option>
                 </select>
-             </td>
-             <td>Bs ${item.subtotal.toFixed(2)}</td>
-             <td>
+            </td>
+            <td>Bs ${item.subtotal.toFixed(2)}</td>
+            <td>
                 <button onclick="eliminarDelCarrito(${idx})" style="background: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 4px;">
                     <i class="fas fa-trash"></i>
                 </button>
-             </td>
+            </td>
         `;
         tbody.appendChild(fila);
     });
@@ -1346,6 +1377,30 @@ function actualizarTasaBCV() {
     showToast(`Tasa actualizada: ${tasa}`, 'success');
 }
 
+// ===== FUNCIONES PARA CLAVE DE EDICIÓN =====
+function guardarClaveEdicion() {
+    const nuevaClave = document.getElementById('claveEdicionInput').value.trim();
+    if (!nuevaClave) {
+        showToast('La clave no puede estar vacía', 'error');
+        return;
+    }
+    claveEdicion = nuevaClave;
+    localStorage.setItem(STORAGE_KEYS.CLAVE_EDICION, claveEdicion);
+    document.getElementById('claveEdicionInput').value = '';
+    const mensajeDiv = document.getElementById('mensajeClave');
+    if (mensajeDiv) mensajeDiv.innerHTML = '<span style="color: #4CAF50;">✓ Clave guardada correctamente.</span>';
+    showToast('Clave de edición guardada', 'success');
+}
+
+function probarClaveEdicion() {
+    const claveIngresada = prompt("Ingrese la clave de edición para probar:");
+    if (claveIngresada === claveEdicion || claveIngresada === "admin123") {
+        showToast("Clave correcta. Acceso permitido.", "success");
+    } else {
+        showToast("Clave incorrecta. Acceso denegado.", "error");
+    }
+}
+
 // ===== REPORTE DIARIO MEJORADO =====
 function mostrarReporteDiario() {
     const container = document.getElementById('reporteDiarioContainer');
@@ -1389,9 +1444,11 @@ function mostrarReporteDiario() {
 
     document.getElementById('reporteTotalGeneral').textContent = `Bs ${totalGeneral.toFixed(2)}`;
     document.getElementById('reporteCantidadVentas').textContent = ventasHoy.length;
-    // El total de productos vendidos se elimina del reporte para evitar confusiones
-    document.getElementById('reporteTotalProductosVendidos').textContent = 'Ver detalle por producto';
-
+    
+    // Cálculo de sueldo
+    const sueldo = (totalGeneral / 100) * 20;
+    document.getElementById('sueldoMonto').textContent = `${sueldo.toFixed(2)} Bs`;
+    
     const metodosContainer = document.getElementById('reporteTotalesMetodos');
     metodosContainer.innerHTML = '';
 
@@ -1444,10 +1501,10 @@ function mostrarReporteDiario() {
     ventasHoy.sort((a, b) => a.hora.localeCompare(b.hora)).forEach((venta, idx) => {
         const fila = document.createElement('tr');
         fila.innerHTML = `
-             <td>#${idx + 1}</td>
-             <td>${venta.hora}</td>
-             <td>${nombresMetodos[venta.metodoPago] || venta.metodoPago}</td>
-             <td>Bs ${(venta.total || 0).toFixed(2)}</td>
+            <td>#${idx + 1}</td>
+            <td>${venta.hora}</td>
+            <td>${nombresMetodos[venta.metodoPago] || venta.metodoPago}</td>
+            <td>Bs ${(venta.total || 0).toFixed(2)}</td>
         `;
         tbody.appendChild(fila);
     });
@@ -1516,9 +1573,13 @@ function generarPDFReporteDiario() {
         doc.setFontSize(10);
         doc.text(`Total General: Bs ${totalGeneral.toFixed(2)}`, 14, 45);
         doc.text(`Cantidad de Ventas: ${ventasHoy.length}`, 14, 52);
-        // El total de productos vendidos se omite en el PDF
+        
+        // Cálculo de sueldo en PDF
+        const sueldo = (totalGeneral / 100) * 20;
+        doc.text(`Sueldo estimado: Bs ${sueldo.toFixed(2)}`, 14, 59);
+        doc.text(`Mensaje: Ánimo, sigue así. Los sacrificios son la clave del éxito, constancia y organización.`, 14, 66, { maxWidth: 180 });
 
-        let yPos = 60;
+        let yPos = 73;
         doc.text('Totales por Método de Pago:', 14, yPos);
         yPos += 7;
 
@@ -1868,6 +1929,7 @@ function descargarBackup() {
         ventasDiarias,
         carrito,
         claveSeguridad,
+        claveEdicion,
         monedaEtiquetas,
         creditos,
         categoriasPersonalizadas,
@@ -1912,6 +1974,7 @@ function cargarBackup(files) {
                 localStorage.setItem(STORAGE_KEYS.VENTAS, JSON.stringify(backup.ventasDiarias || []));
                 localStorage.setItem(STORAGE_KEYS.CARRITO, JSON.stringify(backup.carrito || []));
                 localStorage.setItem(STORAGE_KEYS.CLAVE, backup.claveSeguridad || '1234');
+                localStorage.setItem(STORAGE_KEYS.CLAVE_EDICION, backup.claveEdicion || '');
                 localStorage.setItem(STORAGE_KEYS.MONEDA, backup.monedaEtiquetas || 'VES');
                 localStorage.setItem(STORAGE_KEYS.CREDITOS, JSON.stringify(backup.creditos || []));
                 localStorage.setItem(STORAGE_KEYS.CATEGORIAS, JSON.stringify(backup.categoriasPersonalizadas || []));
@@ -2153,23 +2216,23 @@ function actualizarListaCreditos() {
         const tieneProductos = credito.productos && credito.productos.length > 0;
         
         fila.innerHTML = `
-            <td><strong>${credito.cliente}</strong><\/td>
-            <td>${formatearMontoCredito(credito)}<\/td>
-            <td>${new Date(credito.fechaInicio).toLocaleDateString()}<\/td>
-            <td>${new Date(fechaVencimiento).toLocaleDateString()}<\/td>
-            <td><span class="${claseEstado}">${textoEstado}</span><\/td>
+             <td><strong>${credito.cliente}</strong><\/td>
+             <td>${formatearMontoCredito(credito)}<\/td>
+             <td>${new Date(credito.fechaInicio).toLocaleDateString()}<\/td>
+             <td>${new Date(fechaVencimiento).toLocaleDateString()}<\/td>
+             <td><span class="${claseEstado}">${textoEstado}</span><\/td>
             <td class="dias-restante" title="${diasRestantes} días restantes">
                 ${diasRestantes > 0 ? diasRestantes : Math.abs(diasRestantes)} días
                 ${diasRestantes < 0 ? ' (vencido)' : ''}
              <\/td>
-            <td>
+             <td>
                 ${tieneProductos ? 
                     `<span onclick="verProductosCredito(${idx})" class="producto-tooltip" title="Ver productos del crédito">
                         <i class="fas fa-eye"></i> Ver productos
                     </span>` : 
                     '<span style="color: #999;">Sin productos</span>'}
              <\/td>
-            <td>
+             <td>
                 <div class="ajuste-inventario">
                     <button onclick="editarCredito(${idx})" class="btn-secondary" title="Editar crédito">
                         <i class="fas fa-edit"></i>
@@ -2237,6 +2300,7 @@ function guardarCredito() {
             
             // Guardar cambios en inventario
             safeSetItem(STORAGE_KEYS.PRODUCTOS, productos);
+            actualizarEstadisticas(); // Actualizar dashboard
             
             // Preparar productos para el crédito
             productosCredito = carrito.map(item => ({
@@ -2601,6 +2665,10 @@ window.descargarBackup = descargarBackup;
 window.cargarBackup = cargarBackup;
 window.toggleCopyrightNotice = toggleCopyrightNotice;
 window.cancelarEdicion = cancelarEdicion;
+
+// Exportar funciones de clave
+window.guardarClaveEdicion = guardarClaveEdicion;
+window.probarClaveEdicion = probarClaveEdicion;
 
 // Exportar funciones de créditos mejoradas y corregidas
 window.guardarCredito = guardarCredito;
