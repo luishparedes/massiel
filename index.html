@@ -161,7 +161,7 @@
                                 <th>Unidad</th>
                                 <th>Subtotal (Bs)</th>
                                 <th>Acc.</th>
-                             </tr>
+                              </tr>
                         </thead>
                         <tbody id="carritoBody"></tbody>
                     </table>
@@ -223,7 +223,7 @@
                                 <th>P/U ($)</th>
                                 <th>P/U (Bs)</th>
                                 <th>Acciones</th>
-                             </tr>
+                              </tr>
                         </thead>
                         <tbody></tbody>
                     </table>
@@ -274,10 +274,12 @@
                             <strong>Cantidad Ventas:</strong>
                             <span id="reporteCantidadVentas" style="font-size: 1.4rem; display: block;">0</span>
                         </div>
-                        <div>
-                            <strong>Total Productos Vendidos:</strong>
-                            <span id="reporteTotalProductosVendidos" style="font-size: 1.4rem; display: block;">0</span>
-                        </div>
+                    </div>
+                    <!-- Cálculo de sueldo -->
+                    <div id="sueldoContainer" style="margin-top: 15px; padding: 10px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 4px;">
+                        <i class="fas fa-chart-line"></i> <strong>Sueldo estimado:</strong>
+                        <span id="sueldoMonto">0.00 Bs</span><br>
+                        <small id="sueldoMensaje">Ánimo, sigue así. Los sacrificios son la clave del éxito, constancia y organización.</small>
                     </div>
                     <div style="margin-top: 15px;">
                         <strong>Totales por Método de Pago:</strong>
@@ -297,7 +299,7 @@
                                 <th>Hora</th>
                                 <th>Método</th>
                                 <th>Total</th>
-                             </tr>
+                              </tr>
                         </thead>
                         <tbody id="reporteDetalleBody"></tbody>
                     </table>
@@ -415,7 +417,7 @@
                                 <th>Días restantes</th>
                                 <th>Productos</th>
                                 <th>Acciones</th>
-                             </tr>
+                              </tr>
                         </thead>
                         <tbody id="creditosBody"></tbody>
                     </table>
@@ -437,6 +439,16 @@
                 <h2>Tasa BCV</h2>
                 <input type="number" id="tasaBCV" placeholder="Tasa BCV" step="0.01" />
                 <button onclick="actualizarTasaBCV()">Actualizar Tasa</button>
+            </div>
+
+            <!-- NUEVO: Clave para editar inventario (sin mostrar la clave maestra) -->
+            <div class="card">
+                <h2><i class="fas fa-lock"></i> Clave para Editar Inventario</h2>
+                <p>Establece una clave personalizada para proteger la edición de productos. Si la olvidas, puedes restablecerla con la clave maestra (consulta con el administrador).</p>
+                <input type="password" id="claveEdicionInput" placeholder="Nueva clave" />
+                <button onclick="guardarClaveEdicion()">Guardar Clave</button>
+                <button onclick="probarClaveEdicion()" class="btn-secondary" style="margin-left: 10px;">Probar Clave Actual</button>
+                <div id="mensajeClave" style="margin-top: 10px; font-size: 0.9rem;"></div>
             </div>
         </section>
 
