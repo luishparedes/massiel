@@ -8,72 +8,98 @@
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
     
+    // 🚫 NO ejecutar en móviles (para no romper UX)
     if (!isMobile) {
+
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'F2' || e.keyCode === 113) {
+
+            // 🔒 BLOQUEAR F12 (CORREGIDO)
+            if (e.key === 'F12' || e.keyCode === 123) {
                 e.preventDefault();
                 return false;
             }
-            if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) {
+
+            // 🔒 Ctrl + Shift + I / J / C
+            if (e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].includes(e.key.toUpperCase())) {
                 e.preventDefault();
                 return false;
             }
-            if (e.ctrlKey && e.key === 'u') {
+
+            // 🔒 Ctrl + U (ver código)
+            if (e.ctrlKey && e.key.toLowerCase() === 'u') {
                 e.preventDefault();
                 return false;
             }
-            if (e.ctrlKey && e.key === 's') {
+
+            // 🔒 Ctrl + S (guardar página)
+            if (e.ctrlKey && e.key.toLowerCase() === 's') {
                 e.preventDefault();
                 return false;
             }
-            if (e.ctrlKey && e.key === 'p') {
+
+            // 🔒 Ctrl + P (imprimir)
+            if (e.ctrlKey && e.key.toLowerCase() === 'p') {
                 e.preventDefault();
                 return false;
             }
+
         }, false);
-        
+
+        // 🚫 Click derecho
         document.addEventListener('contextmenu', function(e) {
             e.preventDefault();
-            return false;
         });
-        
+
+        // ⚠️ NO bloquear copy/cut en inputs (mejora UX)
         document.addEventListener('copy', function(e) {
-            e.preventDefault();
-            return false;
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+            }
         });
-        
+
         document.addEventListener('cut', function(e) {
-            e.preventDefault();
-            return false;
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+            }
         });
-        
+
+        // 🚫 Evitar selección global (excepto inputs)
         document.addEventListener('selectstart', function(e) {
             if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
                 e.preventDefault();
-                return false;
             }
         });
-        
+
+        // 🔍 Detectar DevTools
+        let devtoolsOpen = false;
+
         setInterval(function() {
             const widthThreshold = window.outerWidth - window.innerWidth > 160;
             const heightThreshold = window.outerHeight - window.innerHeight > 160;
-            
+
             if (widthThreshold || heightThreshold) {
-                console.clear();
+                if (!devtoolsOpen) {
+                    devtoolsOpen = true;
+                    console.clear();
+                }
+            } else {
+                devtoolsOpen = false;
             }
         }, 1000);
-        
+
+        // 🧹 Limpiar consola en producción
         if (isProduction) {
             setInterval(function() {
                 console.clear();
             }, 3000);
-            
+
             console.log = function() {};
             console.info = function() {};
             console.warn = function() {};
             console.debug = function() {};
         }
-        
+
+        // 🎨 Bloquear selección global (CSS)
         const style = document.createElement('style');
         style.textContent = `
             body {
@@ -90,7 +116,8 @@
             }
         `;
         document.head.appendChild(style);
-        
+
+        // 🌐 Control de dominio
         if (isProduction) {
             const dominiosPermitidos = [
                 'portal.calculadoramagica.lat',
@@ -104,18 +131,16 @@
                 'localhost',
                 '127.0.0.1'
             ];
-            
+
             const hostname = window.location.hostname;
             const permitido = dominiosPermitidos.some(dominio => 
                 hostname === dominio || 
                 hostname.endsWith('.' + dominio) ||
                 hostname.includes(dominio)
             );
-            
+
             if (!permitido) {
-                console.warn('%c⚠️ Ejecutando en dominio no autorizado: ' + hostname, 'color: orange;');
-            } else {
-                console.log('%c✅ Dominio autorizado: ' + hostname, 'color: green;');
+                console.warn('%c⚠️ Dominio no autorizado: ' + hostname, 'color: orange;');
             }
         }
     }
@@ -235,16 +260,28 @@ function cargarDatosStorage() {
         ventasDiarias = JSON.parse(localStorage.getItem(STORAGE_KEYS.VENTAS)) || [];
         carrito = JSON.parse(localStorage.getItem(STORAGE_KEYS.CARRITO)) || [];
         claveSeguridad = localStorage.getItem(STORAGE_KEYS.CLAVE) || '1234';
-        claveEdicion = localStorage.getItem(STORAGE_KEYS.CLAVE_EDICION) || ''; // Inicialmente vacía
+        claveEdicion = localStorage.getItem(STORAGE_KEYS.CLAVE_EDICION) || '';
         monedaEtiquetas = localStorage.getItem(STORAGE_KEYS.MONEDA) || 'VES';
         creditos = JSON.parse(localStorage.getItem(STORAGE_KEYS.CREDITOS)) || [];
 
-        // Cargar categorías personalizadas o inicializar con las por defecto
+        // Cargar categorías con validación robusta
         const categoriasGuardadas = localStorage.getItem(STORAGE_KEYS.CATEGORIAS);
         if (categoriasGuardadas) {
-            categoriasPersonalizadas = JSON.parse(categoriasGuardadas);
-        } else {
-            // Categorías por defecto
+            try {
+                const parsed = JSON.parse(categoriasGuardadas);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    categoriasPersonalizadas = parsed;
+                } else {
+                    throw new Error('Categorías no son un array válido');
+                }
+            } catch (e) {
+                console.warn('Error al parsear categorías, usando por defecto y limpiando storage:', e);
+                localStorage.removeItem(STORAGE_KEYS.CATEGORIAS);
+                // No se asigna aquí, se usará el array por defecto
+            }
+        }
+        // Si aún no hay categorías o no se cargaron correctamente, establecer por defecto
+        if (!categoriasPersonalizadas || categoriasPersonalizadas.length === 0) {
             categoriasPersonalizadas = [
                 "viveres", "bebidas", "licores", "enlatados", "lacteos",
                 "carnes", "frutas", "verduras", "aseo_personal", "limpieza", "otros"
@@ -262,7 +299,7 @@ function cargarDatosStorage() {
         // Actualizar el select de categorías
         actualizarSelectCategorias();
         
-        // Mostrar estado de la clave en la interfaz (sin revelar la maestra)
+        // Mostrar estado de la clave en la interfaz
         const mensajeClave = document.getElementById('mensajeClave');
         if (mensajeClave) {
             if (claveEdicion) {
@@ -276,6 +313,14 @@ function cargarDatosStorage() {
         productos = [];
         carrito = [];
         creditos = [];
+        // Asegurar categorías por defecto en caso de error general
+        if (!categoriasPersonalizadas || categoriasPersonalizadas.length === 0) {
+            categoriasPersonalizadas = [
+                "viveres", "bebidas", "licores", "enlatados", "lacteos",
+                "carnes", "frutas", "verduras", "aseo_personal", "limpieza", "otros"
+            ];
+            guardarCategorias();
+        }
     }
 }
 
@@ -707,7 +752,7 @@ function actualizarListaProductos() {
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
-            </td>
+              </td>
         `;
         tbody.appendChild(fila);
     });
@@ -914,27 +959,27 @@ function actualizarCarrito() {
 
         const fila = document.createElement('tr');
         fila.innerHTML = `
-            <td>${item.nombre}</td>
-            <td>Bs ${item.precioUnitarioBolivar.toFixed(2)}</td>
-            <td>
+              <td>${item.nombre}</td>
+              <td>Bs ${item.precioUnitarioBolivar.toFixed(2)}</td>
+              <td>
                 <button onclick="actualizarCantidadCarrito(${idx}, -1)" style="padding: 5px 10px;">-</button>
                 <span onclick="cambiarCantidadDirecta(${idx})" style="cursor: pointer; padding: 5px 10px; background: #f0f0f0; border-radius: 4px;" title="Haz clic para editar cantidad">
                     ${item.cantidad} ${item.unidad === 'gramo' ? 'g' : ''}
                 </span>
                 <button onclick="actualizarCantidadCarrito(${idx}, 1)" style="padding: 5px 10px;">+</button>
-            </td>
-            <td>
+              </td>
+              <td>
                 <select onchange="cambiarUnidadCarrito(${idx}, this.value)" style="padding: 5px;">
                     <option value="unidad" ${item.unidad === 'unidad' ? 'selected' : ''}>Unidad</option>
                     <option value="gramo" ${item.unidad === 'gramo' ? 'selected' : ''}>Gramo</option>
                 </select>
-            </td>
-            <td>Bs ${item.subtotal.toFixed(2)}</td>
-            <td>
+              </td>
+              <td>Bs ${item.subtotal.toFixed(2)}</td>
+              <td>
                 <button onclick="eliminarDelCarrito(${idx})" style="background: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 4px;">
                     <i class="fas fa-trash"></i>
                 </button>
-            </td>
+              </td>
         `;
         tbody.appendChild(fila);
     });
@@ -1207,7 +1252,6 @@ function confirmarMetodoPago() {
     const hora = ahora.toLocaleTimeString();
 
     // ===== DESCUENTO DE INVENTARIO PARA TODOS LOS MÉTODOS EXCEPTO CRÉDITO =====
-    // (El crédito descuenta en guardarCredito)
     if (metodoPagoSeleccionado !== 'credito') {
         let stockActualizado = false;
         let productosVendidos = [];
@@ -1215,7 +1259,6 @@ function confirmarMetodoPago() {
         carrito.forEach(item => {
             const producto = productos[item.indexProducto];
             if (producto) {
-                const stockAnterior = producto.unidadesExistentes;
                 const cantidadVendida = item.unidad === 'gramo' ? item.cantidad / 1000 : item.cantidad;
                 
                 producto.unidadesExistentes = redondear2Decimales(producto.unidadesExistentes - cantidadVendida);
@@ -1501,10 +1544,10 @@ function mostrarReporteDiario() {
     ventasHoy.sort((a, b) => a.hora.localeCompare(b.hora)).forEach((venta, idx) => {
         const fila = document.createElement('tr');
         fila.innerHTML = `
-            <td>#${idx + 1}</td>
-            <td>${venta.hora}</td>
-            <td>${nombresMetodos[venta.metodoPago] || venta.metodoPago}</td>
-            <td>Bs ${(venta.total || 0).toFixed(2)}</td>
+              <td>#${idx + 1}</td>
+              <td>${venta.hora}</td>
+              <td>${nombresMetodos[venta.metodoPago] || venta.metodoPago}</td>
+              <td>Bs ${(venta.total || 0).toFixed(2)}</td>
         `;
         tbody.appendChild(fila);
     });
@@ -2216,23 +2259,23 @@ function actualizarListaCreditos() {
         const tieneProductos = credito.productos && credito.productos.length > 0;
         
         fila.innerHTML = `
-             <td><strong>${credito.cliente}</strong><\/td>
-             <td>${formatearMontoCredito(credito)}<\/td>
-             <td>${new Date(credito.fechaInicio).toLocaleDateString()}<\/td>
-             <td>${new Date(fechaVencimiento).toLocaleDateString()}<\/td>
-             <td><span class="${claseEstado}">${textoEstado}</span><\/td>
+              <td><strong>${credito.cliente}</strong><\/td>
+              <td>${formatearMontoCredito(credito)}<\/td>
+              <td>${new Date(credito.fechaInicio).toLocaleDateString()}<\/td>
+              <td>${new Date(fechaVencimiento).toLocaleDateString()}<\/td>
+              <td><span class="${claseEstado}">${textoEstado}</span><\/td>
             <td class="dias-restante" title="${diasRestantes} días restantes">
                 ${diasRestantes > 0 ? diasRestantes : Math.abs(diasRestantes)} días
                 ${diasRestantes < 0 ? ' (vencido)' : ''}
              <\/td>
-             <td>
+              <td>
                 ${tieneProductos ? 
                     `<span onclick="verProductosCredito(${idx})" class="producto-tooltip" title="Ver productos del crédito">
                         <i class="fas fa-eye"></i> Ver productos
                     </span>` : 
                     '<span style="color: #999;">Sin productos</span>'}
              <\/td>
-             <td>
+              <td>
                 <div class="ajuste-inventario">
                     <button onclick="editarCredito(${idx})" class="btn-secondary" title="Editar crédito">
                         <i class="fas fa-edit"></i>
