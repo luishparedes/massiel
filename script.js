@@ -178,10 +178,50 @@ let productoEliminarPendiente = null;
 
 // Control de inactividad
 let temporizadorInactividad;
+let temporizadorAviso;
 let ultimaActividad = Date.now();
 let redireccionEnCurso = false;
-const TIEMPO_INACTIVIDAD = 4 * 60 * 1000;
+const TIEMPO_INACTIVIDAD = 24 * 60 * 1000; // 24 minutos
+const TIEMPO_AVISO = 20 * 60 * 1000;       // Aviso a los 20 minutos
 const URL_REDIRECCION = "http://portal.calculadoramagica.lat/";
+
+// Función que reinicia el temporizador
+function reiniciarTemporizador() {
+    ultimaActividad = Date.now();
+
+    // Limpiar temporizadores anteriores
+    if (temporizadorInactividad) clearTimeout(temporizadorInactividad);
+    if (temporizadorAviso) clearTimeout(temporizadorAviso);
+
+    // Configurar aviso de inactividad
+    temporizadorAviso = setTimeout(mostrarAviso, TIEMPO_AVISO);
+    
+    // Configurar redirección por inactividad
+    temporizadorInactividad = setTimeout(verificarInactividad, TIEMPO_INACTIVIDAD);
+}
+
+// Función para mostrar aviso
+function mostrarAviso() {
+    alert("¡Atención! Te redirigiremos pronto por inactividad.");
+}
+
+// Función que verifica la inactividad y redirige
+function verificarInactividad() {
+    const tiempoInactivo = Date.now() - ultimaActividad;
+    if (tiempoInactivo >= TIEMPO_INACTIVIDAD && !redireccionEnCurso) {
+        redireccionEnCurso = true;
+        window.location.href = URL_REDIRECCION;
+    }
+}
+
+// Escuchar eventos de actividad del usuario
+window.addEventListener('mousemove', reiniciarTemporizador);
+window.addEventListener('keydown', reiniciarTemporizador);
+window.addEventListener('scroll', reiniciarTemporizador);
+window.addEventListener('click', reiniciarTemporizador);
+
+// Inicializar temporizador al cargar la página
+reiniciarTemporizador();
 
 // ----- STORAGE KEYS -----
 const STORAGE_KEYS = {
