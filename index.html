@@ -14,15 +14,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qz-tray/2.1.0/qz-tray.js"></script>
     
-    <!-- Font Awesome para iconos -->
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
-    <!-- Estilos con versión para evitar caché -->
-    <link rel="stylesheet" href="styles.css?v=2.2" />
+    <link rel="stylesheet" href="styles.css?v=2.3" />
 </head>
 <body>
 
-    <!-- ===== MENÚ LATERAL PROFESIONAL ===== -->
+    <!-- ===== MENÚ LATERAL ===== -->
     <nav class="sidebar" id="mainSidebar">
         <div class="sidebar-header">
             <div class="logo">
@@ -64,7 +63,7 @@
             </li>
         </ul>
         <div class="sidebar-footer">
-            <span>© <span id="currentYear"></span> - v2.1</span>
+            <span>© <span id="currentYear"></span> - v2.3</span>
             <div class="copyright-icon" onclick="toggleCopyrightNotice()">©</div>
         </div>
     </nav>
@@ -72,14 +71,13 @@
     <!-- ===== CONTENIDO PRINCIPAL ===== -->
     <main class="main-content" id="mainContent">
 
-        <!-- Mensaje de Copyright -->
         <div class="copyright-notice" id="copyrightNotice">
             <button class="close-btn" onclick="toggleCopyrightNotice()">×</button>
             <strong>ADVERTENCIA:</strong> Este sistema está protegido por derechos de autor.
             <strong>No revendas tu código de acceso</strong> o será bloqueado y perderás tu dinero.
         </div>
 
-        <!-- SECCIÓN DASHBOARD -->
+        <!-- DASHBOARD -->
         <section id="dashboard-section" class="content-section active">
             <h1><i class="fas fa-chart-line"></i> Dashboard</h1>
             <div class="stats-grid">
@@ -88,7 +86,7 @@
                     <div class="stat-details">
                         <span class="stat-label">Ganancia Total Estimada</span>
                         <span class="stat-value" id="gananciaTotalUSD">$0.00</span>
-                        <span class="stat-value-small" id="gananciaTotalBS">Bs 0.00</span>
+                        <span class="stat-value-small" id="gananciaTotalMoneda">0.00</span>
                     </div>
                 </div>
                 <div class="stat-card">
@@ -110,11 +108,10 @@
                     <div class="stat-details">
                         <span class="stat-label">Total Invertido</span>
                         <span class="stat-value" id="totalInvertidoUSD">$0.00</span>
-                        <span class="stat-value-small" id="totalInvertidoBS">Bs 0.00</span>
+                        <span class="stat-value-small" id="totalInvertidoMoneda">0.00</span>
                     </div>
                 </div>
             </div>
-
             <div class="card">
                 <h2>Accesos Rápidos</h2>
                 <div class="quick-actions">
@@ -125,10 +122,9 @@
             </div>
         </section>
 
-        <!-- SECCIÓN PUNTO DE VENTA -->
+        <!-- PUNTO DE VENTA -->
         <section id="punto-venta-section" class="content-section">
             <h1><i class="fas fa-shopping-cart"></i> Punto de Venta</h1>
-
             <div class="card scanner-card">
                 <div class="scanner-input">
                     <input type="text" id="codigoBarrasInput" placeholder="🔍 Escanea o busca producto..." autocomplete="off" />
@@ -139,56 +135,41 @@
                     <i class="fas fa-barcode"></i> Esperando escaneo...
                 </div>
             </div>
-
             <div class="carrito-ventas card">
                 <h2>Carrito de Ventas</h2>
                 <div class="carrito-totales">
-                    <div class="carrito-total" id="totalCarritoBs">
-                        <strong>Total Bs:</strong> 0,00
+                    <div class="carrito-total" id="totalCarritoMoneda">
+                        <strong>Total moneda seleccionada:</strong> 0,00
                     </div>
                     <div class="carrito-total" id="totalCarritoDolares">
                         <strong>Total USD:</strong> 0,00
                     </div>
                 </div>
-
                 <div class="table-responsive">
                     <table class="carrito-table">
                         <thead>
-                            <tr>
-                                <th>Producto</th>
-                                <th>P/U (Bs)</th>
-                                <th>Cantidad</th>
-                                <th>Unidad</th>
-                                <th>Subtotal (Bs)</th>
-                                <th>Acc.</th>
-                              </tr>
+                            <tr><th>Producto</th><th>P/U (Moneda)</th><th>Cantidad</th><th>Unidad</th><th>Subtotal (Moneda)</th><th>Acc.</th></tr>
                         </thead>
                         <tbody id="carritoBody"></tbody>
                     </table>
                 </div>
-
                 <div class="finalizar-venta">
                     <button id="finalizarVenta" onclick="finalizarVenta()"><i class="fas fa-check-circle"></i> Finalizar Venta</button>
                 </div>
             </div>
         </section>
 
-        <!-- SECCIÓN PRODUCTOS -->
+        <!-- GESTIÓN PRODUCTOS -->
         <section id="productos-section" class="content-section">
             <h1><i class="fas fa-boxes"></i> Gestión de Productos</h1>
-
             <div class="card">
                 <h2 id="formProductoTitle">Agregar Nuevo Producto</h2>
                 <div class="form-grid">
                     <input type="text" id="producto" placeholder="Nombre del producto" />
                     <input type="text" id="codigoBarras" placeholder="Código de barras (opcional)" />
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <select id="descripcion" required style="flex: 1;">
-                            <option value="">Selecciona una categoría</option>
-                        </select>
-                        <button type="button" onclick="mostrarGestionCategorias()" style="min-width: auto; padding: 12px 15px;" title="Gestionar categorías">
-                            <i class="fas fa-edit"></i>
-                        </button>
+                        <select id="descripcion" required style="flex: 1;"><option value="">Selecciona una categoría</option></select>
+                        <button type="button" onclick="mostrarGestionCategorias()" style="min-width: auto; padding: 12px 15px;" title="Gestionar categorías"><i class="fas fa-edit"></i></button>
                     </div>
                     <input type="number" id="costo" placeholder="Costo del producto (en $)" step="0.01" />
                     <input type="number" id="ganancia" placeholder="Porcentaje de ganancia %" step="0.1" />
@@ -204,10 +185,9 @@
             </div>
         </section>
 
-        <!-- SECCIÓN INVENTARIO -->
+        <!-- INVENTARIO -->
         <section id="inventario-section" class="content-section">
             <h1><i class="fas fa-clipboard-list"></i> Inventario</h1>
-
             <div class="card">
                 <div class="inventory-toolbar">
                     <input type="text" id="buscar" placeholder="Buscar producto..." />
@@ -215,92 +195,41 @@
                 </div>
                 <div class="table-responsive">
                     <table id="productosTable">
-                        <thead>
-                            <tr>
-                                <th>Producto</th>
-                                <th>Cat.</th>
-                                <th>Existencias</th>
-                                <th>P/U ($)</th>
-                                <th>P/U (Bs)</th>
-                                <th>Acciones</th>
-                              </tr>
-                        </thead>
+                        <thead><tr><th>Producto</th><th>Cat.</th><th>Existencias</th><th>P/U ($)</th><th>P/U (Moneda)</th><th>Acciones</th></tr></thead>
                         <tbody></tbody>
                     </table>
                 </div>
             </div>
         </section>
 
-        <!-- SECCIÓN REPORTES -->
+        <!-- REPORTES -->
         <section id="reportes-section" class="content-section">
             <h1><i class="fas fa-file-pdf"></i> Reportes y Etiquetas</h1>
-
             <div class="card">
                 <h2>Generar Documentos</h2>
                 <div class="action-buttons" style="display: flex; flex-wrap: wrap; gap: 10px;">
-                    <button onclick="mostrarReporteDiario()" class="report-btn" style="flex: 1; min-width: 200px;">
-                        <i class="fas fa-file-pdf"></i> Reporte Diario
-                    </button>
-                    <button onclick="mostrarListaCostos()" class="report-btn" style="flex: 1; min-width: 200px;">
-                        <i class="fas fa-list"></i> Lista de Costos
-                    </button>
-                    <button onclick="mostrarOpcionesPDF()" class="report-btn" style="flex: 1; min-width: 200px;">
-                        <i class="fas fa-tags"></i> PDF por Categoría
-                    </button>
-                    <button onclick="generarEtiquetasAnaqueles()" class="report-btn" style="flex: 1; min-width: 200px;">
-                        <i class="fas fa-tag"></i> Etiquetas Anaqueles
-                    </button>
+                    <button onclick="mostrarReporteDiario()" class="report-btn" style="flex: 1; min-width: 200px;"><i class="fas fa-file-pdf"></i> Reporte Diario</button>
+                    <button onclick="mostrarListaCostos()" class="report-btn" style="flex: 1; min-width: 200px;"><i class="fas fa-list"></i> Lista de Costos</button>
+                    <button onclick="mostrarOpcionesPDF()" class="report-btn" style="flex: 1; min-width: 200px;"><i class="fas fa-tags"></i> PDF por Categoría</button>
+                    <button onclick="generarEtiquetasAnaqueles()" class="report-btn" style="flex: 1; min-width: 200px;"><i class="fas fa-tag"></i> Etiquetas Anaqueles</button>
                 </div>
-                <div id="listaCostosContainer" style="display: none; margin-top: 20px;">
-                    <h3>Lista de Costos</h3>
-                    <div class="total-invertido" style="margin-bottom: 15px; padding: 10px; background: #e8f5e9; border-radius: 5px;">
-                        <strong>Total invertido:</strong>
-                        <span id="totalInvertidoUSD">X USD</span>
-                        <span id="totalInvertidoBS">/ X Bs</span>
-                    </div>
-                    <ul id="listaCostos" style="list-style: none; padding: 0; max-height: 300px; overflow-y: auto;"></ul>
-                </div>
+                <div id="listaCostosContainer" style="display: none; margin-top: 20px;"><h3>Lista de Costos</h3><div class="total-invertido" style="margin-bottom: 15px; padding: 10px; background: #e8f5e9; border-radius: 5px;"><strong>Total invertido:</strong><span id="totalInvertidoUSD">X USD</span><span id="totalInvertidoBS">/ X Bs</span></div><ul id="listaCostos" style="list-style: none; padding: 0; max-height: 300px; overflow-y: auto;"></ul></div>
             </div>
-            
             <div id="reporteDiarioContainer" class="card" style="display: none; margin-top: 20px;">
                 <h2><i class="fas fa-calendar-day"></i> Reporte Diario</h2>
                 <div class="reporte-resumen" style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                        <div>
-                            <strong>Total General:</strong>
-                            <span id="reporteTotalGeneral" style="font-size: 1.4rem; display: block;">Bs 0.00</span>
-                        </div>
-                        <div>
-                            <strong>Cantidad Ventas:</strong>
-                            <span id="reporteCantidadVentas" style="font-size: 1.4rem; display: block;">0</span>
-                        </div>
+                        <div><strong>Total General:</strong><span id="reporteTotalGeneral" style="font-size: 1.4rem; display: block;">Bs 0.00</span></div>
+                        <div><strong>Cantidad Ventas:</strong><span id="reporteCantidadVentas" style="font-size: 1.4rem; display: block;">0</span></div>
                     </div>
-                    <!-- Cálculo de sueldo -->
-                    <div id="sueldoContainer" style="margin-top: 15px; padding: 10px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 4px;">
-                        <i class="fas fa-chart-line"></i> <strong>Sueldo estimado:</strong>
-                        <span id="sueldoMonto">0.00 Bs</span><br>
-                        <small id="sueldoMensaje">Ánimo, sigue así. Los sacrificios son la clave del éxito, constancia y organización.</small>
-                    </div>
-                    <div style="margin-top: 15px;">
-                        <strong>Totales por Método de Pago:</strong>
-                        <div id="reporteTotalesMetodos" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px;"></div>
-                    </div>
-                    <div style="margin-top: 15px;">
-                        <strong>Productos Vendidos:</strong>
-                        <div id="reporteProductosVendidos" style="max-height: 200px; overflow-y: auto; background: white; padding: 10px; border-radius: 5px; margin-top: 10px;"></div>
-                    </div>
+                    <div id="sueldoContainer" style="margin-top: 15px; padding: 10px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 4px;"><i class="fas fa-chart-line"></i> <strong>Sueldo estimado:</strong><span id="sueldoMonto">0.00 Bs</span><br><small id="sueldoMensaje">Ánimo, sigue así. Los sacrificios son la clave del éxito, constancia y organización.</small></div>
+                    <div style="margin-top: 15px;"><strong>Totales por Método de Pago:</strong><div id="reporteTotalesMetodos" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px;"></div></div>
+                    <div style="margin-top: 15px;"><strong>Productos Vendidos:</strong><div id="reporteProductosVendidos" style="max-height: 200px; overflow-y: auto; background: white; padding: 10px; border-radius: 5px; margin-top: 10px;"></div></div>
                 </div>
                 <h3>Detalle de Ventas</h3>
                 <div class="table-responsive">
                     <table id="reporteDetalleTable">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Hora</th>
-                                <th>Método</th>
-                                <th>Total</th>
-                              </tr>
-                        </thead>
+                        <thead><tr><th>#</th><th>Hora</th><th>Método</th><th>Total</th><th>Acciones</th></tr></thead>
                         <tbody id="reporteDetalleBody"></tbody>
                     </table>
                 </div>
@@ -309,270 +238,92 @@
                     <button onclick="cerrarReporteDiario()" style="background: #f44336;"><i class="fas fa-times"></i> Cerrar Reporte</button>
                     <button onclick="limpiarVentasDiarias()" style="background: #ff9800;" id="btnLimpiarReporte"><i class="fas fa-trash-alt"></i> Limpiar Ventas del Día</button>
                 </div>
-                <div style="margin-top: 15px; padding: 10px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 4px;">
-                    <i class="fas fa-info-circle"></i> 
-                    <strong>Recomendación:</strong> Después de descargar el reporte, limpia las ventas del día para liberar espacio en el sistema.
-                </div>
+                <div style="margin-top: 15px; padding: 10px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 4px;"><i class="fas fa-info-circle"></i> <strong>Recomendación:</strong> Después de descargar el reporte, limpia las ventas del día para liberar espacio en el sistema.</div>
             </div>
         </section>
 
-        <!-- SECCIÓN CRÉDITOS MEJORADA -->
+        <!-- CRÉDITOS CORREGIDO -->
         <section id="creditos-section" class="content-section">
             <h1><i class="fas fa-credit-card"></i> Gestión de Créditos</h1>
-
-            <!-- Panel de resumen -->
             <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
-                <div class="stat-card" style="border-left-color: #9C27B0;">
-                    <div class="stat-icon" style="background: #f3e5f5; color: #9C27B0;">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <div class="stat-details">
-                        <span class="stat-label">Total Clientes</span>
-                        <span class="stat-value" id="totalClientesCredito">0</span>
-                    </div>
-                </div>
-                <div class="stat-card" style="border-left-color: #FF9800;">
-                    <div class="stat-icon" style="background: #fff3e0; color: #FF9800;">
-                        <i class="fas fa-clock"></i>
-                    </div>
-                    <div class="stat-details">
-                        <span class="stat-label">Por Vencer (3 días)</span>
-                        <span class="stat-value" id="creditosPorVencer">0</span>
-                    </div>
-                </div>
-                <div class="stat-card" style="border-left-color: #f44336;">
-                    <div class="stat-icon" style="background: #ffebee; color: #f44336;">
-                        <i class="fas fa-exclamation-triangle"></i>
-                    </div>
-                    <div class="stat-details">
-                        <span class="stat-label">Vencidos</span>
-                        <span class="stat-value" id="creditosVencidos">0</span>
-                    </div>
-                </div>
-                <div class="stat-card" style="border-left-color: #4CAF50;">
-                    <div class="stat-icon" style="background: #e8f5e9; color: #4CAF50;">
-                        <i class="fas fa-dollar-sign"></i>
-                    </div>
-                    <div class="stat-details">
-                        <span class="stat-label">Total Adeudado</span>
-                        <span class="stat-value" id="totalAdeudado">Bs 0</span>
-                    </div>
-                </div>
+                <div class="stat-card" style="border-left-color: #9C27B0;"><div class="stat-icon" style="background: #f3e5f5; color: #9C27B0;"><i class="fas fa-users"></i></div><div class="stat-details"><span class="stat-label">Total Clientes</span><span class="stat-value" id="totalClientesCredito">0</span></div></div>
+                <div class="stat-card" style="border-left-color: #FF9800;"><div class="stat-icon" style="background: #fff3e0; color: #FF9800;"><i class="fas fa-clock"></i></div><div class="stat-details"><span class="stat-label">Por Vencer (3 días)</span><span class="stat-value" id="creditosPorVencer">0</span></div></div>
+                <div class="stat-card" style="border-left-color: #f44336;"><div class="stat-icon" style="background: #ffebee; color: #f44336;"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-details"><span class="stat-label">Vencidos</span><span class="stat-value" id="creditosVencidos">0</span></div></div>
+                <div class="stat-card" style="border-left-color: #4CAF50;"><div class="stat-icon" style="background: #e8f5e9; color: #4CAF50;"><i class="fas fa-dollar-sign"></i></div><div class="stat-details"><span class="stat-label">Total Adeudado</span><span class="stat-value" id="totalAdeudado">Bs 0</span></div></div>
             </div>
-
-            <!-- Formulario para agregar/editar crédito -->
             <div class="card" id="formCreditoCard">
                 <h2 id="formCreditoTitle">Registrar Nuevo Crédito</h2>
                 <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
-                    <input type="text" id="clienteNombre" placeholder="Nombre del cliente *" />
-                    
-                    <div style="display: flex; gap: 5px;">
-                        <input type="number" id="montoCredito" placeholder="Monto *" step="0.01" style="flex: 2;" />
-                        <select id="monedaCredito" style="flex: 1; min-width: 80px;">
-                            <option value="Bs">Bs</option>
-                            <option value="USD">$</option>
-                        </select>
-                    </div>
-                    
+                    <input type="text" id="clienteNombre" placeholder="Nombre del cliente *" list="clientesList" autocomplete="off" />
+                    <datalist id="clientesList"></datalist>
+                    <div style="display: flex; gap: 5px;"><input type="number" id="montoCredito" placeholder="Monto *" step="0.01" style="flex: 2;" /><select id="monedaCredito" style="flex: 1; min-width: 80px;"><option value="Bs">Bs</option><option value="USD">$</option></select></div>
                     <input type="number" id="diasCredito" placeholder="Días de crédito *" min="1" max="365" />
-                    
                     <input type="date" id="fechaInicioCredito" />
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 10px;">
-                    <button onclick="guardarCredito()" class="btn-primary" id="btnGuardarCredito">
-                        <i class="fas fa-save"></i> Guardar Crédito
-                    </button>
-                    <button onclick="cancelarEdicionCredito()" class="btn-secondary" id="btnCancelarCredito" style="display: none;">
-                        <i class="fas fa-times"></i> Cancelar
-                    </button>
+                    <button onclick="guardarCredito()" class="btn-primary" id="btnGuardarCredito"><i class="fas fa-save"></i> Guardar Crédito</button>
+                    <button onclick="cancelarEdicionCredito()" class="btn-secondary" id="btnCancelarCredito" style="display: none;"><i class="fas fa-times"></i> Cancelar</button>
                 </div>
                 <p id="mensajeCredito" class="info-message" style="margin-top: 10px;"></p>
             </div>
-
-            <!-- Buscador y lista de créditos -->
             <div class="card">
                 <div class="inventory-toolbar">
                     <input type="text" id="buscarCredito" placeholder="Buscar por cliente o monto..." />
                     <button onclick="buscarCreditos()"><i class="fas fa-search"></i></button>
                     <button onclick="mostrarTodosCreditos()" class="btn-secondary"><i class="fas fa-times"></i> Limpiar</button>
                 </div>
-
-                <!-- Filtros rápidos -->
                 <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
                     <button onclick="filtrarCreditos('todos')" class="filtro-btn active" id="filtroTodos">Todos</button>
                     <button onclick="filtrarCreditos('activos')" class="filtro-btn" id="filtroActivos">Activos</button>
                     <button onclick="filtrarCreditos('porVencer')" class="filtro-btn" id="filtroPorVencer">Por vencer (≤3 días)</button>
                     <button onclick="filtrarCreditos('vencidos')" class="filtro-btn" id="filtroVencidos">Vencidos</button>
                 </div>
-
                 <div class="table-responsive">
                     <table id="creditosTable">
-                        <thead>
-                            <tr>
-                                <th>Cliente</th>
-                                <th>Monto</th>
-                                <th>Inicio</th>
-                                <th>Vence</th>
-                                <th>Estado</th>
-                                <th>Días restantes</th>
-                                <th>Productos</th>
-                                <th>Acciones</th>
-                              </tr>
-                        </thead>
+                        <thead><tr><th>Cliente</th><th>Monto</th><th>Inicio</th><th>Vence</th><th>Estado</th><th>Días restantes</th><th>Productos</th><th>Acciones</th></tr></thead>
                         <tbody id="creditosBody"></tbody>
                     </table>
                 </div>
             </div>
         </section>
 
-        <!-- SECCIÓN CONFIGURACIÓN -->
+        <!-- CONFIGURACIÓN -->
         <section id="configuracion-section" class="content-section">
             <h1><i class="fas fa-cog"></i> Configuración</h1>
-
-            <div class="card">
-                <h2>Nombre del Establecimiento</h2>
-                <input type="text" id="nombreEstablecimiento" placeholder="Ej: Tienda La Bendición" />
-                <button onclick="guardarNombreEstablecimiento()">Guardar</button>
+            <div class="card"><h2>Nombre del Establecimiento</h2><input type="text" id="nombreEstablecimiento" placeholder="Ej: Tienda La Bendición" /><button onclick="guardarNombreEstablecimiento()">Guardar</button></div>
+            <div class="card"><h2>Tasa de cambio</h2>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <select id="monedaSeleccionada" style="flex:1;">
+                        <option value="VES">Bolívar (VES)</option>
+                        <option value="EUR">Euro (EUR)</option>
+                        <option value="CLP">Peso chileno (CLP)</option>
+                        <option value="COP">Peso colombiano (COP)</option>
+                        <option value="PEN">Sol peruano (PEN)</option>
+                    </select>
+                    <input type="number" id="tasaCambio" placeholder="Tasa (1 USD = ?)" step="0.01" style="flex:2;" />
+                    <button onclick="actualizarTasaCambio()">Actualizar</button>
+                </div>
+                <p id="infoTasa" style="margin-top: 10px; font-size: 0.9rem; color: #555;"></p>
             </div>
-
-            <div class="card">
-                <h2>Tasa BCV</h2>
-                <input type="number" id="tasaBCV" placeholder="Tasa BCV" step="0.01" />
-                <button onclick="actualizarTasaBCV()">Actualizar Tasa</button>
-            </div>
-
-            <!-- NUEVO: Clave para editar inventario (sin mostrar la clave maestra) -->
-            <div class="card">
-                <h2><i class="fas fa-lock"></i> Clave para Editar Inventario</h2>
-                <p>Establece una clave personalizada para proteger la edición de productos. Si la olvidas, puedes restablecerla con la clave maestra (consulta con el administrador).</p>
-                <input type="password" id="claveEdicionInput" placeholder="Nueva clave" />
-                <button onclick="guardarClaveEdicion()">Guardar Clave</button>
-                <button onclick="probarClaveEdicion()" class="btn-secondary" style="margin-left: 10px;">Probar Clave Actual</button>
-                <div id="mensajeClave" style="margin-top: 10px; font-size: 0.9rem;"></div>
-            </div>
+            <div class="card"><h2><i class="fas fa-lock"></i> Clave para Editar Inventario</h2><p>Establece una clave personalizada para proteger la edición de productos. Si la olvidas, puedes restablecerla con la clave maestra (consulta con el administrador).</p><input type="password" id="claveEdicionInput" placeholder="Nueva clave" /><button onclick="guardarClaveEdicion()">Guardar Clave</button><button onclick="probarClaveEdicion()" class="btn-secondary" style="margin-left: 10px;">Probar Clave Actual</button><div id="mensajeClave" style="margin-top: 10px; font-size: 0.9rem;"></div></div>
         </section>
 
-        <!-- SECCIÓN RESPALDO -->
+        <!-- RESPALDO -->
         <section id="respaldo-section" class="content-section">
             <h1><i class="fas fa-database"></i> Respaldo y Restauración</h1>
-
-            <div class="card">
-                <p>Descarga un archivo de respaldo con todos tus datos o restaura desde uno existente.</p>
-                <button onclick="descargarBackup()" class="backup-button"><i class="fas fa-download"></i> Descargar Respaldo</button>
-                <button onclick="document.getElementById('fileInput').click()" class="restore-button"><i class="fas fa-upload"></i> Cargar Respaldo</button>
-                <input type="file" id="fileInput" accept=".json" style="display: none" onchange="cargarBackup(this.files)" />
-            </div>
+            <div class="card"><p>Descarga un archivo de respaldo con todos tus datos o restaura desde uno existente.</p><button onclick="descargarBackup()" class="backup-button"><i class="fas fa-download"></i> Descargar Respaldo</button><button onclick="document.getElementById('fileInput').click()" class="restore-button"><i class="fas fa-upload"></i> Cargar Respaldo</button><input type="file" id="fileInput" accept=".json" style="display: none" onchange="cargarBackup(this.files)" /></div>
         </section>
     </main>
 
-    <!-- ===== MODALES ===== -->
-
-    <!-- Modal Pago -->
-    <div id="modalPago" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 500px;">
-            <span class="close" onclick="cerrarModalPago()">&times;</span>
-            <h3><i class="fas fa-credit-card"></i> Seleccionar Método de Pago</h3>
-            <div class="resumen-venta" style="background: #e8f5e9; padding: 15px; border-radius: 5px; margin: 15px 0;">
-                <p id="resumenTotalBs" style="font-size: 1.2rem; margin: 5px 0;"><strong>Total: Bs 0,00</strong></p>
-                <p id="resumenTotalDolares" style="font-size: 1.2rem; margin: 5px 0;"><strong>Total: $ 0,00</strong></p>
-            </div>
-            <div class="metodos-pago" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
-                <button onclick="seleccionarMetodoPago('efectivo_bs')" style="background: #4CAF50;">Efectivo Bs</button>
-                <button onclick="seleccionarMetodoPago('efectivo_dolares')" style="background: #2196F3;">Efectivo $</button>
-                <button onclick="seleccionarMetodoPago('punto')" style="background: #9C27B0;">Punto</button>
-                <button onclick="seleccionarMetodoPago('pago_movil')" style="background: #FF9800;">Pago Móvil</button>
-                <button onclick="seleccionarMetodoPago('biopago')" style="background: #607D8B;">Biopago</button>
-                <button onclick="seleccionarMetodoPago('credito')" style="background: #9C27B0;">Crédito</button>
-            </div>
-            <div id="detallesPago" style="display: none; margin-top: 20px;">
-                <h4>Detalles del Pago</h4>
-                <div id="camposPago"></div>
-                <div id="mensajePago" class="mensaje-pago" style="display: none; padding: 10px; border-radius: 5px; margin: 10px 0;"></div>
-                <div class="modal-buttons" style="display: flex; gap: 10px; margin-top: 15px;">
-                    <button onclick="confirmarMetodoPago()" style="flex: 1; background: #4CAF50;">Confirmar Pago</button>
-                    <button onclick="cancelarPago()" style="flex: 1; background: #f44336;">Cancelar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal PDF por Categoría (dinámico) -->
-    <div id="modalCategorias" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 600px;">
-            <span class="close" onclick="cerrarModalCategorias()">&times;</span>
-            <h3><i class="fas fa-file-pdf"></i> Generar PDF por Categoría</h3>
-            <div id="categoriasPDFContainer" class="categorias-lista" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-height: 400px; overflow-y: auto; padding: 10px;">
-                <!-- Botones generados dinámicamente -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Etiquetas (dinámico) -->
-    <div id="modalEtiquetas" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 600px;">
-            <span class="close" onclick="cerrarModalEtiquetas()">&times;</span>
-            <h3><i class="fas fa-tags"></i> Generar Etiquetas para Anaqueles</h3>
-            <div class="selector-moneda" style="margin: 15px 0; padding: 15px; background: #f5f5f5; border-radius: 5px;">
-                <label style="font-weight: bold; margin-right: 10px;">Moneda para precios:</label>
-                <select id="monedaEtiquetas" onchange="actualizarMonedaEtiquetas()" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
-                    <option value="VES">Bolívares (Bs)</option>
-                    <option value="USD">Dólares ($)</option>
-                </select>
-            </div>
-            <div id="categoriasEtiquetasContainer" class="categorias-lista" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-height: 400px; overflow-y: auto; padding: 10px;">
-                <!-- Botones generados dinámicamente -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Gestión de Categorías -->
-    <div id="modalGestionCategorias" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 500px;">
-            <span class="close" onclick="cerrarGestionCategorias()">&times;</span>
-            <h3><i class="fas fa-tags"></i> Gestionar Categorías</h3>
-            <div style="margin: 15px 0; display: flex; gap: 10px;">
-                <input type="text" id="nuevaCategoria" placeholder="Nueva categoría" style="flex: 1;">
-                <button onclick="agregarCategoria()">Agregar</button>
-            </div>
-            <div id="listaCategorias" style="max-height: 300px; overflow-y: auto;">
-                <!-- Lista de categorías con botones editar/eliminar -->
-            </div>
-            <div style="margin-top: 20px;">
-                <button onclick="cerrarGestionCategorias()" class="btn-secondary">Cerrar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Confirmación Eliminación -->
-    <div id="modalConfirmacionEliminar" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 400px;">
-            <span class="close" onclick="cerrarModalConfirmacionEliminar()">&times;</span>
-            <h3><i class="fas fa-exclamation-triangle" style="color: #f44336;"></i> Confirmar Eliminación</h3>
-            <p style="margin: 20px 0; font-size: 1.1rem;" id="mensajeConfirmacionEliminar">¿Está seguro de que desea eliminar este producto?</p>
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button onclick="confirmarEliminacionProducto()" style="flex: 1; background: #f44336; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
-                    <i class="fas fa-trash"></i> Sí, Eliminar
-                </button>
-                <button onclick="cerrarModalConfirmacionEliminar()" style="flex: 1; background: #607d8b; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
-                    <i class="fas fa-times"></i> Cancelar
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal para mostrar productos del crédito -->
-    <div id="modalProductosCredito" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 400px;">
-            <span class="close" onclick="cerrarModalProductosCredito()">&times;</span>
-            <h3><i class="fas fa-shopping-basket"></i> Productos del Crédito</h3>
-            <div id="contenidoProductosCredito" style="max-height: 300px; overflow-y: auto; margin: 15px 0;"></div>
-        </div>
-    </div>
-
-    <!-- Toast container -->
+    <!-- MODALES -->
+    <div id="modalPago" class="modal" style="display: none;"><div class="modal-content" style="max-width: 500px;"><span class="close" onclick="cerrarModalPago()">&times;</span><h3><i class="fas fa-credit-card"></i> Seleccionar Método de Pago</h3><div class="resumen-venta" style="background: #e8f5e9; padding: 15px; border-radius: 5px; margin: 15px 0;"><p id="resumenTotalMoneda" style="font-size: 1.2rem; margin: 5px 0;"><strong>Total Moneda:</strong> 0,00</p><p id="resumenTotalDolares" style="font-size: 1.2rem; margin: 5px 0;"><strong>Total USD:</strong> 0,00</p></div><div class="metodos-pago" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;"><button onclick="seleccionarMetodoPago('efectivo_bs')" style="background: #4CAF50;">Efectivo Bs</button><button onclick="seleccionarMetodoPago('efectivo_dolares')" style="background: #2196F3;">Efectivo $</button><button onclick="seleccionarMetodoPago('punto')" style="background: #9C27B0;">Punto</button><button onclick="seleccionarMetodoPago('pago_movil')" style="background: #FF9800;">Pago Móvil</button><button onclick="seleccionarMetodoPago('biopago')" style="background: #607D8B;">Biopago</button><button onclick="seleccionarMetodoPago('credito')" style="background: #9C27B0;">Crédito</button></div><div id="detallesPago" style="display: none; margin-top: 20px;"><h4>Detalles del Pago</h4><div id="camposPago"></div><div id="mensajePago" class="mensaje-pago" style="display: none; padding: 10px; border-radius: 5px; margin: 10px 0;"></div><div class="modal-buttons" style="display: flex; gap: 10px; margin-top: 15px;"><button onclick="confirmarMetodoPago()" style="flex: 1; background: #4CAF50;">Confirmar Pago</button><button onclick="cancelarPago()" style="flex: 1; background: #f44336;">Cancelar</button></div></div></div></div>
+    <div id="modalCategorias" class="modal" style="display: none;"><div class="modal-content" style="max-width: 600px;"><span class="close" onclick="cerrarModalCategorias()">&times;</span><h3><i class="fas fa-file-pdf"></i> Generar PDF por Categoría</h3><div id="categoriasPDFContainer" class="categorias-lista" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-height: 400px; overflow-y: auto; padding: 10px;"></div></div></div>
+    <div id="modalEtiquetas" class="modal" style="display: none;"><div class="modal-content" style="max-width: 600px;"><span class="close" onclick="cerrarModalEtiquetas()">&times;</span><h3><i class="fas fa-tags"></i> Generar Etiquetas para Anaqueles</h3><div class="selector-moneda" style="margin: 15px 0; padding: 15px; background: #f5f5f5; border-radius: 5px;"><label style="font-weight: bold; margin-right: 10px;">Moneda para precios:</label><select id="monedaEtiquetas" onchange="actualizarMonedaEtiquetas()" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;"><option value="VES">Bolívares (Bs)</option><option value="USD">Dólares ($)</option></select></div><div id="categoriasEtiquetasContainer" class="categorias-lista" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-height: 400px; overflow-y: auto; padding: 10px;"></div></div></div>
+    <div id="modalGestionCategorias" class="modal" style="display: none;"><div class="modal-content" style="max-width: 500px;"><span class="close" onclick="cerrarGestionCategorias()">&times;</span><h3><i class="fas fa-tags"></i> Gestionar Categorías</h3><div style="margin: 15px 0; display: flex; gap: 10px;"><input type="text" id="nuevaCategoria" placeholder="Nueva categoría" style="flex: 1;"><button onclick="agregarCategoria()">Agregar</button></div><div id="listaCategorias" style="max-height: 300px; overflow-y: auto;"></div><div style="margin-top: 20px;"><button onclick="cerrarGestionCategorias()" class="btn-secondary">Cerrar</button></div></div></div>
+    <div id="modalConfirmacionEliminar" class="modal" style="display: none;"><div class="modal-content" style="max-width: 400px;"><span class="close" onclick="cerrarModalConfirmacionEliminar()">&times;</span><h3><i class="fas fa-exclamation-triangle" style="color: #f44336;"></i> Confirmar Eliminación</h3><p style="margin: 20px 0; font-size: 1.1rem;" id="mensajeConfirmacionEliminar">¿Está seguro de que desea eliminar este producto?</p><div style="display: flex; gap: 10px; margin-top: 20px;"><button onclick="confirmarEliminacionProducto()" style="flex: 1; background: #f44336; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;"><i class="fas fa-trash"></i> Sí, Eliminar</button><button onclick="cerrarModalConfirmacionEliminar()" style="flex: 1; background: #607d8b; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;"><i class="fas fa-times"></i> Cancelar</button></div></div></div>
+    <div id="modalProductosCredito" class="modal" style="display: none;"><div class="modal-content" style="max-width: 400px;"><span class="close" onclick="cerrarModalProductosCredito()">&times;</span><h3><i class="fas fa-shopping-basket"></i> Productos del Crédito</h3><div id="contenidoProductosCredito" style="max-height: 300px; overflow-y: auto; margin: 15px 0;"></div></div></div>
     <div id="toastContainer" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;"></div>
 
-    <!-- Script con versión para evitar caché -->
-    <script src="script.js?v=2.2"></script>
+    <script src="script.js?v=2.3"></script>
 </body>
 </html>
