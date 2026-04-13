@@ -1,6 +1,6 @@
 // ============================================
-// CALCULADORA MÁGICA - VERSIÓN PROFESIONAL COMPLETA v2.3
-// MEJORAS: Tasa de cambio multi-moneda, Devoluciones, Ticket térmico, Créditos corregidos
+// CALCULADORA MÁGICA - VERSIÓN PROFESIONAL COMPLETA v3.0
+// MEJORAS: Pagos Mixtos, Ticket Térmico POS, Reportes Mejorados
 // ============================================
 
 // ===== PROTECCIÓN AVANZADA =====
@@ -51,14 +51,23 @@ let carrito = [];
 let claveSeguridad = '1234';
 let claveEdicion = '';
 let monedaEtiquetas = 'VES';
-let metodoPagoSeleccionado = null;
-let detallesPago = {};
 let productoEditando = null;
 let productosFiltrados = [];
 
-// ----- CRÉDITOS CORREGIDOS (con ID único) -----
+// ----- SISTEMA DE PAGO MIXTO -----
+let pagoMixtoActual = {
+    totalMoneda: 0,
+    totalDolares: 0,
+    pagos: [],      // { metodo, montoMoneda, montoDolares, detalles }
+    totalPagadoMoneda: 0,
+    totalPagadoDolares: 0,
+    vueltoMoneda: 0,
+    completado: false
+};
+
+// ----- CRÉDITOS -----
 let creditos = [];
-let creditoEditando = null;      // Almacena el ID del crédito en edición
+let creditoEditando = null;
 let creditosFiltrados = [];
 let filtroActual = 'todos';
 let nextCreditoId = 1;
@@ -67,7 +76,6 @@ let nextCreditoId = 1;
 let categoriasPersonalizadas = [];
 
 // ----- ESCÁNER -----
-let tiempoUltimaTecla = 0;
 let bufferEscaneo = '';
 let productoEliminarPendiente = null;
 
@@ -217,7 +225,7 @@ function obtenerNombreMoneda(codigo) {
     return nombres[codigo] || codigo;
 }
 
-// ===== TASA DE CAMBIO (NUEVO SISTEMA) =====
+// ===== TASA DE CAMBIO =====
 function actualizarTasaCambio() {
     const moneda = document.getElementById('monedaSeleccionada').value;
     const tasa = parseFloat(document.getElementById('tasaCambio').value);
@@ -547,7 +555,7 @@ function cambiarUnidadCarrito(index, unidad) {
 }
 function eliminarDelCarrito(index) { carrito.splice(index,1); safeSetItem(STORAGE_KEYS.CARRITO, carrito); actualizarCarrito(); }
 
-// ===== VENTAS Y PAGOS =====
+// ===== SISTEMA DE PAGO MIXTO (NUEVO) =====
 function finalizarVenta() {
     if (carrito.length === 0) { showToast('Carrito vacío', 'warning'); return; }
     for (let item of carrito) {
@@ -558,116 +566,257 @@ function finalizarVenta() {
     }
     const totalMoneda = carrito.reduce((s,i)=>s+i.subtotal,0);
     const totalDolares = carrito.reduce((s,i)=>s+i.subtotalDolar,0);
-    document.getElementById('resumenTotalMoneda').textContent = `Total: ${totalMoneda.toFixed(2)} ${monedaSeleccionada}`;
-    document.getElementById('resumenTotalDolares').textContent = `Total: $ ${totalDolares.toFixed(2)}`;
-    document.getElementById('modalPago').style.display = 'block';
-    metodoPagoSeleccionado = null;
-    document.getElementById('detallesPago').style.display = 'none';
-    document.getElementById('camposPago').innerHTML = '';
-    document.getElementById('mensajePago').style.display = 'none';
+    
+    // Inicializar pago mixto
+    pagoMixtoActual = {
+        totalMoneda: totalMoneda,
+        totalDolares: totalDolares,
+        pagos: [],
+        totalPagadoMoneda: 0,
+        totalPagadoDolares: 0,
+        vueltoMoneda: 0,
+        completado: false
+    };
+    
+    actualizarModalPagoMixto();
+    document.getElementById('modalPagoMixto').style.display = 'block';
 }
-function cerrarModalPago() { document.getElementById('modalPago').style.display = 'none'; metodoPagoSeleccionado = null; detallesPago = {}; }
-function cancelarPago() { document.getElementById('detallesPago').style.display = 'none'; metodoPagoSeleccionado = null; detallesPago = {}; }
-function seleccionarMetodoPago(metodo) {
-    if (metodo === 'credito') {
-        if (carrito.length === 0) { showToast('Carrito vacío', 'warning'); return; }
-        showSection('creditos');
-        const totalMoneda = carrito.reduce((s,i)=>s+i.subtotal,0);
-        const totalDolares = carrito.reduce((s,i)=>s+i.subtotalDolar,0);
-        if (totalDolares > 0 && totalMoneda > 0) {
-            if (confirm('¿Registrar crédito en dólares? (Cancelar para moneda local)')) { document.getElementById('montoCredito').value = totalDolares.toFixed(2); document.getElementById('monedaCredito').value = 'USD'; }
-            else { document.getElementById('montoCredito').value = totalMoneda.toFixed(2); document.getElementById('monedaCredito').value = 'Bs'; }
-        } else if (totalDolares > 0) { document.getElementById('montoCredito').value = totalDolares.toFixed(2); document.getElementById('monedaCredito').value = 'USD'; }
-        else { document.getElementById('montoCredito').value = totalMoneda.toFixed(2); document.getElementById('monedaCredito').value = 'Bs'; }
-        if (!document.getElementById('diasCredito').value) document.getElementById('diasCredito').value = '30';
-        showToast('Complete los datos del crédito', 'info');
-        cerrarModalPago();
+
+function actualizarModalPagoMixto() {
+    const simbolo = monedaSeleccionada;
+    document.getElementById('resumenTotalPagoMoneda').textContent = pagoMixtoActual.totalMoneda.toFixed(2);
+    document.getElementById('resumenTotalPagoDolares').textContent = pagoMixtoActual.totalDolares.toFixed(2);
+    document.getElementById('totalPagadoMixto').textContent = pagoMixtoActual.totalPagadoMoneda.toFixed(2);
+    document.getElementById('restanteMixto').textContent = (pagoMixtoActual.totalMoneda - pagoMixtoActual.totalPagadoMoneda).toFixed(2);
+    document.getElementById('resumenMonedaSimbolo').textContent = simbolo;
+    document.getElementById('totalPagadoMonedaSimbolo').textContent = simbolo;
+    document.getElementById('restanteMonedaSimbolo').textContent = simbolo;
+    document.getElementById('vueltoMonedaSimbolo').textContent = simbolo;
+    
+    const restante = pagoMixtoActual.totalMoneda - pagoMixtoActual.totalPagadoMoneda;
+    if (restante <= 0) {
+        pagoMixtoActual.vueltoMoneda = Math.abs(restante);
+        document.getElementById('vueltoMixto').textContent = pagoMixtoActual.vueltoMoneda.toFixed(2);
+        document.getElementById('btnConfirmarPagoMixto').disabled = false;
+        document.getElementById('btnConfirmarPagoMixto').style.opacity = '1';
+    } else {
+        document.getElementById('vueltoMixto').textContent = '0.00';
+        document.getElementById('btnConfirmarPagoMixto').disabled = true;
+        document.getElementById('btnConfirmarPagoMixto').style.opacity = '0.5';
+    }
+    
+    // Actualizar lista de pagos
+    const listaDiv = document.getElementById('listaPagosMixtos');
+    listaDiv.innerHTML = '';
+    const nombresMetodos = {
+        efectivo_bs: 'Efectivo Bs', efectivo_dolares: 'Efectivo $', punto: 'Punto',
+        pago_movil: 'Pago Móvil', biopago: 'Biopago', credito: 'Crédito'
+    };
+    pagoMixtoActual.pagos.forEach((pago, idx) => {
+        const div = document.createElement('div');
+        div.style.cssText = 'display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #eee;';
+        div.innerHTML = `
+            <span><strong>${nombresMetodos[pago.metodo] || pago.metodo}</strong></span>
+            <span>${pago.montoMoneda.toFixed(2)} ${monedaSeleccionada}</span>
+            <button onclick="eliminarPagoMixto(${idx})" style="background:#f44336; padding:2px 8px; min-width:auto;">X</button>
+        `;
+        listaDiv.appendChild(div);
+    });
+    if (pagoMixtoActual.pagos.length === 0) {
+        listaDiv.innerHTML = '<div style="text-align:center; color:#999; padding:10px;">No hay pagos registrados</div>';
+    }
+}
+
+function agregarPagoMixto(metodo) {
+    const restante = pagoMixtoActual.totalMoneda - pagoMixtoActual.totalPagadoMoneda;
+    if (restante <= 0) {
+        showToast('El total ya está cubierto', 'warning');
         return;
     }
-    metodoPagoSeleccionado = metodo;
-    const totalMoneda = carrito.reduce((s,i)=>s+i.subtotal,0);
-    const totalDolares = carrito.reduce((s,i)=>s+i.subtotalDolar,0);
-    detallesPago = { metodo, totalMoneda, totalDolares };
-    const detallesDiv = document.getElementById('camposPago');
-    detallesDiv.innerHTML = '';
+    
+    if (metodo === 'credito') {
+        // Redirigir a créditos
+        cerrarModalPagoMixto();
+        showSection('creditos');
+        document.getElementById('montoCredito').value = pagoMixtoActual.totalMoneda.toFixed(2);
+        document.getElementById('monedaCredito').value = 'Bs';
+        if (!document.getElementById('diasCredito').value) document.getElementById('diasCredito').value = '30';
+        showToast('Complete los datos del crédito', 'info');
+        return;
+    }
+    
+    // Mostrar formulario para el método
+    const detalleDiv = document.getElementById('detallePagoMixto');
+    detalleDiv.style.display = 'block';
+    const simbolo = metodo === 'efectivo_dolares' ? 'USD' : monedaSeleccionada;
+    const montoMaximo = metodo === 'efectivo_dolares' ? (restante / tasaMonedaActual) : restante;
+    
     if (metodo === 'efectivo_bs' || metodo === 'efectivo_dolares') {
-        const moneda = metodo === 'efectivo_bs' ? monedaSeleccionada : 'USD';
-        const total = metodo === 'efectivo_bs' ? totalMoneda : totalDolares;
-        detallesDiv.innerHTML = `<div><label>Monto recibido (${moneda}):</label><input type="number" id="montoRecibido" step="0.01"></div><div><label>Cambio:</label><input type="text" id="cambioCalculado" readonly style="background:#f5f5f5;"></div>`;
-        setTimeout(() => { const input = document.getElementById('montoRecibido'); if(input) input.addEventListener('input', () => calcularCambio(input.value, metodo, total)); }, 100);
+        detalleDiv.innerHTML = `
+            <h4>${metodo === 'efectivo_bs' ? 'Efectivo en Bolívares' : 'Efectivo en Dólares'}</h4>
+            <div><label>Monto a pagar (${simbolo}):</label><input type="number" id="montoPagoMixto" step="0.01" placeholder="Monto máximo: ${montoMaximo.toFixed(2)}"></div>
+            <div style="margin-top:10px;"><button onclick="procesarPagoMixto('${metodo}')" style="background:#4CAF50;">Agregar Pago</button></div>
+        `;
     } else if (metodo === 'punto' || metodo === 'biopago') {
-        detallesDiv.innerHTML = `<div><label>Monto a pagar (${monedaSeleccionada}):</label><input type="number" id="montoPago" value="${totalMoneda.toFixed(2)}" step="0.01"></div>`;
+        detalleDiv.innerHTML = `
+            <h4>${metodo === 'punto' ? 'Punto de Venta' : 'Biopago'}</h4>
+            <div><label>Monto a pagar (${simbolo}):</label><input type="number" id="montoPagoMixto" step="0.01" placeholder="Monto máximo: ${montoMaximo.toFixed(2)}"></div>
+            <div style="margin-top:10px;"><button onclick="procesarPagoMixto('${metodo}')" style="background:#4CAF50;">Agregar Pago</button></div>
+        `;
     } else if (metodo === 'pago_movil') {
-        detallesDiv.innerHTML = `<div><label>Monto (${monedaSeleccionada}):</label><input type="number" id="montoPagoMovil" value="${totalMoneda.toFixed(2)}" step="0.01"></div><div><label>Referencia:</label><input type="text" id="refPagoMovil"></div><div><label>Banco:</label><input type="text" id="bancoPagoMovil"></div>`;
+        detalleDiv.innerHTML = `
+            <h4>Pago Móvil</h4>
+            <div><label>Monto (${simbolo}):</label><input type="number" id="montoPagoMixto" step="0.01" placeholder="Monto máximo: ${montoMaximo.toFixed(2)}"></div>
+            <div><label>Referencia:</label><input type="text" id="refPagoMixto"></div>
+            <div><label>Banco:</label><input type="text" id="bancoPagoMixto"></div>
+            <div style="margin-top:10px;"><button onclick="procesarPagoMixto('${metodo}')" style="background:#4CAF50;">Agregar Pago</button></div>
+        `;
     }
-    document.getElementById('detallesPago').style.display = 'block';
 }
-function calcularCambio(montoRecibido, metodo, total) {
-    const mensajeDiv = document.getElementById('mensajePago');
-    const cambioInput = document.getElementById('cambioCalculado');
-    if (!mensajeDiv || !cambioInput) return;
-    montoRecibido = parseFloat(montoRecibido) || 0;
-    if (montoRecibido < total) { const falta = redondear2Decimales(total - montoRecibido); mensajeDiv.textContent = `❌ Faltan ${metodo === 'efectivo_bs' ? monedaSeleccionada : '$'} ${falta.toFixed(2)}`; mensajeDiv.style.display='block'; cambioInput.value = `-${falta.toFixed(2)}`; }
-    else { const cambio = redondear2Decimales(montoRecibido - total); mensajeDiv.textContent = `✅ Cambio: ${metodo === 'efectivo_bs' ? monedaSeleccionada : '$'} ${cambio.toFixed(2)}`; mensajeDiv.style.display='block'; cambioInput.value = cambio.toFixed(2); }
-}
-function confirmarMetodoPago() {
-    if (!metodoPagoSeleccionado) { showToast('Seleccione método de pago', 'error'); return; }
-    const totalMoneda = carrito.reduce((s,i)=>s+i.subtotal,0);
-    const totalDolares = carrito.reduce((s,i)=>s+i.subtotalDolar,0);
-    if (metodoPagoSeleccionado === 'efectivo_bs' || metodoPagoSeleccionado === 'efectivo_dolares') {
-        const monto = parseFloat(document.getElementById('montoRecibido')?.value) || 0;
-        const total = metodoPagoSeleccionado === 'efectivo_bs' ? totalMoneda : totalDolares;
-        if (monto < total) { showToast('Monto insuficiente', 'error'); return; }
-        detallesPago.montoRecibido = monto; detallesPago.cambio = monto - total;
-    } else if (metodoPagoSeleccionado === 'pago_movil') {
-        const ref = document.getElementById('refPagoMovil')?.value.trim();
-        const banco = document.getElementById('bancoPagoMovil')?.value.trim();
+
+function procesarPagoMixto(metodo) {
+    const restanteMoneda = pagoMixtoActual.totalMoneda - pagoMixtoActual.totalPagadoMoneda;
+    let montoMoneda = 0;
+    let montoDolares = 0;
+    let detalles = {};
+    
+    if (metodo === 'efectivo_dolares') {
+        const montoUsd = parseFloat(document.getElementById('montoPagoMixto')?.value) || 0;
+        if (montoUsd <= 0) { showToast('Ingrese un monto válido', 'error'); return; }
+        montoDolares = montoUsd;
+        montoMoneda = montoUsd * tasaMonedaActual;
+        if (montoMoneda > restanteMoneda + 0.01) {
+            const vueltoUsd = (montoMoneda - restanteMoneda) / tasaMonedaActual;
+            showToast(`El pago excede el total. Vuelto en USD: $${vueltoUsd.toFixed(2)}`, 'warning');
+            montoMoneda = restanteMoneda;
+            montoDolares = restanteMoneda / tasaMonedaActual;
+        }
+        detalles = { montoRecibido: montoUsd, cambio: montoDolares - (restanteMoneda / tasaMonedaActual) };
+    } else {
+        const monto = parseFloat(document.getElementById('montoPagoMixto')?.value) || 0;
+        if (monto <= 0) { showToast('Ingrese un monto válido', 'error'); return; }
+        montoMoneda = monto;
+        montoDolares = monto / tasaMonedaActual;
+        if (montoMoneda > restanteMoneda + 0.01) {
+            const vuelto = montoMoneda - restanteMoneda;
+            showToast(`El pago excede el total. Vuelto: ${vuelto.toFixed(2)} ${monedaSeleccionada}`, 'warning');
+            montoMoneda = restanteMoneda;
+            montoDolares = restanteMoneda / tasaMonedaActual;
+        }
+        detalles = { montoRecibido: monto, cambio: monto - restanteMoneda };
+    }
+    
+    if (metodo === 'pago_movil') {
+        const ref = document.getElementById('refPagoMixto')?.value.trim();
+        const banco = document.getElementById('bancoPagoMixto')?.value.trim();
         if (!ref || !banco) { showToast('Complete referencia y banco', 'error'); return; }
-        detallesPago.referencia = ref; detallesPago.banco = banco;
+        detalles = { referencia: ref, banco: banco, monto: montoMoneda };
     }
+    
+    pagoMixtoActual.pagos.push({
+        metodo: metodo,
+        montoMoneda: redondear2Decimales(montoMoneda),
+        montoDolares: redondear2Decimales(montoDolares),
+        detalles: detalles
+    });
+    
+    pagoMixtoActual.totalPagadoMoneda += montoMoneda;
+    pagoMixtoActual.totalPagadoDolares += montoDolares;
+    
+    document.getElementById('detallePagoMixto').style.display = 'none';
+    actualizarModalPagoMixto();
+    showToast(`Pago agregado: ${montoMoneda.toFixed(2)} ${monedaSeleccionada}`, 'success');
+}
+
+function eliminarPagoMixto(index) {
+    const pago = pagoMixtoActual.pagos[index];
+    pagoMixtoActual.totalPagadoMoneda -= pago.montoMoneda;
+    pagoMixtoActual.totalPagadoDolares -= pago.montoDolares;
+    pagoMixtoActual.pagos.splice(index, 1);
+    actualizarModalPagoMixto();
+}
+
+function confirmarPagoMixto() {
+    if (pagoMixtoActual.totalPagadoMoneda < pagoMixtoActual.totalMoneda - 0.01) {
+        showToast('El monto pagado es insuficiente', 'error');
+        return;
+    }
+    
+    pagoMixtoActual.completado = true;
+    
     // Descontar inventario
-    if (metodoPagoSeleccionado !== 'credito') {
-        carrito.forEach(item => {
-            const producto = productos[item.indexProducto];
-            if (producto) {
-                const cantidadVendida = item.unidad === 'gramo' ? item.cantidad / 1000 : item.cantidad;
-                producto.unidadesExistentes = redondear2Decimales(producto.unidadesExistentes - cantidadVendida);
-                if (producto.unidadesExistentes < 0) producto.unidadesExistentes = 0;
-            }
-        });
-        safeSetItem(STORAGE_KEYS.PRODUCTOS, productos);
-    }
+    carrito.forEach(item => {
+        const producto = productos[item.indexProducto];
+        if (producto) {
+            const cantidadVendida = item.unidad === 'gramo' ? item.cantidad / 1000 : item.cantidad;
+            producto.unidadesExistentes = redondear2Decimales(producto.unidadesExistentes - cantidadVendida);
+            if (producto.unidadesExistentes < 0) producto.unidadesExistentes = 0;
+        }
+    });
+    safeSetItem(STORAGE_KEYS.PRODUCTOS, productos);
+    
     // Registrar venta
     const ahora = new Date();
+    const metodoStr = pagoMixtoActual.pagos.length === 1 ? pagoMixtoActual.pagos[0].metodo : 'mixto';
     const ventaRegistro = {
         fecha: ahora.toLocaleDateString(), hora: ahora.toLocaleTimeString(),
-        total: totalMoneda, totalDolares: totalDolares, metodoPago: metodoPagoSeleccionado,
+        total: pagoMixtoActual.totalMoneda, totalDolares: pagoMixtoActual.totalDolares,
+        metodoPago: metodoStr, metodoDetalles: pagoMixtoActual.pagos,
         monedaUsada: monedaSeleccionada, tasaCambio: tasaMonedaActual,
         items: carrito.map(item => ({ nombre: item.nombre, cantidad: item.cantidad, unidad: item.unidad, subtotal: item.subtotal, precioUnitarioMoneda: item.precioUnitarioMoneda }))
     };
     ventasDiarias.push(ventaRegistro);
     safeSetItem(STORAGE_KEYS.VENTAS, ventasDiarias);
-    showToast(`✅ Venta completada por ${totalMoneda.toFixed(2)} ${monedaSeleccionada}`, 'success');
-    detallesPago.totalMoneda = redondear2Decimales(totalMoneda);
-    detallesPago.totalDolares = redondear2Decimales(totalDolares);
-    detallesPago.items = JSON.parse(JSON.stringify(carrito));
-    detallesPago.fecha = ahora.toLocaleString();
-    detallesPago.moneda = monedaSeleccionada;
-    imprimirTicketTermico(detallesPago);
+    
+    showToast(`✅ Venta completada por ${pagoMixtoActual.totalMoneda.toFixed(2)} ${monedaSeleccionada}`, 'success');
+    
+    // Imprimir ticket
+    const ticketData = {
+        ...pagoMixtoActual,
+        fecha: ahora.toLocaleString(),
+        moneda: monedaSeleccionada,
+        items: JSON.parse(JSON.stringify(carrito)),
+        nombreNegocio: nombreEstablecimiento
+    };
+    imprimirTicketTermico(ticketData);
+    
+    // Limpiar carrito
     carrito = [];
     safeSetItem(STORAGE_KEYS.CARRITO, carrito);
     actualizarCarrito();
     actualizarListaProductos();
     actualizarEstadisticas();
-    cerrarModalPago();
+    cerrarModalPagoMixto();
 }
-// ===== TICKET TÉRMICO OPTIMIZADO =====
-function imprimirTicketTermico(detalles) {
+
+function cerrarModalPagoMixto() {
+    document.getElementById('modalPagoMixto').style.display = 'none';
+    pagoMixtoActual = {
+        totalMoneda: 0, totalDolares: 0, pagos: [], totalPagadoMoneda: 0, totalPagadoDolares: 0, vueltoMoneda: 0, completado: false
+    };
+}
+
+// ===== TICKET TÉRMICO OPTIMIZADO (POS) =====
+function imprimirTicketTermico(datos) {
+    const metodoStr = datos.pagos.length === 1 ? datos.pagos[0].metodo : 'Múltiples métodos';
+    let detallesPago = '';
+    if (datos.pagos.length > 1) {
+        const nombresMetodos = {
+            efectivo_bs: 'Efectivo Bs', efectivo_dolares: 'Efectivo $', punto: 'Punto',
+            pago_movil: 'Pago Móvil', biopago: 'Biopago', credito: 'Crédito'
+        };
+        detallesPago = '<div class="payment-details"><strong>Desglose de pagos:</strong><br>';
+        datos.pagos.forEach(p => {
+            detallesPago += `${nombresMetodos[p.metodo] || p.metodo}: ${p.montoMoneda.toFixed(2)} ${datos.moneda}<br>`;
+        });
+        detallesPago += '</div>';
+    }
+    
     const ticketHTML = `
         <div class="ticket-print-area" style="width: 80mm; margin: 0 auto; font-family: 'Courier New', monospace; font-size: 10pt; padding: 2mm;">
             <div class="ticket-header" style="text-align: center;">
-                <strong>${nombreEstablecimiento || 'MI NEGOCIO'}</strong><br>
-                ${new Date(detalles.fecha).toLocaleDateString()} ${new Date(detalles.fecha).toLocaleTimeString()}<br>
+                <strong>${datos.nombreNegocio || nombreEstablecimiento || 'MI NEGOCIO'}</strong><br>
+                ${datos.fecha}<br>
                 Venta #${Date.now().toString().slice(-8)}<br>
                 ---------------------------------
             </div>
@@ -675,20 +824,23 @@ function imprimirTicketTermico(detalles) {
                 <table style="width:100%; border-collapse:collapse;">
                     <thead><tr><th>Producto</th><th>Cant</th><th>P/U</th><th>Subtotal</th></tr></thead>
                     <tbody>
-                        ${detalles.items.map(item => `<tr><td>${item.nombre.substring(0,20)}</td><td style="text-align:center">${item.cantidad} ${item.unidad==='gramo'?'g':''}</td><td style="text-align:right">${item.precioUnitarioMoneda.toFixed(2)}</td><td style="text-align:right">${item.subtotal.toFixed(2)}</td></tr>`).join('')}
+                        ${datos.items.map(item => `<tr><td>${item.nombre.substring(0,20)}</td><td style="text-align:center">${item.cantidad} ${item.unidad==='gramo'?'g':''}</td><td style="text-align:right">${item.precioUnitarioMoneda.toFixed(2)}</td><td style="text-align:right">${item.subtotal.toFixed(2)}</td></tr>`).join('')}
                     </tbody>
                 </table>
             </div>
             <div style="text-align:right; margin-top:5px;">
                 ---------------------------------<br>
-                <strong>TOTAL: ${detalles.totalMoneda.toFixed(2)} ${detalles.moneda}</strong><br>
-                (USD: $${detalles.totalDolares.toFixed(2)})<br>
-                Método de pago: ${detalles.metodo}<br>
+                <strong>TOTAL: ${datos.totalMoneda.toFixed(2)} ${datos.moneda}</strong><br>
+                (USD: $${datos.totalDolares.toFixed(2)})<br>
+                Método: ${metodoStr}<br>
+                ${datos.vueltoMoneda > 0 ? `Vuelto: ${datos.vueltoMoneda.toFixed(2)} ${datos.moneda}<br>` : ''}
+                ${detallesPago}
                 ---------------------------------<br>
                 ¡Gracias por su compra!
             </div>
         </div>
     `;
+    
     const ventana = window.open('', '_blank');
     ventana.document.write(`
         <html><head><title>Ticket de Venta</title>
@@ -703,7 +855,8 @@ function imprimirTicketTermico(detalles) {
     `);
     ventana.document.close();
 }
-// ===== REPORTE DIARIO CON DEVOLUCIONES =====
+
+// ===== REPORTE DIARIO MEJORADO =====
 function mostrarReporteDiario() {
     const container = document.getElementById('reporteDiarioContainer');
     if (!container) return;
@@ -712,12 +865,10 @@ function mostrarReporteDiario() {
     if (ventasHoy.length === 0) { showToast('No hay ventas hoy', 'warning'); return; }
     let totalGeneral = 0;
     const totalesPorMetodo = {};
-    const productosResumen = {};
     ventasHoy.forEach(venta => {
         totalGeneral += venta.total || 0;
-        const metodo = venta.metodoPago || 'otro';
+        const metodo = venta.metodoPago === 'mixto' ? 'Mixto' : (venta.metodoPago || 'otro');
         totalesPorMetodo[metodo] = (totalesPorMetodo[metodo] || 0) + (venta.total || 0);
-        if (venta.items) venta.items.forEach(item => { const key = item.nombre; if (!productosResumen[key]) productosResumen[key] = { cantidad: 0, subtotal: 0 }; productosResumen[key].cantidad += item.cantidad || 0; productosResumen[key].subtotal += item.subtotal || 0; });
     });
     document.getElementById('reporteTotalGeneral').textContent = `${totalGeneral.toFixed(2)} ${monedaSeleccionada}`;
     document.getElementById('reporteCantidadVentas').textContent = ventasHoy.length;
@@ -725,18 +876,14 @@ function mostrarReporteDiario() {
     document.getElementById('sueldoMonto').textContent = `${sueldo.toFixed(2)} ${monedaSeleccionada}`;
     const metodosContainer = document.getElementById('reporteTotalesMetodos');
     metodosContainer.innerHTML = '';
-    const nombresMetodos = { efectivo_bs: 'Efectivo Bs', efectivo_dolares: 'Efectivo $', punto: 'Punto', pago_movil: 'Pago Móvil', biopago: 'Biopago', credito: 'Crédito' };
+    const nombresMetodos = { efectivo_bs: 'Efectivo Bs', efectivo_dolares: 'Efectivo $', punto: 'Punto', pago_movil: 'Pago Móvil', biopago: 'Biopago', credito: 'Crédito', mixto: 'Mixto' };
     Object.keys(totalesPorMetodo).forEach(metodo => { const div = document.createElement('div'); div.innerHTML = `<strong>${nombresMetodos[metodo] || metodo}:</strong><br> ${totalesPorMetodo[metodo].toFixed(2)} ${monedaSeleccionada}`; metodosContainer.appendChild(div); });
-    const productosContainer = document.getElementById('reporteProductosVendidos');
-    productosContainer.innerHTML = '';
-    const ul = document.createElement('ul'); ul.style.cssText = 'list-style:none; padding:0;';
-    Object.entries(productosResumen).sort().forEach(([nombre, datos]) => { const li = document.createElement('li'); li.style.cssText = 'padding:5px 0; border-bottom:1px solid #eee;'; li.innerHTML = `<span><strong>${nombre}</strong></span><span>Cant: ${datos.cantidad.toFixed(2)} | Total: ${datos.subtotal.toFixed(2)} ${monedaSeleccionada}</span>`; ul.appendChild(li); });
-    productosContainer.appendChild(ul);
     const tbody = document.getElementById('reporteDetalleBody');
     tbody.innerHTML = '';
     ventasHoy.sort((a,b)=>a.hora.localeCompare(b.hora)).forEach((venta, idx) => {
+        const metodoMostrar = venta.metodoPago === 'mixto' ? 'Mixto' : (nombresMetodos[venta.metodoPago] || venta.metodoPago);
         const fila = document.createElement('tr');
-        fila.innerHTML = `<td>#${idx+1}</td><td>${venta.hora}</td><td>${nombresMetodos[venta.metodoPago] || venta.metodoPago}</td><td>${(venta.total||0).toFixed(2)} ${venta.monedaUsada || monedaSeleccionada}</td><td><button onclick="devolverVenta(${idx})" class="btn-secondary" style="padding:5px 10px; font-size:0.8rem;"><i class="fas fa-undo-alt"></i> Devolver</button></td>`;
+        fila.innerHTML = `<td>#${idx+1}</td><td>${venta.hora}</td><td>${metodoMostrar}</td><td>${(venta.total||0).toFixed(2)} ${venta.monedaUsada || monedaSeleccionada}</td><td><button onclick="devolverVenta(${idx})" class="btn-secondary" style="padding:5px 10px; font-size:0.8rem;"><i class="fas fa-undo-alt"></i> Devolver</button></td>`;
         tbody.appendChild(fila);
     });
     container.style.display = 'block';
@@ -762,12 +909,12 @@ function devolverVenta(indiceVenta) {
     const indiceReal = ventasDiarias.findIndex(v => v.fecha === hoy && v.hora === venta.hora && v.total === venta.total);
     if (indiceReal !== -1) ventasDiarias.splice(indiceReal, 1);
     safeSetItem(STORAGE_KEYS.VENTAS, ventasDiarias);
-    showToast('Producto(s) devuelto(s) correctamente', 'success');
+    showToast('Venta devuelta correctamente', 'success');
     actualizarTodo();
     mostrarReporteDiario(); // refrescar
 }
 function cerrarReporteDiario() { document.getElementById('reporteDiarioContainer').style.display = 'none'; }
-function generarPDFReporteDiario() { /* similar al original, se mantiene */ showToast('Función PDF disponible', 'info'); }
+function generarPDFReporteDiario() { showToast('Función PDF disponible', 'info'); }
 function limpiarVentasDiarias() {
     if (!confirm('¿Limpiar todas las ventas del día?')) return;
     const hoy = new Date().toLocaleDateString();
@@ -800,7 +947,7 @@ function llenarContenedorCategorias(containerId, tipo) {
 }
 function generarEtiquetasPorCategoria(categoria) { showToast('Generando etiquetas...', 'info'); cerrarModalEtiquetas(); }
 function descargarBackup() {
-    const backup = { productos, nombreEstablecimiento, tasaBCV: tasaBCVGuardada, monedaSeleccionada, tasaMonedaActual, ventasDiarias, carrito, claveSeguridad, claveEdicion, monedaEtiquetas, creditos, categoriasPersonalizadas, nextCreditoId, fecha: new Date().toISOString(), version:'2.3' };
+    const backup = { productos, nombreEstablecimiento, tasaBCV: tasaBCVGuardada, monedaSeleccionada, tasaMonedaActual, ventasDiarias, carrito, claveSeguridad, claveEdicion, monedaEtiquetas, creditos, categoriasPersonalizadas, nextCreditoId, fecha: new Date().toISOString(), version:'3.0' };
     const blob = new Blob([JSON.stringify(backup,null,2)], {type:'application/json'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href=url; a.download=`respaldo_${new Date().toISOString().slice(0,10)}.json`; a.click();
@@ -841,7 +988,7 @@ function cargarBackup(files) {
 }
 function toggleCopyrightNotice() { document.getElementById('copyrightNotice').classList.toggle('show'); }
 
-// ===== CRÉDITOS CORREGIDOS (con ID único) =====
+// ===== CRÉDITOS =====
 function inicializarCreditos() {
     creditos = creditos.map(c => ({ ...c, productos: c.productos || [], estado: calcularEstadoCredito(c) }));
     actualizarVistaCreditos();
@@ -1199,10 +1346,11 @@ window.cambiarCantidadDirecta = cambiarCantidadDirecta;
 window.cambiarUnidadCarrito = cambiarUnidadCarrito;
 window.eliminarDelCarrito = eliminarDelCarrito;
 window.finalizarVenta = finalizarVenta;
-window.cerrarModalPago = cerrarModalPago;
-window.seleccionarMetodoPago = seleccionarMetodoPago;
-window.confirmarMetodoPago = confirmarMetodoPago;
-window.cancelarPago = cancelarPago;
+window.agregarPagoMixto = agregarPagoMixto;
+window.procesarPagoMixto = procesarPagoMixto;
+window.eliminarPagoMixto = eliminarPagoMixto;
+window.confirmarPagoMixto = confirmarPagoMixto;
+window.cerrarModalPagoMixto = cerrarModalPagoMixto;
 window.guardarNombreEstablecimiento = guardarNombreEstablecimiento;
 window.actualizarTasaCambio = actualizarTasaCambio;
 window.mostrarListaCostos = mostrarListaCostos;
