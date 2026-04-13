@@ -6,18 +6,17 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
     <meta http-equiv="Pragma" content="no-cache"/>
     <meta http-equiv="Expires" content="0"/>
-    <title>Calculadora Mágica · Profesional</title>
+    <title>Calculadora Mágica · POS Profesional</title>
 
     <!-- Librerías JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qz-tray/2.1.0/qz-tray.js"></script>
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
-    <link rel="stylesheet" href="styles.css?v=2.3" />
+    <link rel="stylesheet" href="styles.css?v=3.0" />
 </head>
 <body>
 
@@ -63,7 +62,7 @@
             </li>
         </ul>
         <div class="sidebar-footer">
-            <span>© <span id="currentYear"></span> - v2.3</span>
+            <span>© <span id="currentYear"></span> - v3.0</span>
             <div class="copyright-icon" onclick="toggleCopyrightNotice()">©</div>
         </div>
     </nav>
@@ -224,7 +223,6 @@
                     </div>
                     <div id="sueldoContainer" style="margin-top: 15px; padding: 10px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 4px;"><i class="fas fa-chart-line"></i> <strong>Sueldo estimado:</strong><span id="sueldoMonto">0.00 Bs</span><br><small id="sueldoMensaje">Ánimo, sigue así. Los sacrificios son la clave del éxito, constancia y organización.</small></div>
                     <div style="margin-top: 15px;"><strong>Totales por Método de Pago:</strong><div id="reporteTotalesMetodos" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px;"></div></div>
-                    <div style="margin-top: 15px;"><strong>Productos Vendidos:</strong><div id="reporteProductosVendidos" style="max-height: 200px; overflow-y: auto; background: white; padding: 10px; border-radius: 5px; margin-top: 10px;"></div></div>
                 </div>
                 <h3>Detalle de Ventas</h3>
                 <div class="table-responsive">
@@ -316,7 +314,34 @@
     </main>
 
     <!-- MODALES -->
-    <div id="modalPago" class="modal" style="display: none;"><div class="modal-content" style="max-width: 500px;"><span class="close" onclick="cerrarModalPago()">&times;</span><h3><i class="fas fa-credit-card"></i> Seleccionar Método de Pago</h3><div class="resumen-venta" style="background: #e8f5e9; padding: 15px; border-radius: 5px; margin: 15px 0;"><p id="resumenTotalMoneda" style="font-size: 1.2rem; margin: 5px 0;"><strong>Total Moneda:</strong> 0,00</p><p id="resumenTotalDolares" style="font-size: 1.2rem; margin: 5px 0;"><strong>Total USD:</strong> 0,00</p></div><div class="metodos-pago" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;"><button onclick="seleccionarMetodoPago('efectivo_bs')" style="background: #4CAF50;">Efectivo Bs</button><button onclick="seleccionarMetodoPago('efectivo_dolares')" style="background: #2196F3;">Efectivo $</button><button onclick="seleccionarMetodoPago('punto')" style="background: #9C27B0;">Punto</button><button onclick="seleccionarMetodoPago('pago_movil')" style="background: #FF9800;">Pago Móvil</button><button onclick="seleccionarMetodoPago('biopago')" style="background: #607D8B;">Biopago</button><button onclick="seleccionarMetodoPago('credito')" style="background: #9C27B0;">Crédito</button></div><div id="detallesPago" style="display: none; margin-top: 20px;"><h4>Detalles del Pago</h4><div id="camposPago"></div><div id="mensajePago" class="mensaje-pago" style="display: none; padding: 10px; border-radius: 5px; margin: 10px 0;"></div><div class="modal-buttons" style="display: flex; gap: 10px; margin-top: 15px;"><button onclick="confirmarMetodoPago()" style="flex: 1; background: #4CAF50;">Confirmar Pago</button><button onclick="cancelarPago()" style="flex: 1; background: #f44336;">Cancelar</button></div></div></div></div>
+    <!-- Modal Pago Mixto (Nuevo Sistema) -->
+    <div id="modalPagoMixto" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close" onclick="cerrarModalPagoMixto()">&times;</span>
+            <h3><i class="fas fa-hand-holding-usd"></i> Pago Mixto</h3>
+            <div class="resumen-venta" style="background: #e8f5e9; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                <p><strong>Total a Pagar:</strong> <span id="resumenTotalPagoMoneda">0.00</span> <span id="resumenMonedaSimbolo">Bs</span> (<span id="resumenTotalPagoDolares">0.00</span> USD)</p>
+                <p><strong>Total Pagado:</strong> <span id="totalPagadoMixto">0.00</span> <span id="totalPagadoMonedaSimbolo">Bs</span></p>
+                <p><strong>Restante:</strong> <span id="restanteMixto">0.00</span> <span id="restanteMonedaSimbolo">Bs</span></p>
+                <p><strong>Vuelto:</strong> <span id="vueltoMixto">0.00</span> <span id="vueltoMonedaSimbolo">Bs</span></p>
+            </div>
+            <div id="listaPagosMixtos" style="max-height: 200px; overflow-y: auto; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 5px; padding: 10px;"></div>
+            <div class="metodos-pago" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px;">
+                <button onclick="agregarPagoMixto('efectivo_bs')" style="background: #4CAF50;">Efectivo Bs</button>
+                <button onclick="agregarPagoMixto('efectivo_dolares')" style="background: #2196F3;">Efectivo $</button>
+                <button onclick="agregarPagoMixto('punto')" style="background: #9C27B0;">Punto</button>
+                <button onclick="agregarPagoMixto('pago_movil')" style="background: #FF9800;">Pago Móvil</button>
+                <button onclick="agregarPagoMixto('biopago')" style="background: #607D8B;">Biopago</button>
+                <button onclick="agregarPagoMixto('credito')" style="background: #795548;">Crédito</button>
+            </div>
+            <div id="detallePagoMixto" style="display: none; margin-top: 15px; padding: 15px; background: #f5f5f5; border-radius: 5px;"></div>
+            <div class="modal-buttons" style="display: flex; gap: 10px; margin-top: 15px;">
+                <button onclick="confirmarPagoMixto()" style="flex: 1; background: #4CAF50;" id="btnConfirmarPagoMixto">Confirmar Pago</button>
+                <button onclick="cerrarModalPagoMixto()" style="flex: 1; background: #f44336;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <div id="modalCategorias" class="modal" style="display: none;"><div class="modal-content" style="max-width: 600px;"><span class="close" onclick="cerrarModalCategorias()">&times;</span><h3><i class="fas fa-file-pdf"></i> Generar PDF por Categoría</h3><div id="categoriasPDFContainer" class="categorias-lista" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-height: 400px; overflow-y: auto; padding: 10px;"></div></div></div>
     <div id="modalEtiquetas" class="modal" style="display: none;"><div class="modal-content" style="max-width: 600px;"><span class="close" onclick="cerrarModalEtiquetas()">&times;</span><h3><i class="fas fa-tags"></i> Generar Etiquetas para Anaqueles</h3><div class="selector-moneda" style="margin: 15px 0; padding: 15px; background: #f5f5f5; border-radius: 5px;"><label style="font-weight: bold; margin-right: 10px;">Moneda para precios:</label><select id="monedaEtiquetas" onchange="actualizarMonedaEtiquetas()" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;"><option value="VES">Bolívares (Bs)</option><option value="USD">Dólares ($)</option></select></div><div id="categoriasEtiquetasContainer" class="categorias-lista" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-height: 400px; overflow-y: auto; padding: 10px;"></div></div></div>
     <div id="modalGestionCategorias" class="modal" style="display: none;"><div class="modal-content" style="max-width: 500px;"><span class="close" onclick="cerrarGestionCategorias()">&times;</span><h3><i class="fas fa-tags"></i> Gestionar Categorías</h3><div style="margin: 15px 0; display: flex; gap: 10px;"><input type="text" id="nuevaCategoria" placeholder="Nueva categoría" style="flex: 1;"><button onclick="agregarCategoria()">Agregar</button></div><div id="listaCategorias" style="max-height: 300px; overflow-y: auto;"></div><div style="margin-top: 20px;"><button onclick="cerrarGestionCategorias()" class="btn-secondary">Cerrar</button></div></div></div>
@@ -324,6 +349,6 @@
     <div id="modalProductosCredito" class="modal" style="display: none;"><div class="modal-content" style="max-width: 400px;"><span class="close" onclick="cerrarModalProductosCredito()">&times;</span><h3><i class="fas fa-shopping-basket"></i> Productos del Crédito</h3><div id="contenidoProductosCredito" style="max-height: 300px; overflow-y: auto; margin: 15px 0;"></div></div></div>
     <div id="toastContainer" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;"></div>
 
-    <script src="script.js?v=2.3"></script>
+    <script src="script.js?v=3.0"></script>
 </body>
 </html>
