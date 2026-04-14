@@ -1,6 +1,6 @@
 // ============================================
-// CALCULADORA MÁGICA - VERSIÓN PROFESIONAL COMPLETA v3.0
-// MEJORAS: Pagos Mixtos, Ticket Térmico POS, Reportes Mejorados
+// CALCULADORA MÁGICA - VERSIÓN PROFESIONAL COMPLETA v3.1
+// MEJORAS: Pagos Mixtos, Ticket Térmico POS, Reportes Mejorados, PDFs Funcionales
 // ============================================
 
 // ===== PROTECCIÓN AVANZADA =====
@@ -43,9 +43,9 @@
 // ----- VARIABLES GLOBALES -----
 let productos = [];
 let nombreEstablecimiento = '';
-let tasaBCVGuardada = 0;      // Tasa para convertir USD a moneda local (por defecto VES)
-let monedaSeleccionada = 'VES'; // Moneda activa: VES, EUR, CLP, COP, PEN
-let tasaMonedaActual = 0;       // Tasa de cambio para la moneda seleccionada (1 USD = ?)
+let tasaBCVGuardada = 0;
+let monedaSeleccionada = 'VES';
+let tasaMonedaActual = 0;
 let ventasDiarias = [];
 let carrito = [];
 let claveSeguridad = '1234';
@@ -58,7 +58,7 @@ let productosFiltrados = [];
 let pagoMixtoActual = {
     totalMoneda: 0,
     totalDolares: 0,
-    pagos: [],      // { metodo, montoMoneda, montoDolares, detalles }
+    pagos: [],
     totalPagadoMoneda: 0,
     totalPagadoDolares: 0,
     vueltoMoneda: 0,
@@ -163,7 +163,6 @@ function cargarDatosStorage() {
         creditos = JSON.parse(localStorage.getItem(STORAGE_KEYS.CREDITOS)) || [];
         nextCreditoId = parseInt(localStorage.getItem(STORAGE_KEYS.NEXT_CREDITO_ID)) || 1;
         
-        // Asegurar que cada crédito tenga id
         let maxId = nextCreditoId;
         creditos = creditos.map(c => { if (!c.id) { c.id = maxId++; } return c; });
         if (maxId > nextCreditoId) { nextCreditoId = maxId; guardarCreditosStorage(); }
@@ -178,7 +177,6 @@ function cargarDatosStorage() {
         carrito = carrito.filter(item => item && item.nombre);
         actualizarSelectCategorias();
         
-        // Mostrar info de tasa en UI
         const infoTasa = document.getElementById('infoTasa');
         if (infoTasa) {
             infoTasa.innerHTML = `Moneda activa: ${obtenerNombreMoneda(monedaSeleccionada)} (1 USD = ${tasaMonedaActual.toFixed(2)} ${monedaSeleccionada})`;
@@ -235,14 +233,12 @@ function actualizarTasaCambio() {
     localStorage.setItem(STORAGE_KEYS.MONEDA_SELECCIONADA, monedaSeleccionada);
     localStorage.setItem(STORAGE_KEYS.TASA_MONEDA, tasaMonedaActual);
     
-    // Recalcular precios en moneda para todos los productos
     productos.forEach(p => {
         p.precioUnitarioMoneda = redondear2Decimales(p.precioUnitarioDolar * tasaMonedaActual);
         p.precioMayorMoneda = redondear2Decimales(p.precioMayorDolar * tasaMonedaActual);
     });
     safeSetItem(STORAGE_KEYS.PRODUCTOS, productos);
     
-    // Recalcular carrito
     carrito.forEach(item => {
         item.precioUnitarioMoneda = redondear2Decimales(item.precioUnitarioDolar * tasaMonedaActual);
         recalcularSubtotal(item);
@@ -423,7 +419,7 @@ function actualizarListaProductos() {
         fila.setAttribute('ondblclick', `editarProducto(${idx})`);
         fila.style.cursor = 'pointer';
         const stockBajo = p.unidadesExistentes < 4 ? 'inventario-bajo' : '';
-        fila.innerHTML = `<td>${p.nombre}</td><td>${p.descripcion}</td><td class="${stockBajo}"><strong>${p.unidadesExistentes}</strong></td><td>$${p.precioUnitarioDolar.toFixed(2)}</td><td>${p.precioUnitarioMoneda.toFixed(2)} ${monedaSeleccionada}</td><td><div class="ajuste-inventario"><button onclick="editarProductoConBoton(${idx})" class="btn-secondary"><i class="fas fa-edit"></i></button><button onclick="eliminarProducto(${idx})" class="btn-danger"><i class="fas fa-trash"></i></button></div></td>`;
+        fila.innerHTML = `<tr>${p.nombre}</td><td>${p.descripcion}</td><td class="${stockBajo}"><strong>${p.unidadesExistentes}</strong></td><td>$${p.precioUnitarioDolar.toFixed(2)}</td><td>${p.precioUnitarioMoneda.toFixed(2)} ${monedaSeleccionada}</td><td><div class="ajuste-inventario"><button onclick="editarProductoConBoton(${idx})" class="btn-secondary"><i class="fas fa-edit"></i></button><button onclick="eliminarProducto(${idx})" class="btn-danger"><i class="fas fa-trash"></i></button></div></td>`;
         tbody.appendChild(fila);
     });
 }
@@ -567,7 +563,6 @@ function finalizarVenta() {
     const totalMoneda = carrito.reduce((s,i)=>s+i.subtotal,0);
     const totalDolares = carrito.reduce((s,i)=>s+i.subtotalDolar,0);
     
-    // Inicializar pago mixto
     pagoMixtoActual = {
         totalMoneda: totalMoneda,
         totalDolares: totalDolares,
@@ -605,7 +600,6 @@ function actualizarModalPagoMixto() {
         document.getElementById('btnConfirmarPagoMixto').style.opacity = '0.5';
     }
     
-    // Actualizar lista de pagos
     const listaDiv = document.getElementById('listaPagosMixtos');
     listaDiv.innerHTML = '';
     const nombresMetodos = {
@@ -635,7 +629,6 @@ function agregarPagoMixto(metodo) {
     }
     
     if (metodo === 'credito') {
-        // Redirigir a créditos
         cerrarModalPagoMixto();
         showSection('creditos');
         document.getElementById('montoCredito').value = pagoMixtoActual.totalMoneda.toFixed(2);
@@ -645,7 +638,6 @@ function agregarPagoMixto(metodo) {
         return;
     }
     
-    // Mostrar formulario para el método
     const detalleDiv = document.getElementById('detallePagoMixto');
     detalleDiv.style.display = 'block';
     const simbolo = metodo === 'efectivo_dolares' ? 'USD' : monedaSeleccionada;
@@ -744,7 +736,6 @@ function confirmarPagoMixto() {
     
     pagoMixtoActual.completado = true;
     
-    // Descontar inventario
     carrito.forEach(item => {
         const producto = productos[item.indexProducto];
         if (producto) {
@@ -755,7 +746,6 @@ function confirmarPagoMixto() {
     });
     safeSetItem(STORAGE_KEYS.PRODUCTOS, productos);
     
-    // Registrar venta
     const ahora = new Date();
     const metodoStr = pagoMixtoActual.pagos.length === 1 ? pagoMixtoActual.pagos[0].metodo : 'mixto';
     const ventaRegistro = {
@@ -770,7 +760,6 @@ function confirmarPagoMixto() {
     
     showToast(`✅ Venta completada por ${pagoMixtoActual.totalMoneda.toFixed(2)} ${monedaSeleccionada}`, 'success');
     
-    // Imprimir ticket
     const ticketData = {
         ...pagoMixtoActual,
         fecha: ahora.toLocaleString(),
@@ -780,7 +769,6 @@ function confirmarPagoMixto() {
     };
     imprimirTicketTermico(ticketData);
     
-    // Limpiar carrito
     carrito = [];
     safeSetItem(STORAGE_KEYS.CARRITO, carrito);
     actualizarCarrito();
@@ -894,7 +882,6 @@ function devolverVenta(indiceVenta) {
     const ventasHoy = ventasDiarias.filter(v => v.fecha === hoy);
     const venta = ventasHoy[indiceVenta];
     if (!venta) { showToast('Venta no encontrada', 'error'); return; }
-    // Reintegrar productos al inventario
     if (venta.items) {
         venta.items.forEach(item => {
             const producto = productos.find(p => p.nombre === item.nombre);
@@ -905,16 +892,54 @@ function devolverVenta(indiceVenta) {
         });
         safeSetItem(STORAGE_KEYS.PRODUCTOS, productos);
     }
-    // Eliminar la venta del reporte diario
     const indiceReal = ventasDiarias.findIndex(v => v.fecha === hoy && v.hora === venta.hora && v.total === venta.total);
     if (indiceReal !== -1) ventasDiarias.splice(indiceReal, 1);
     safeSetItem(STORAGE_KEYS.VENTAS, ventasDiarias);
     showToast('Venta devuelta correctamente', 'success');
     actualizarTodo();
-    mostrarReporteDiario(); // refrescar
+    mostrarReporteDiario();
 }
 function cerrarReporteDiario() { document.getElementById('reporteDiarioContainer').style.display = 'none'; }
-function generarPDFReporteDiario() { showToast('Función PDF disponible', 'info'); }
+function generarPDFReporteDiario() {
+    const hoy = new Date().toLocaleDateString();
+    const ventasHoy = ventasDiarias.filter(v => v.fecha === hoy);
+    if (ventasHoy.length === 0) { showToast('No hay ventas para generar PDF', 'warning'); return; }
+    
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    
+    doc.setFontSize(18);
+    doc.setTextColor(0, 172, 193);
+    doc.text(`REPORTE DIARIO - ${nombreEstablecimiento}`, 14, 20);
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Fecha: ${hoy}`, 14, 30);
+    doc.text(`Moneda: ${monedaSeleccionada} (1 USD = ${tasaMonedaActual.toFixed(2)})`, 14, 36);
+    
+    let totalGeneral = ventasHoy.reduce((sum, v) => sum + (v.total || 0), 0);
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Total General: ${totalGeneral.toFixed(2)} ${monedaSeleccionada}`, 14, 45);
+    doc.text(`Cantidad de Ventas: ${ventasHoy.length}`, 14, 52);
+    
+    const tableData = ventasHoy.map((v, idx) => [idx + 1, v.hora, v.metodoPago === 'mixto' ? 'Mixto' : v.metodoPago, `${(v.total || 0).toFixed(2)} ${v.monedaUsada || monedaSeleccionada}`]);
+    doc.autoTable({
+        startY: 60,
+        head: [['#', 'Hora', 'Método', 'Total']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [0, 172, 193], textColor: [255, 255, 255] },
+        margin: { left: 14, right: 14 }
+    });
+    
+    const finalY = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(10);
+    doc.text(`Sueldo estimado (20%): ${(totalGeneral * 0.2).toFixed(2)} ${monedaSeleccionada}`, 14, finalY);
+    doc.text(`Generado por Calculadora Mágica POS v3.1`, 14, finalY + 10);
+    
+    doc.save(`reporte_diario_${hoy.replace(/\//g, '-')}.pdf`);
+    showToast('PDF generado correctamente', 'success');
+}
 function limpiarVentasDiarias() {
     if (!confirm('¿Limpiar todas las ventas del día?')) return;
     const hoy = new Date().toLocaleDateString();
@@ -934,7 +959,54 @@ function mostrarListaCostos() {
 }
 function mostrarOpcionesPDF() { const modal = document.getElementById('modalCategorias'); if(modal){ llenarContenedorCategorias('categoriasPDFContainer','pdf'); modal.style.display='block'; } }
 function cerrarModalCategorias() { document.getElementById('modalCategorias').style.display='none'; }
-function generarPDFPorCategoria(categoria) { showToast('Función PDF disponible', 'info'); cerrarModalCategorias(); }
+function generarPDFPorCategoria(categoria) {
+    let productosFiltradosCat = [];
+    if (categoria === 'todos') {
+        productosFiltradosCat = productos;
+    } else {
+        productosFiltradosCat = productos.filter(p => p.descripcion === categoria);
+    }
+    if (productosFiltradosCat.length === 0) { showToast(`No hay productos en la categoría ${categoria}`, 'warning'); cerrarModalCategorias(); return; }
+    
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    
+    doc.setFontSize(16);
+    doc.setTextColor(0, 172, 193);
+    doc.text(`LISTA DE PRODUCTOS POR CATEGORÍA`, 14, 20);
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Establecimiento: ${nombreEstablecimiento}`, 14, 30);
+    doc.text(`Categoría: ${categoria === 'todos' ? 'TODOS LOS PRODUCTOS' : categoria.toUpperCase()}`, 14, 38);
+    doc.text(`Fecha: ${new Date().toLocaleString()}`, 14, 46);
+    doc.text(`Moneda: ${monedaSeleccionada} (1 USD = ${tasaMonedaActual.toFixed(2)})`, 14, 54);
+    
+    const tableData = productosFiltradosCat.map(p => [
+        p.nombre,
+        p.descripcion,
+        p.unidadesExistentes.toFixed(2),
+        `$${p.precioUnitarioDolar.toFixed(2)}`,
+        `${p.precioUnitarioMoneda.toFixed(2)} ${monedaSeleccionada}`
+    ]);
+    
+    doc.autoTable({
+        startY: 62,
+        head: [['Producto', 'Categoría', 'Stock', 'Precio USD', `Precio ${monedaSeleccionada}`]],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [0, 172, 193], textColor: [255, 255, 255] },
+        margin: { left: 14, right: 14 }
+    });
+    
+    const finalY = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(10);
+    doc.text(`Total de productos: ${productosFiltradosCat.length}`, 14, finalY);
+    doc.text(`Generado por Calculadora Mágica POS v3.1`, 14, finalY + 8);
+    
+    doc.save(`productos_${categoria}_${new Date().toISOString().slice(0,10)}.pdf`);
+    showToast('PDF generado correctamente', 'success');
+    cerrarModalCategorias();
+}
 function generarEtiquetasAnaqueles() { const modal = document.getElementById('modalEtiquetas'); if(modal){ llenarContenedorCategorias('categoriasEtiquetasContainer','etiqueta'); modal.style.display='block'; document.getElementById('monedaEtiquetas').value=monedaEtiquetas; } }
 function cerrarModalEtiquetas() { document.getElementById('modalEtiquetas').style.display='none'; }
 function actualizarMonedaEtiquetas() { const selector = document.getElementById('monedaEtiquetas'); if(selector){ monedaEtiquetas=selector.value; localStorage.setItem(STORAGE_KEYS.MONEDA_ETIQUETAS,monedaEtiquetas); } }
@@ -945,9 +1017,71 @@ function llenarContenedorCategorias(containerId, tipo) {
     const btnTodos = document.createElement('button'); btnTodos.textContent='TODOS LOS PRODUCTOS'; btnTodos.style.gridColumn='span 3'; btnTodos.style.background=tipo==='pdf'?'#4CAF50':'#FF9800'; btnTodos.onclick=()=>{ if(tipo==='pdf') generarPDFPorCategoria('todos'); else generarEtiquetasPorCategoria('todos'); }; container.appendChild(btnTodos);
     categoriasPersonalizadas.forEach(cat => { const btn = document.createElement('button'); btn.textContent=cat.charAt(0).toUpperCase()+cat.slice(1).replace(/_/g,' '); btn.onclick=()=>{ if(tipo==='pdf') generarPDFPorCategoria(cat); else generarEtiquetasPorCategoria(cat); }; container.appendChild(btn); });
 }
-function generarEtiquetasPorCategoria(categoria) { showToast('Generando etiquetas...', 'info'); cerrarModalEtiquetas(); }
+function generarEtiquetasPorCategoria(categoria) {
+    let productosFiltradosCat = [];
+    if (categoria === 'todos') {
+        productosFiltradosCat = productos;
+    } else {
+        productosFiltradosCat = productos.filter(p => p.descripcion === categoria);
+    }
+    if (productosFiltradosCat.length === 0) { showToast(`No hay productos en la categoría seleccionada`, 'warning'); cerrarModalEtiquetas(); return; }
+    
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    let y = 20;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 10;
+    const labelWidth = (pageWidth - margin * 2) / 3;
+    const labelHeight = 35;
+    let col = 0;
+    
+    doc.setFontSize(14);
+    doc.setTextColor(0, 172, 193);
+    doc.text(`ETIQUETAS PARA ANAQUELES - ${categoria === 'todos' ? 'TODOS' : categoria.toUpperCase()}`, margin, y);
+    y += 10;
+    doc.setFontSize(10);
+    doc.text(`Establecimiento: ${nombreEstablecimiento}`, margin, y);
+    y += 6;
+    doc.text(`Fecha: ${new Date().toLocaleString()}`, margin, y);
+    y += 10;
+    
+    productosFiltradosCat.forEach((producto, idx) => {
+        const x = margin + (col * labelWidth);
+        const precioMostrar = monedaEtiquetas === 'USD' ? `$${producto.precioUnitarioDolar.toFixed(2)}` : `${producto.precioUnitarioMoneda.toFixed(2)} ${monedaSeleccionada}`;
+        
+        doc.setDrawColor(200, 200, 200);
+        doc.rect(x, y, labelWidth - 2, labelHeight, 'S');
+        doc.setFontSize(8);
+        doc.setTextColor(0, 0, 0);
+        doc.text(producto.nombre.substring(0, 25), x + 2, y + 6);
+        doc.setFontSize(7);
+        doc.text(`Cat: ${producto.descripcion}`, x + 2, y + 12);
+        doc.text(`Stock: ${producto.unidadesExistentes}`, x + 2, y + 18);
+        doc.setFontSize(9);
+        doc.setTextColor(0, 100, 0);
+        doc.text(precioMostrar, x + 2, y + 26);
+        doc.setFontSize(6);
+        doc.setTextColor(100, 100, 100);
+        doc.text(producto.codigoBarras || 'S/C', x + 2, y + 32);
+        
+        col++;
+        if (col >= 3) {
+            col = 0;
+            y += labelHeight + 5;
+            if (y + labelHeight > doc.internal.pageSize.getHeight() - 20) {
+                doc.addPage();
+                y = 20;
+                col = 0;
+            }
+        }
+    });
+    
+    doc.save(`etiquetas_${categoria}_${new Date().toISOString().slice(0,10)}.pdf`);
+    showToast('Etiquetas generadas correctamente', 'success');
+    cerrarModalEtiquetas();
+}
 function descargarBackup() {
-    const backup = { productos, nombreEstablecimiento, tasaBCV: tasaBCVGuardada, monedaSeleccionada, tasaMonedaActual, ventasDiarias, carrito, claveSeguridad, claveEdicion, monedaEtiquetas, creditos, categoriasPersonalizadas, nextCreditoId, fecha: new Date().toISOString(), version:'3.0' };
+    const backup = { productos, nombreEstablecimiento, tasaBCV: tasaBCVGuardada, monedaSeleccionada, tasaMonedaActual, ventasDiarias, carrito, claveSeguridad, claveEdicion, monedaEtiquetas, creditos, categoriasPersonalizadas, nextCreditoId, fecha: new Date().toISOString(), version:'3.1' };
     const blob = new Blob([JSON.stringify(backup,null,2)], {type:'application/json'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href=url; a.download=`respaldo_${new Date().toISOString().slice(0,10)}.json`; a.click();
