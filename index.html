@@ -16,7 +16,7 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
-    <link rel="stylesheet" href="styles.css?v=3.0" />
+    <link rel="stylesheet" href="styles.css?v=3.1" />
 </head>
 <body>
 
@@ -62,7 +62,7 @@
             </li>
         </ul>
         <div class="sidebar-footer">
-            <span>© <span id="currentYear"></span> - v3.0</span>
+            <span>© <span id="currentYear"></span> - v3.1</span>
             <div class="copyright-icon" onclick="toggleCopyrightNotice()">©</div>
         </div>
     </nav>
@@ -146,9 +146,7 @@
                 </div>
                 <div class="table-responsive">
                     <table class="carrito-table">
-                        <thead>
-                            <tr><th>Producto</th><th>P/U (Moneda)</th><th>Cantidad</th><th>Unidad</th><th>Subtotal (Moneda)</th><th>Acc.</th></tr>
-                        </thead>
+                        <thead><tr><th>Producto</th><th>P/U (Moneda)</th><th>Cantidad</th><th>Unidad</th><th>Subtotal (Moneda)</th><th>Acc.</th></tr></thead>
                         <tbody id="carritoBody"></tbody>
                     </table>
                 </div>
@@ -240,7 +238,7 @@
             </div>
         </section>
 
-        <!-- CRÉDITOS CORREGIDO -->
+        <!-- CRÉDITOS -->
         <section id="creditos-section" class="content-section">
             <h1><i class="fas fa-credit-card"></i> Gestión de Créditos</h1>
             <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
@@ -314,7 +312,6 @@
     </main>
 
     <!-- MODALES -->
-    <!-- Modal Pago Mixto (Nuevo Sistema) -->
     <div id="modalPagoMixto" class="modal" style="display: none;">
         <div class="modal-content" style="max-width: 600px;">
             <span class="close" onclick="cerrarModalPagoMixto()">&times;</span>
@@ -349,6 +346,6 @@
     <div id="modalProductosCredito" class="modal" style="display: none;"><div class="modal-content" style="max-width: 400px;"><span class="close" onclick="cerrarModalProductosCredito()">&times;</span><h3><i class="fas fa-shopping-basket"></i> Productos del Crédito</h3><div id="contenidoProductosCredito" style="max-height: 300px; overflow-y: auto; margin: 15px 0;"></div></div></div>
     <div id="toastContainer" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;"></div>
 
-    <script src="script.js?v=3.0"></script>
+    <script src="script.js?v=3.1"></script>
 </body>
 </html>
