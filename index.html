@@ -8,19 +8,16 @@
     <meta http-equiv="Expires" content="0"/>
     <title>Calculadora Mágica · POS Profesional</title>
 
-    <!-- Librerías JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
     <link rel="stylesheet" href="styles.css?v=3.1" />
 </head>
 <body>
 
-    <!-- ===== MENÚ LATERAL ===== -->
     <nav class="sidebar" id="mainSidebar">
         <div class="sidebar-header">
             <div class="logo">
@@ -67,8 +64,14 @@
         </div>
     </nav>
 
-    <!-- ===== CONTENIDO PRINCIPAL ===== -->
     <main class="main-content" id="mainContent">
+
+        <div style="background-color: #fff3e0; border-left: 5px solid #ff9800; padding: 15px; margin-bottom: 20px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 12px;">
+            <i class="fas fa-info-circle" style="color: #ff9800; font-size: 1.5rem;"></i>
+            <div style="color: #4e342e; font-size: 0.95rem; line-height: 1.4;">
+                <strong>Optimización del sistema:</strong> Estamos realizando mejoras internas en la plataforma para ofrecerte una mayor estabilidad. Te recomendamos utilizar periódicamente la función de <strong>"Descargar Respaldo"</strong> desde el menú lateral para mantener toda tu información local resguardada de forma segura.
+            </div>
+        </div>
 
         <div class="copyright-notice" id="copyrightNotice">
             <button class="close-btn" onclick="toggleCopyrightNotice()">×</button>
@@ -76,7 +79,6 @@
             <strong>No revendas tu código de acceso</strong> o será bloqueado y perderás tu dinero.
         </div>
 
-        <!-- DASHBOARD -->
         <section id="dashboard-section" class="content-section active">
             <h1><i class="fas fa-chart-line"></i> Dashboard</h1>
             <div class="stats-grid">
@@ -121,7 +123,6 @@
             </div>
         </section>
 
-        <!-- PUNTO DE VENTA -->
         <section id="punto-venta-section" class="content-section">
             <h1><i class="fas fa-shopping-cart"></i> Punto de Venta</h1>
             <div class="card scanner-card">
@@ -156,7 +157,6 @@
             </div>
         </section>
 
-        <!-- GESTIÓN PRODUCTOS -->
         <section id="productos-section" class="content-section">
             <h1><i class="fas fa-boxes"></i> Gestión de Productos</h1>
             <div class="card">
@@ -182,7 +182,6 @@
             </div>
         </section>
 
-        <!-- INVENTARIO -->
         <section id="inventario-section" class="content-section">
             <h1><i class="fas fa-clipboard-list"></i> Inventario</h1>
             <div class="card">
@@ -199,7 +198,6 @@
             </div>
         </section>
 
-        <!-- REPORTES -->
         <section id="reportes-section" class="content-section">
             <h1><i class="fas fa-file-pdf"></i> Reportes y Etiquetas</h1>
             <div class="card">
@@ -238,7 +236,6 @@
             </div>
         </section>
 
-        <!-- CRÉDITOS -->
         <section id="creditos-section" class="content-section">
             <h1><i class="fas fa-credit-card"></i> Gestión de Créditos</h1>
             <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
@@ -283,7 +280,6 @@
             </div>
         </section>
 
-        <!-- CONFIGURACIÓN -->
         <section id="configuracion-section" class="content-section">
             <h1><i class="fas fa-cog"></i> Configuración</h1>
             <div class="card"><h2>Nombre del Establecimiento</h2><input type="text" id="nombreEstablecimiento" placeholder="Ej: Tienda La Bendición" /><button onclick="guardarNombreEstablecimiento()">Guardar</button></div>
@@ -304,14 +300,12 @@
             <div class="card"><h2><i class="fas fa-lock"></i> Clave para Editar Inventario</h2><p>Establece una clave personalizada para proteger la edición de productos. Si la olvidas, puedes restablecerla con la clave maestra (consulta con el administrador).</p><input type="password" id="claveEdicionInput" placeholder="Nueva clave" /><button onclick="guardarClaveEdicion()">Guardar Clave</button><button onclick="probarClaveEdicion()" class="btn-secondary" style="margin-left: 10px;">Probar Clave Actual</button><div id="mensajeClave" style="margin-top: 10px; font-size: 0.9rem;"></div></div>
         </section>
 
-        <!-- RESPALDO -->
         <section id="respaldo-section" class="content-section">
             <h1><i class="fas fa-database"></i> Respaldo y Restauración</h1>
             <div class="card"><p>Descarga un archivo de respaldo con todos tus datos o restaura desde uno existente.</p><button onclick="descargarBackup()" class="backup-button"><i class="fas fa-download"></i> Descargar Respaldo</button><button onclick="document.getElementById('fileInput').click()" class="restore-button"><i class="fas fa-upload"></i> Cargar Respaldo</button><input type="file" id="fileInput" accept=".json" style="display: none" onchange="cargarBackup(this.files)" /></div>
         </section>
     </main>
 
-    <!-- MODALES -->
     <div id="modalPagoMixto" class="modal" style="display: none;">
         <div class="modal-content" style="max-width: 600px;">
             <span class="close" onclick="cerrarModalPagoMixto()">&times;</span>
