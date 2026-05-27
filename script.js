@@ -1,43 +1,84 @@
-// ============================================
-// CALCULADORA MÁGICA - VERSIÓN PROFESIONAL COMPLETA v3.1
-// MEJORAS: Pagos Mixtos, Ticket Térmico POS, Reportes Mejorados, PDFs Funcionales
-// ============================================
-
-// ===== PROTECCIÓN AVANZADA =====
+// ========================================================
+// CALCULADORA MÁGICA - ESCUDO INTEGRAL DE ACCESO v4.0
+// ========================================================
 (function() {
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-    
-    if (!isMobile) {
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'F12' || e.keyCode === 123) { e.preventDefault(); return false; }
-            if (e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].includes(e.key.toUpperCase())) { e.preventDefault(); return false; }
-            if (e.ctrlKey && e.key.toLowerCase() === 'u') { e.preventDefault(); return false; }
-            if (e.ctrlKey && e.key.toLowerCase() === 's') { e.preventDefault(); return false; }
-            if (e.ctrlKey && e.key.toLowerCase() === 'p') { e.preventDefault(); return false; }
-        }, false);
-        document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-        document.addEventListener('copy', function(e) { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') e.preventDefault(); });
-        document.addEventListener('cut', function(e) { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') e.preventDefault(); });
-        document.addEventListener('selectstart', function(e) { if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') e.preventDefault(); });
-        
-        let devtoolsOpen = false;
-        setInterval(function() {
-            const widthThreshold = window.outerWidth - window.innerWidth > 160;
-            const heightThreshold = window.outerHeight - window.innerHeight > 160;
-            if (widthThreshold || heightThreshold) { if (!devtoolsOpen) { devtoolsOpen = true; console.clear(); } }
-            else { devtoolsOpen = false; }
-        }, 1000);
-        
-        if (isProduction) {
-            setInterval(function() { console.clear(); }, 3000);
-            console.log = function() {}; console.info = function() {}; console.warn = function() {}; console.debug = function() {};
-        }
-        
-        const style = document.createElement('style');
-        style.textContent = `body { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; } input, textarea, [contenteditable="true"] { -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text; user-select: text; }`;
-        document.head.appendChild(style);
+    const DOMINIO_OFICIAL = "clientes.calculadoramagica.lat";
+    const hostActual = window.location.hostname.toLowerCase();
+    const esLocal = hostActual === 'localhost' || hostActual === '127.0.0.1';
+
+    // 1. VALIDACIÓN RIGUROSA DE DOMINIO
+    if (!esLocal && hostActual !== DOMINIO_OFICIAL) {
+        destruirSitio();
+        return;
     }
+
+    // 2. VALIDACIÓN DEL TOKEN DINÁMICO DE ACCESO
+    const urlParams = new URLSearchParams(window.location.search);
+    const tokenRecibido = urlParams.get('st');
+
+    if (!tokenRecibido) {
+        // Si no hay token en la URL, verificamos si ya había iniciado sesión legítimamente antes
+        if (!sessionStorage.getItem('sesion_autenticada_real')) {
+            destruirSitio();
+            return;
+        }
+    } else {
+        try {
+            // Desencriptamos el token enviado por tu portal de acceso
+            const datosToken = atob(tokenRecibido);
+            const partes = datosToken.split('_'); // [CALCULADORA, REAL, Año, Mes, Día, Hora, Minuto]
+            
+            if (partes[0] !== 'CALCULADORA' || partes[1] !== 'REAL') {
+                destruirSitio();
+                return;
+            }
+
+            // Validamos que el token no tenga más de 5 minutos de haber sido generado
+            // Esto evita que usen un enlace viejo copiado para meterse al clon
+            const año = parseInt(partes[2]);
+            const mes = parseInt(partes[3]) - 1;
+            const dia = parseInt(partes[4]);
+            const hora = parseInt(partes[5]);
+            const minuto = parseInt(partes[6]);
+
+            const fechaToken = new Date(año, mes, dia, hora, minuto);
+            const fechaActual = new Date();
+            const diferenciaMinutos = Math.abs(fechaActual - fechaToken) / 1000 / 60;
+
+            if (diferenciaMinutos > 5) { // Expirado (más de 5 minutos de antiguedad)
+                destruirSitio();
+                return;
+            }
+
+            // Si el token es fresco y correcto, aprobamos la sesión en la memoria del navegador
+            sessionStorage.setItem('sesion_autenticada_real', 'true');
+            
+            // Limpiamos la URL para que el cliente no vea el token largo y se vea limpio
+            window.history.replaceState({}, document.title, window.location.pathname);
+
+        } catch (e) {
+            destruirSitio();
+            return;
+        }
+    }
+
+    // Función fulminante en caso de intrusos
+    function destruirSitio() {
+        if (document.documentElement) document.documentElement.innerHTML = "";
+        if (document.body) {
+            document.body.innerHTML = "<h1 style='color:#ff4444; text-align:center; margin-top:20%; font-family:sans-serif;'>Error 401: Acceso No Autorizado o Sesión Expirada.</h1>";
+        }
+        window.location.replace("https://google.com"); // Los echa fuera de inmediato
+        throw new Error("Acceso denegado de raíz.");
+    }
+
+    // ===== AJUSTES ANTI-COPIA =====
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('keydown', e => {
+        if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && ['I','J','C'].includes(e.key.toUpperCase())) || (e.ctrlKey && e.key.toLowerCase() === 'u')) {
+            e.preventDefault();
+        }
+    });
 })();
 
 // ----- VARIABLES GLOBALES -----
