@@ -304,13 +304,41 @@ function guardarNombreEstablecimiento() {
 
 function guardarClaveEdicion() {
     const nuevaClave = document.getElementById('claveEdicionInput').value.trim();
-    if (!nuevaClave) { showToast('La clave no puede estar vacía', 'error'); return; }
-    claveEdicion = nuevaClave;
-    localStorage.setItem(STORAGE_KEYS.CLAVE_EDICION, claveEdicion);
-    document.getElementById('claveEdicionInput').value = '';
-    const mensajeDiv = document.getElementById('mensajeClave');
-    if (mensajeDiv) mensajeDiv.innerHTML = '<span style="color: #4CAF50;">✓ Clave guardada correctamente.</span>';
-    showToast('Clave de edición guardada', 'success');
+    if (!nuevaClave) { 
+        showToast('La clave no puede estar vacía', 'error'); 
+        return; 
+    }
+    
+    // --- MEJORA DE SEGURIDAD: Verificar si ya existe una clave ---
+    const claveExistente = localStorage.getItem(STORAGE_KEYS.CLAVE_EDICION);
+    
+    if (claveExistente && claveExistente !== "") {
+        // Si YA hay una clave guardada, pedir la CLAVE MAESTRA para cambiarla
+        const claveMaestraIngresada = prompt("Ya existe una clave de edición. Para cambiarla o eliminarla, ingrese la CLAVE MAESTRA:");
+        
+        if (claveMaestraIngresada === "admin123") {
+            // Autorizado para cambiar
+            claveEdicion = nuevaClave;
+            localStorage.setItem(STORAGE_KEYS.CLAVE_EDICION, claveEdicion);
+            document.getElementById('claveEdicionInput').value = '';
+            const mensajeDiv = document.getElementById('mensajeClave');
+            if (mensajeDiv) mensajeDiv.innerHTML = '<span style="color: #4CAF50;">✓ Clave de edición ACTUALIZADA correctamente.</span>';
+            showToast('Clave de edición actualizada', 'success');
+        } else {
+            // No autorizado
+            showToast('ACCESO DENEGADO: Clave maestra incorrecta. No se pudo cambiar la clave.', 'error');
+            document.getElementById('claveEdicionInput').value = ''; // Limpiar el campo
+            return;
+        }
+    } else {
+        // No existe clave, permitir crear la primera
+        claveEdicion = nuevaClave;
+        localStorage.setItem(STORAGE_KEYS.CLAVE_EDICION, claveEdicion);
+        document.getElementById('claveEdicionInput').value = '';
+        const mensajeDiv = document.getElementById('mensajeClave');
+        if (mensajeDiv) mensajeDiv.innerHTML = '<span style="color: #4CAF50;">✓ Clave de edición CREADA correctamente.</span>';
+        showToast('Clave de edición guardada', 'success');
+    }
 }
 function probarClaveEdicion() {
     const claveIngresada = prompt("Ingrese la clave de edición para probar:");
@@ -318,16 +346,26 @@ function probarClaveEdicion() {
     else showToast("Clave incorrecta. Acceso denegado.", "error");
 }
 function verificarClaveEdicion() {
-    if (!claveEdicion) {
-        const claveIngresada = prompt("Ingrese la clave para editar (clave maestra):");
-        if (claveIngresada === "admin123") return true;
-        showToast("Clave incorrecta. Edición bloqueada.", "error");
-        return false;
-    } else {
-        const claveIngresada = prompt("Ingrese la clave de edición:");
-        if (claveIngresada === claveEdicion || claveIngresada === "admin123") return true;
-        showToast("Clave incorrecta. Edición bloqueada.", "error");
-        return false;
+    // Caso 1: No hay clave personalizada establecida
+    if (!claveEdicion || claveEdicion === "") {
+        const claveIngresada = prompt("🔒 No hay clave personalizada. Use la CLAVE MAESTRA para editar:");
+        if (claveIngresada === "admin123") {
+            return true;
+        } else {
+            showToast("❌ Clave maestra incorrecta. Edición bloqueada.", "error");
+            return false;
+        }
+    } 
+    // Caso 2: SI existe una clave personalizada
+    else {
+        const claveIngresada = prompt("🔒 Ingrese la CLAVE DE EDICIÓN (o CLAVE MAESTRA):");
+        // Permitir tanto la clave personalizada como la maestra "admin123"
+        if (claveIngresada === claveEdicion || claveIngresada === "admin123") {
+            return true;
+        } else {
+            showToast("❌ Clave incorrecta. Edición bloqueada.", "error");
+            return false;
+        }
     }
 }
 
@@ -559,11 +597,30 @@ function actualizarCantidadCarrito(index, delta) {
     const item = carrito[index];
     const producto = productos[item.indexProducto];
     let nuevaCantidad = item.cantidad + delta;
-    if (item.unidad === 'gramo') { const disponibleGramos = (producto.unidadesExistentes || 0) * 1000; if (nuevaCantidad > disponibleGramos) { showToast('Stock insuficiente', 'error'); return; } }
-    else { if (nuevaCantidad > (producto.unidadesExistentes || 0)) { showToast('Stock insuficiente', 'error'); return; } }
+    
+    // Validación de stock según la unidad (gramo o unidad)
+    if (item.unidad === 'gramo') { 
+        const disponibleGramos = (producto.unidadesExistentes || 0) * 1000; 
+        if (nuevaCantidad > disponibleGramos) { 
+            showToast(`Stock insuficiente. Disponible: ${disponibleGramos}g`, 'error'); 
+            return; 
+        } 
+    } else { 
+        if (nuevaCantidad > (producto.unidadesExistentes || 0)) { 
+            showToast(`Stock insuficiente. Disponible: ${producto.unidadesExistentes}`, 'error'); 
+            return; 
+        } 
+    }
+    
     item.cantidad = Math.max(0.1, nuevaCantidad);
-    if (item.cantidad <= 0) eliminarDelCarrito(index);
-    else { recalcularSubtotal(item); safeSetItem(STORAGE_KEYS.CARRITO, carrito); actualizarCarrito(); }
+    
+    if (item.cantidad <= 0) {
+        eliminarDelCarrito(index);
+    } else { 
+        recalcularSubtotal(item); 
+        safeSetItem(STORAGE_KEYS.CARRITO, carrito); 
+        actualizarCarrito(); 
+    }
 }
 function cambiarCantidadDirecta(index) {
     if (!carrito[index]) return;
@@ -670,12 +727,41 @@ function agregarPagoMixto(metodo) {
     }
     
     if (metodo === 'credito') {
+        // 1. Cerrar el modal de pago mixto
         cerrarModalPagoMixto();
+        
+        // 2. Cambiar a la sección de créditos
         showSection('creditos');
-        document.getElementById('montoCredito').value = pagoMixtoActual.totalMoneda.toFixed(2);
-        document.getElementById('monedaCredito').value = 'Bs';
-        if (!document.getElementById('diasCredito').value) document.getElementById('diasCredito').value = '30';
-        showToast('Complete los datos del crédito', 'info');
+        
+        // 3. --- MEJORA: Asignar el MONTO TOTAL de la venta automáticamente ---
+        // Tomamos el total en MONEDA LOCAL (Bs, Pesos, etc.) de la venta actual
+        const montoTotalVenta = pagoMixtoActual.totalMoneda;
+        
+        // Asignamos este monto al campo del formulario de crédito
+        const montoInput = document.getElementById('montoCredito');
+        if (montoInput) {
+            montoInput.value = montoTotalVenta.toFixed(2);
+        }
+        
+        // Forzamos la moneda del crédito a la moneda local (NO en USD)
+        const monedaSelect = document.getElementById('monedaCredito');
+        if (monedaSelect) {
+            // Detectamos si la moneda activa en el POS es Dólar o Local
+            if (monedaSeleccionada === 'USD') {
+                monedaSelect.value = 'USD';
+            } else {
+                monedaSelect.value = 'Bs'; // Asumimos Bs para moneda local
+            }
+        }
+        
+        // Setear un valor por defecto para los días de crédito si está vacío
+        const diasInput = document.getElementById('diasCredito');
+        if (diasInput && !diasInput.value) {
+            diasInput.value = '30';
+        }
+        
+        // Mostrar mensaje de éxito
+        showToast(`Monto de ${montoTotalVenta.toFixed(2)} cargado automáticamente. Complete los datos del cliente.`, 'success');
         return;
     }
     
@@ -841,30 +927,45 @@ function imprimirTicketTermico(datos) {
         detallesPago += '</div>';
     }
     
+    // ESTILOS OPTIMIZADOS PARA 80mm
     const ticketHTML = `
-        <div class="ticket-print-area" style="width: 80mm; margin: 0 auto; font-family: 'Courier New', monospace; font-size: 10pt; padding: 2mm;">
-            <div class="ticket-header" style="text-align: center;">
+        <div class="ticket-print-area" style="width: 72mm; margin: 0 auto; font-family: 'Courier New', monospace; font-size: 9pt; padding: 0mm;">
+            <div class="ticket-header" style="text-align: center; margin-bottom: 4px;">
                 <strong>${datos.nombreNegocio || nombreEstablecimiento || 'MI NEGOCIO'}</strong><br>
                 ${datos.fecha}<br>
                 Venta #${Date.now().toString().slice(-8)}<br>
-                ---------------------------------
+                ----------------------------------------
             </div>
             <div class="ticket-items">
-                <table style="width:100%; border-collapse:collapse;">
-                    <thead><tr><th>Producto</th><th>Cant</th><th>P/U</th><th>Subtotal</th></tr></thead>
+                <table style="width:100%; border-collapse:collapse; font-size: 8pt;">
+                    <thead>
+                        <tr><th style="text-align:left; width:45%;">Producto</th>
+                            <th style="text-align:center; width:15%;">Cant</th>
+                            <th style="text-align:right; width:20%;">P/U</th>
+                            <th style="text-align:right; width:20%;">Subtotal</th>
+                        </tr>
+                    </thead>
                     <tbody>
-                        ${datos.items.map(item => `<tr><td>${item.nombre.substring(0,20)}</td><td style="text-align:center">${item.cantidad} ${item.unidad==='gramo'?'g':''}</td><td style="text-align:right">${item.precioUnitarioMoneda.toFixed(2)}</td><td style="text-align:right">${item.subtotal.toFixed(2)}</td></tr>`).join('')}
+                        ${datos.items.map(item => {
+                            let nombreCorto = item.nombre.substring(0, 18);
+                            return `<tr>
+                                <td style="text-align:left">${nombreCorto}</td>
+                                <td style="text-align:center">${item.cantidad}${item.unidad==='gramo'?'g':''}</td>
+                                <td style="text-align:right">${item.precioUnitarioMoneda.toFixed(2)}</td>
+                                <td style="text-align:right">${item.subtotal.toFixed(2)}</td>
+                             </tr>`;
+                        }).join('')}
                     </tbody>
                 </table>
             </div>
-            <div style="text-align:right; margin-top:5px;">
-                ---------------------------------<br>
+            <div style="text-align:right; margin-top:4px;">
+                ----------------------------------------<br>
                 <strong>TOTAL: ${datos.totalMoneda.toFixed(2)} ${datos.moneda}</strong><br>
                 (USD: $${datos.totalDolares.toFixed(2)})<br>
                 Método: ${metodoStr}<br>
                 ${datos.vueltoMoneda > 0 ? `Vuelto: ${datos.vueltoMoneda.toFixed(2)} ${datos.moneda}<br>` : ''}
                 ${detallesPago}
-                ---------------------------------<br>
+                ----------------------------------------<br>
                 ¡Gracias por su compra!
             </div>
         </div>
@@ -874,9 +975,11 @@ function imprimirTicketTermico(datos) {
     ventana.document.write(`
         <html><head><title>Ticket de Venta</title>
         <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { margin: 0; padding: 0; background: #fff; }
             @media print {
                 body { margin: 0; padding: 0; }
-                .ticket-print-area { width: 80mm; margin: 0; font-family: 'Courier New', monospace; font-size: 10pt; }
+                .ticket-print-area { width: 72mm; margin: 0; padding: 0mm; }
                 .no-print { display: none; }
             }
         </style>
@@ -1088,22 +1191,37 @@ function generarEtiquetasPorCategoria(categoria) {
     
     productosFiltradosCat.forEach((producto, idx) => {
         const x = margin + (col * labelWidth);
-        const precioMostrar = monedaEtiquetas === 'USD' ? `$${producto.precioUnitarioDolar.toFixed(2)}` : `${producto.precioUnitarioMoneda.toFixed(2)} ${monedaSeleccionada}`;
+        // Determina el precio con el símbolo correcto ($ o Bs)
+        let precioMostrar = '';
+        if (monedaEtiquetas === 'USD') {
+            precioMostrar = `$${producto.precioUnitarioDolar.toFixed(2)}`;
+        } else {
+            // Para moneda local, usamos el símbolo Bs. o el nombre corto según tu moneda
+            let simbolo = '';
+            if (monedaSeleccionada === 'VES') simbolo = 'Bs.';
+            else if (monedaSeleccionada === 'USD') simbolo = '$';
+            else simbolo = monedaSeleccionada;
+            precioMostrar = `${simbolo} ${producto.precioUnitarioMoneda.toFixed(2)}`;
+        }
         
+        // Dibujar borde de la etiqueta
         doc.setDrawColor(200, 200, 200);
         doc.rect(x, y, labelWidth - 2, labelHeight, 'S');
-        doc.setFontSize(8);
+        
+        // NOMBRE DEL PRODUCTO (Centrado, más grande)
+        doc.setFontSize(12);
         doc.setTextColor(0, 0, 0);
-        doc.text(producto.nombre.substring(0, 25), x + 2, y + 6);
-        doc.setFontSize(7);
-        doc.text(`Cat: ${producto.descripcion}`, x + 2, y + 12);
-        doc.text(`Stock: ${producto.unidadesExistentes}`, x + 2, y + 18);
-        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text(producto.nombre.substring(0, 28), x + (labelWidth / 2), y + 12, { align: 'center' });
+        
+        // PRECIO (Centrado, grande y en negrita)
+        doc.setFontSize(14);
         doc.setTextColor(0, 100, 0);
-        doc.text(precioMostrar, x + 2, y + 26);
-        doc.setFontSize(6);
-        doc.setTextColor(100, 100, 100);
-        doc.text(producto.codigoBarras || 'S/C', x + 2, y + 32);
+        doc.setFont('helvetica', 'bold');
+        doc.text(precioMostrar, x + (labelWidth / 2), y + 28, { align: 'center' });
+        
+        // Resetear estilos de fuente
+        doc.setFont('helvetica', 'normal');
         
         col++;
         if (col >= 3) {
