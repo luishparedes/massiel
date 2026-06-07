@@ -336,7 +336,7 @@ function guardarClaveEdicion() {
     showToast('⚠️ YA EXISTE una clave de edición. Debes usar la CLAVE MAESTRA para resetearla.', 'warning');
     
     // Preguntar si desea resetear la clave actual
-    const confirmarReset = confirm("⚠️ YA EXISTE una clave de edición.\n\n¿Deseas RESETEAR (borrar) la clave actual para poder crear una nueva?\n\nNecesitarás la CLAVE MAESTRA (admin123) para continuar.");
+    const confirmarReset = confirm("⚠️ YA EXISTE una clave de edición.\n\n¿Deseas RESETEAR (borrar) la clave actual para poder crear una NUEVA?\n\nNecesitarás la CLAVE MAESTRA (admin123) para continuar.");
     
     if (!confirmarReset) {
         showToast('Operación cancelada. La clave existente se mantiene.', 'info');
@@ -354,21 +354,28 @@ function guardarClaveEdicion() {
         return;
     }
     
-    // Si llegamos aquí, la clave maestra es correcta
-    // Primero: BORRAR la clave anterior
+    // =============================================
+    // CLAVE MAESTRA CORRECTA - RESETEAR EL SISTEMA
+    // =============================================
+    
+    // 1. BORRAR la clave anterior completamente
     localStorage.removeItem(STORAGE_KEYS.CLAVE_EDICION);
     claveEdicion = '';
     
-    // Segundo: Guardar la NUEVA clave
-    claveEdicion = nuevaClave;
-    localStorage.setItem(STORAGE_KEYS.CLAVE_EDICION, claveEdicion);
-    
-    // Limpiar el input y actualizar mensaje
+    // 2. Limpiar el campo de texto donde el usuario escribió
     document.getElementById('claveEdicionInput').value = '';
-    const mensajeDiv = document.getElementById('mensajeClave');
-    if (mensajeDiv) mensajeDiv.innerHTML = '<span style="color: #4CAF50;">✓ Clave de edición RESETEADA y CREADA correctamente.</span>';
     
-    showToast('✅ Clave anterior eliminada. Nueva clave de edición guardada exitosamente.', 'success');
+    // 3. Actualizar el mensaje visual para que sepa que debe crear una nueva
+    const mensajeDiv = document.getElementById('mensajeClave');
+    if (mensajeDiv) {
+        mensajeDiv.innerHTML = '<span style="color: #ff9800;">⚠️ Clave anterior ELIMINADA. Ahora puedes escribir y guardar una NUEVA clave de edición.</span>';
+    }
+    
+    // 4. Mostrar instrucciones claras al usuario
+    showToast('🔓 CLAVE MAESTRA CORRECTA. Clave anterior eliminada. ¡Ahora escribe tu NUEVA clave y presiona "Guardar Clave"!', 'success', 5000);
+    
+    // 5. Opcional: Enfocar el campo para que escriba la nueva clave
+    document.getElementById('claveEdicionInput').focus();
 }
 function probarClaveEdicion() {
     const claveIngresada = prompt("Ingrese la clave de edición para probar:");
