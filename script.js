@@ -317,16 +317,32 @@ function probarClaveEdicion() {
     if (claveIngresada === claveEdicion || claveIngresada === "admin123") showToast("Clave correcta. Acceso permitido.", "success");
     else showToast("Clave incorrecta. Acceso denegado.", "error");
 }
+
+// *** MODIFICACIÓN #4: SEGURIDAD EN LA CLAVE DE EDICIÓN ***
 function verificarClaveEdicion() {
-    if (!claveEdicion) {
-        const claveIngresada = prompt("Ingrese la clave para editar (clave maestra):");
-        if (claveIngresada === "admin123") return true;
+    // Ahora SIEMPRE solicita la clave, sin importar si claveEdicion está vacía o no
+    const claveIngresada = prompt("Ingrese la clave de edición (clave maestra: admin123):");
+    
+    // Validación estricta: la clave debe coincidir con claveEdicion O ser la clave maestra
+    if (!claveIngresada) {
+        showToast("Debe ingresar una clave. Edición bloqueada.", "error");
+        return false;
+    }
+    
+    // Si hay clave personalizada, debe coincidir con ella o con la maestra
+    if (claveEdicion) {
+        if (claveIngresada === claveEdicion || claveIngresada === "admin123") {
+            return true;
+        }
         showToast("Clave incorrecta. Edición bloqueada.", "error");
         return false;
-    } else {
-        const claveIngresada = prompt("Ingrese la clave de edición:");
-        if (claveIngresada === claveEdicion || claveIngresada === "admin123") return true;
-        showToast("Clave incorrecta. Edición bloqueada.", "error");
+    } 
+    // Si no hay clave personalizada, solo acepta la clave maestra
+    else {
+        if (claveIngresada === "admin123") {
+            return true;
+        }
+        showToast("Clave incorrecta. Debe usar la clave maestra (admin123) o establecer una clave personalizada.", "error");
         return false;
     }
 }
@@ -460,7 +476,7 @@ function actualizarListaProductos() {
         fila.setAttribute('ondblclick', `editarProducto(${idx})`);
         fila.style.cursor = 'pointer';
         const stockBajo = p.unidadesExistentes < 4 ? 'inventario-bajo' : '';
-        fila.innerHTML = `<tr>${p.nombre}</td><td>${p.descripcion}</td><td class="${stockBajo}"><strong>${p.unidadesExistentes}</strong></td><td>$${p.precioUnitarioDolar.toFixed(2)}</td><td>${p.precioUnitarioMoneda.toFixed(2)} ${monedaSeleccionada}</td><td><div class="ajuste-inventario"><button onclick="editarProductoConBoton(${idx})" class="btn-secondary"><i class="fas fa-edit"></i></button><button onclick="eliminarProducto(${idx})" class="btn-danger"><i class="fas fa-trash"></i></button></div></td>`;
+        fila.innerHTML = `<td>${p.nombre}</td><td>${p.descripcion}</td><td class="${stockBajo}"><strong>${p.unidadesExistentes}</strong></td><td>$${p.precioUnitarioDolar.toFixed(2)}</td><td>${p.precioUnitarioMoneda.toFixed(2)} ${monedaSeleccionada}</td><td><div class="ajuste-inventario"><button onclick="editarProductoConBoton(${idx})" class="btn-secondary"><i class="fas fa-edit"></i></button><button onclick="eliminarProducto(${idx})" class="btn-danger"><i class="fas fa-trash"></i></button></div></td>`;
         tbody.appendChild(fila);
     });
 }
@@ -672,10 +688,12 @@ function agregarPagoMixto(metodo) {
     if (metodo === 'credito') {
         cerrarModalPagoMixto();
         showSection('creditos');
+        // *** MODIFICACIÓN #3: FLUJO AUTOMÁTICO DE MONTO EN CRÉDITOS ***
+        // Ahora se asigna automáticamente el monto total de la venta
         document.getElementById('montoCredito').value = pagoMixtoActual.totalMoneda.toFixed(2);
         document.getElementById('monedaCredito').value = 'Bs';
         if (!document.getElementById('diasCredito').value) document.getElementById('diasCredito').value = '30';
-        showToast('Complete los datos del crédito', 'info');
+        showToast('Complete los datos del crédito. El monto se ha asignado automáticamente.', 'info');
         return;
     }
     
@@ -825,7 +843,7 @@ function cerrarModalPagoMixto() {
     };
 }
 
-// ===== TICKET TÉRMICO OPTIMIZADO (POS) =====
+// *** MODIFICACIÓN #1: TICKET TÉRMICO OPTIMIZADO PARA IMPRESORA 80mm ***
 function imprimirTicketTermico(datos) {
     const metodoStr = datos.pagos.length === 1 ? datos.pagos[0].metodo : 'Múltiples métodos';
     let detallesPago = '';
@@ -842,22 +860,22 @@ function imprimirTicketTermico(datos) {
     }
     
     const ticketHTML = `
-        <div class="ticket-print-area" style="width: 80mm; margin: 0 auto; font-family: 'Courier New', monospace; font-size: 10pt; padding: 2mm;">
-            <div class="ticket-header" style="text-align: center;">
+        <div class="ticket-print-area">
+            <div class="ticket-header">
                 <strong>${datos.nombreNegocio || nombreEstablecimiento || 'MI NEGOCIO'}</strong><br>
                 ${datos.fecha}<br>
                 Venta #${Date.now().toString().slice(-8)}<br>
                 ---------------------------------
             </div>
             <div class="ticket-items">
-                <table style="width:100%; border-collapse:collapse;">
-                    <thead><tr><th>Producto</th><th>Cant</th><th>P/U</th><th>Subtotal</th></tr></thead>
+                <table>
+                    <thead><tr><th>Prod</th><th>Cant</th><th>P/U</th><th>Total</th></tr></thead>
                     <tbody>
-                        ${datos.items.map(item => `<tr><td>${item.nombre.substring(0,20)}</td><td style="text-align:center">${item.cantidad} ${item.unidad==='gramo'?'g':''}</td><td style="text-align:right">${item.precioUnitarioMoneda.toFixed(2)}</td><td style="text-align:right">${item.subtotal.toFixed(2)}</td></tr>`).join('')}
+                        ${datos.items.map(item => `<tr><td>${item.nombre.substring(0,18)}</td><td>${item.cantidad}${item.unidad==='gramo'?'g':''}</td><td>${item.precioUnitarioMoneda.toFixed(2)}</td><td>${item.subtotal.toFixed(2)}</td></tr>`).join('')}
                     </tbody>
                 </table>
             </div>
-            <div style="text-align:right; margin-top:5px;">
+            <div class="ticket-footer">
                 ---------------------------------<br>
                 <strong>TOTAL: ${datos.totalMoneda.toFixed(2)} ${datos.moneda}</strong><br>
                 (USD: $${datos.totalDolares.toFixed(2)})<br>
@@ -874,9 +892,74 @@ function imprimirTicketTermico(datos) {
     ventana.document.write(`
         <html><head><title>Ticket de Venta</title>
         <style>
+            @page {
+                size: 80mm auto;
+                margin: 0;
+            }
             @media print {
-                body { margin: 0; padding: 0; }
-                .ticket-print-area { width: 80mm; margin: 0; font-family: 'Courier New', monospace; font-size: 10pt; }
+                html, body {
+                    width: 80mm;
+                    margin: 0;
+                    padding: 0;
+                }
+                .ticket-print-area {
+                    width: 72mm;
+                    max-width: 72mm;
+                    margin: 0 auto;
+                    padding: 2mm;
+                    font-family: 'Courier New', monospace;
+                    font-size: 7.5pt;
+                    line-height: 1.2;
+                    box-sizing: border-box;
+                }
+                .ticket-header {
+                    text-align: center;
+                    margin-bottom: 2mm;
+                }
+                .ticket-items table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 2mm 0;
+                }
+                .ticket-items th {
+                    font-size: 6.5pt;
+                    text-align: left;
+                    padding: 0.5mm 1mm;
+                    border-bottom: 1px dashed #000;
+                }
+                .ticket-items td {
+                    font-size: 7pt;
+                    padding: 0.5mm 1mm;
+                    word-break: break-word;
+                }
+                .ticket-items th:nth-child(1),
+                .ticket-items td:nth-child(1) {
+                    width: 40%;
+                }
+                .ticket-items th:nth-child(2),
+                .ticket-items td:nth-child(2) {
+                    width: 18%;
+                    text-align: center;
+                }
+                .ticket-items th:nth-child(3),
+                .ticket-items td:nth-child(3),
+                .ticket-items th:nth-child(4),
+                .ticket-items td:nth-child(4) {
+                    width: 21%;
+                    text-align: right;
+                }
+                .ticket-footer {
+                    text-align: right;
+                    margin-top: 2mm;
+                    font-size: 7pt;
+                }
+                .ticket-footer strong {
+                    font-size: 8pt;
+                }
+                .payment-details {
+                    text-align: left;
+                    font-size: 6.5pt;
+                }
                 .no-print { display: none; }
             }
         </style>
@@ -1058,6 +1141,8 @@ function llenarContenedorCategorias(containerId, tipo) {
     const btnTodos = document.createElement('button'); btnTodos.textContent='TODOS LOS PRODUCTOS'; btnTodos.style.gridColumn='span 3'; btnTodos.style.background=tipo==='pdf'?'#4CAF50':'#FF9800'; btnTodos.onclick=()=>{ if(tipo==='pdf') generarPDFPorCategoria('todos'); else generarEtiquetasPorCategoria('todos'); }; container.appendChild(btnTodos);
     categoriasPersonalizadas.forEach(cat => { const btn = document.createElement('button'); btn.textContent=cat.charAt(0).toUpperCase()+cat.slice(1).replace(/_/g,' '); btn.onclick=()=>{ if(tipo==='pdf') generarPDFPorCategoria(cat); else generarEtiquetasPorCategoria(cat); }; container.appendChild(btn); });
 }
+
+// *** MODIFICACIÓN #2: ETIQUETAS DE ANAQUEL MÁS LIMPIAS ***
 function generarEtiquetasPorCategoria(categoria) {
     let productosFiltradosCat = [];
     if (categoria === 'todos') {
@@ -1072,43 +1157,55 @@ function generarEtiquetasPorCategoria(categoria) {
     let y = 20;
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 10;
-    const labelWidth = (pageWidth - margin * 2) / 3;
-    const labelHeight = 35;
+    const labelWidth = (pageWidth - margin * 2) / 2; // Solo 2 etiquetas por fila para más espacio
+    const labelHeight = 25; // Altura reducida para etiqueta simplificada
     let col = 0;
     
+    // Título del documento
     doc.setFontSize(14);
     doc.setTextColor(0, 172, 193);
-    doc.text(`ETIQUETAS PARA ANAQUELES - ${categoria === 'todos' ? 'TODOS' : categoria.toUpperCase()}`, margin, y);
-    y += 10;
-    doc.setFontSize(10);
+    doc.text(`ETIQUETAS DE ANAQUEL - ${categoria === 'todos' ? 'TODOS' : categoria.toUpperCase()}`, margin, y);
+    y += 8;
+    doc.setFontSize(9);
     doc.text(`Establecimiento: ${nombreEstablecimiento}`, margin, y);
-    y += 6;
+    y += 5;
     doc.text(`Fecha: ${new Date().toLocaleString()}`, margin, y);
-    y += 10;
+    y += 12;
     
-    productosFiltradosCat.forEach((producto, idx) => {
+    productosFiltradosCat.forEach((producto) => {
         const x = margin + (col * labelWidth);
-        const precioMostrar = monedaEtiquetas === 'USD' ? `$${producto.precioUnitarioDolar.toFixed(2)}` : `${producto.precioUnitarioMoneda.toFixed(2)} ${monedaSeleccionada}`;
         
+        // Precio dinámico según moneda seleccionada
+        const simboloMoneda = monedaEtiquetas === 'USD' ? '$' : monedaSeleccionada;
+        const precioMostrar = monedaEtiquetas === 'USD' 
+            ? `$${producto.precioUnitarioDolar.toFixed(2)}` 
+            : `${producto.precioUnitarioMoneda.toFixed(2)} ${simboloMoneda}`;
+        
+        // Marco de la etiqueta
         doc.setDrawColor(200, 200, 200);
         doc.rect(x, y, labelWidth - 2, labelHeight, 'S');
-        doc.setFontSize(8);
+        
+        // SOLO NOMBRE DEL PRODUCTO (centrado, grande y visible)
+        doc.setFontSize(12);
         doc.setTextColor(0, 0, 0);
-        doc.text(producto.nombre.substring(0, 25), x + 2, y + 6);
-        doc.setFontSize(7);
-        doc.text(`Cat: ${producto.descripcion}`, x + 2, y + 12);
-        doc.text(`Stock: ${producto.unidadesExistentes}`, x + 2, y + 18);
-        doc.setFontSize(9);
-        doc.setTextColor(0, 100, 0);
-        doc.text(precioMostrar, x + 2, y + 26);
-        doc.setFontSize(6);
-        doc.setTextColor(100, 100, 100);
-        doc.text(producto.codigoBarras || 'S/C', x + 2, y + 32);
+        const nombreProducto = producto.nombre.length > 30 ? producto.nombre.substring(0, 30) + '...' : producto.nombre;
+        const nombreAncho = doc.getStringUnitWidth(nombreProducto) * 12 / doc.internal.scaleFactor;
+        const nombreX = x + (labelWidth - 2 - nombreAncho) / 2;
+        doc.text(nombreProducto, nombreX, y + 10);
+        
+        // SOLO PRECIO (centrado, grande y en negrita)
+        doc.setFontSize(16);
+        doc.setTextColor(0, 120, 0);
+        doc.setFont(undefined, 'bold');
+        const precioAncho = doc.getStringUnitWidth(precioMostrar) * 16 / doc.internal.scaleFactor;
+        const precioX = x + (labelWidth - 2 - precioAncho) / 2;
+        doc.text(precioMostrar, precioX, y + 22);
+        doc.setFont(undefined, 'normal');
         
         col++;
-        if (col >= 3) {
+        if (col >= 2) { // Solo 2 etiquetas por fila
             col = 0;
-            y += labelHeight + 5;
+            y += labelHeight + 8;
             if (y + labelHeight > doc.internal.pageSize.getHeight() - 20) {
                 doc.addPage();
                 y = 20;
@@ -1121,6 +1218,7 @@ function generarEtiquetasPorCategoria(categoria) {
     showToast('Etiquetas generadas correctamente', 'success');
     cerrarModalEtiquetas();
 }
+
 function descargarBackup() {
     const backup = { productos, nombreEstablecimiento, tasaBCV: tasaBCVGuardada, monedaSeleccionada, tasaMonedaActual, ventasDiarias, carrito, claveSeguridad, claveEdicion, monedaEtiquetas, creditos, categoriasPersonalizadas, nextCreditoId, fecha: new Date().toISOString(), version:'3.1' };
     const blob = new Blob([JSON.stringify(backup,null,2)], {type:'application/json'});
@@ -1265,20 +1363,29 @@ function actualizarListaCreditos() {
         tbody.appendChild(fila);
     });
 }
+
+// *** MODIFICACIÓN #3: GUARDAR CRÉDITO CON MONTO AUTOMÁTICO ***
 function guardarCredito() {
     const cliente = document.getElementById('clienteNombre').value.trim();
+    // El monto ya viene pre-llenado desde el sistema de pago mixto
     const monto = parseFloat(document.getElementById('montoCredito').value);
     const moneda = document.getElementById('monedaCredito').value;
     const dias = parseInt(document.getElementById('diasCredito').value);
     let fechaInicio = document.getElementById('fechaInicioCredito').value;
+    
+    // Validaciones
     if (!cliente) return showToast('Ingrese nombre del cliente', 'error');
-    if (!monto || monto <= 0) return showToast('Monto válido', 'error');
-    if (!dias || dias <= 0) return showToast('Días de crédito', 'error');
+    if (!monto || monto <= 0) return showToast('Monto inválido. Verifique el total de la venta.', 'error');
+    if (!dias || dias <= 0) return showToast('Ingrese días de crédito', 'error');
     if (!fechaInicio) fechaInicio = new Date().toISOString().split('T')[0];
+    
     const fechaVencimiento = calcularFechaVencimiento(fechaInicio, dias);
+    
     let productosCredito = [];
     let totalBs = 0, totalDolares = 0;
-    if (carrito && carrito.length > 0 && confirm('¿Incluir los productos del carrito en este crédito? Se descontarán del inventario.')) {
+    
+    // Si hay carrito, siempre lo incluimos automáticamente
+    if (carrito && carrito.length > 0) {
         carrito.forEach(item => {
             const producto = productos[item.indexProducto];
             if (producto) {
@@ -1291,30 +1398,77 @@ function guardarCredito() {
         });
         safeSetItem(STORAGE_KEYS.PRODUCTOS, productos);
         actualizarEstadisticas();
-        productosCredito = carrito.map(item => ({ nombre: item.nombre, cantidad: item.cantidad, unidad: item.unidad, subtotal: item.subtotal, precioUnitarioMoneda: item.precioUnitarioMoneda, precioUnitarioDolar: item.precioUnitarioDolar }));
+        
+        productosCredito = carrito.map(item => ({ 
+            nombre: item.nombre, 
+            cantidad: item.cantidad, 
+            unidad: item.unidad, 
+            subtotal: item.subtotal, 
+            precioUnitarioMoneda: item.precioUnitarioMoneda, 
+            precioUnitarioDolar: item.precioUnitarioDolar 
+        }));
+        
         const ahora = new Date();
-        const ventaRegistro = { fecha: ahora.toLocaleDateString(), hora: ahora.toLocaleTimeString(), total: totalBs, totalDolares: totalDolares, metodoPago: 'credito', monedaUsada: monedaSeleccionada, tasaCambio: tasaMonedaActual, items: carrito.map(item => ({ nombre: item.nombre, cantidad: item.cantidad, unidad: item.unidad, subtotal: item.subtotal })) };
+        const ventaRegistro = { 
+            fecha: ahora.toLocaleDateString(), 
+            hora: ahora.toLocaleTimeString(), 
+            total: totalBs, 
+            totalDolares: totalDolares, 
+            metodoPago: 'credito', 
+            monedaUsada: monedaSeleccionada, 
+            tasaCambio: tasaMonedaActual, 
+            items: carrito.map(item => ({ 
+                nombre: item.nombre, 
+                cantidad: item.cantidad, 
+                unidad: item.unidad, 
+                subtotal: item.subtotal 
+            })) 
+        };
         ventasDiarias.push(ventaRegistro);
         safeSetItem(STORAGE_KEYS.VENTAS, ventasDiarias);
+        
+        // Limpiar carrito
         carrito = [];
         safeSetItem(STORAGE_KEYS.CARRITO, carrito);
         actualizarCarrito();
     }
+    
     if (creditoEditando !== null) {
         const index = creditos.findIndex(c => c.id === creditoEditando);
         if (index !== -1) {
-            creditos[index] = { ...creditos[index], cliente, monto, moneda, dias, fechaInicio, fechaVencimiento, productos: [...(creditos[index].productos || []), ...productosCredito] };
-            showToast('Crédito actualizado', 'success');
+            creditos[index] = { 
+                ...creditos[index], 
+                cliente, 
+                monto, 
+                moneda, 
+                dias, 
+                fechaInicio, 
+                fechaVencimiento, 
+                productos: [...(creditos[index].productos || []), ...productosCredito] 
+            };
+            showToast('Crédito actualizado correctamente', 'success');
         }
         creditoEditando = null;
         document.getElementById('formCreditoTitle').textContent = 'Registrar Nuevo Crédito';
         document.getElementById('btnGuardarCredito').innerHTML = '<i class="fas fa-save"></i> Guardar Crédito';
         document.getElementById('btnCancelarCredito').style.display = 'none';
     } else {
-        const nuevoCredito = { id: nextCreditoId++, cliente, monto, moneda, dias, fechaInicio, fechaVencimiento, fechaRegistro: new Date().toISOString(), estado: 'activo', productos: productosCredito };
+        const nuevoCredito = { 
+            id: nextCreditoId++, 
+            cliente, 
+            monto, 
+            moneda, 
+            dias, 
+            fechaInicio, 
+            fechaVencimiento, 
+            fechaRegistro: new Date().toISOString(), 
+            estado: 'activo', 
+            productos: productosCredito 
+        };
         creditos.push(nuevoCredito);
-        showToast('Crédito registrado', 'success');
+        showToast(`Crédito registrado por ${moneda === 'USD' ? '$' : 'Bs'} ${monto.toFixed(2)} a nombre de ${cliente}`, 'success');
     }
+    
     guardarCreditosStorage();
     limpiarFormularioCredito();
     creditosFiltrados = [];
@@ -1322,7 +1476,9 @@ function guardarCredito() {
     actualizarFiltrosUI();
     actualizarVistaCreditos();
 }
+
 function editarCredito(id) {
+    if (!verificarClaveEdicion()) return;
     const credito = creditos.find(c => c.id === id);
     if (!credito) { showToast('Crédito no encontrado', 'error'); return; }
     document.getElementById('clienteNombre').value = credito.cliente;
@@ -1344,6 +1500,7 @@ function cancelarEdicionCredito() {
     document.getElementById('btnCancelarCredito').style.display = 'none';
 }
 function eliminarCredito(id) {
+    if (!verificarClaveEdicion()) return;
     if (confirm('¿Eliminar este crédito?')) {
         creditos = creditos.filter(c => c.id !== id);
         guardarCreditosStorage();
