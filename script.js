@@ -302,9 +302,20 @@ function guardarNombreEstablecimiento() {
     showToast('Nombre guardado', 'success');
 }
 
+// *** CORRECCIÓN DE SEGURIDAD: CREACIÓN Y RESETEO DE CLAVE DE EDICIÓN ***
 function guardarClaveEdicion() {
     const nuevaClave = document.getElementById('claveEdicionInput').value.trim();
     if (!nuevaClave) { showToast('La clave no puede estar vacía', 'error'); return; }
+
+    // Si ya existe una clave guardada, se requiere la clave maestra para cambiarla
+    if (claveEdicion) {
+        const claveMaestra = prompt("Ya existe una clave de edición. Para cambiarla, ingrese la clave maestra (admin123):");
+        if (claveMaestra !== "admin123") {
+            showToast("Clave maestra incorrecta. No se puede modificar la clave de edición.", "error");
+            return;
+        }
+    }
+
     claveEdicion = nuevaClave;
     localStorage.setItem(STORAGE_KEYS.CLAVE_EDICION, claveEdicion);
     document.getElementById('claveEdicionInput').value = '';
@@ -312,6 +323,7 @@ function guardarClaveEdicion() {
     if (mensajeDiv) mensajeDiv.innerHTML = '<span style="color: #4CAF50;">✓ Clave guardada correctamente.</span>';
     showToast('Clave de edición guardada', 'success');
 }
+
 function probarClaveEdicion() {
     const claveIngresada = prompt("Ingrese la clave de edición para probar:");
     if (claveIngresada === claveEdicion || claveIngresada === "admin123") showToast("Clave correcta. Acceso permitido.", "success");
@@ -688,8 +700,8 @@ function agregarPagoMixto(metodo) {
     if (metodo === 'credito') {
         cerrarModalPagoMixto();
         showSection('creditos');
-        // *** MODIFICACIÓN #3: FLUJO AUTOMÁTICO DE MONTO EN CRÉDITOS ***
-        // Ahora se asigna automáticamente el monto total de la venta
+        // *** FLUJO AUTOMÁTICO DE MONTO EN CRÉDITOS ***
+        // Se asigna automáticamente el monto total de la venta al campo de crédito
         document.getElementById('montoCredito').value = pagoMixtoActual.totalMoneda.toFixed(2);
         document.getElementById('monedaCredito').value = 'Bs';
         if (!document.getElementById('diasCredito').value) document.getElementById('diasCredito').value = '30';
@@ -1364,10 +1376,10 @@ function actualizarListaCreditos() {
     });
 }
 
-// *** MODIFICACIÓN #3: GUARDAR CRÉDITO CON MONTO AUTOMÁTICO ***
+// *** FLUJO COMPLETO DE CRÉDITO CON MONTO AUTOMÁTICO ***
 function guardarCredito() {
     const cliente = document.getElementById('clienteNombre').value.trim();
-    // El monto ya viene pre-llenado desde el sistema de pago mixto
+    // El monto ya viene pre-llenado automáticamente desde el sistema de pago
     const monto = parseFloat(document.getElementById('montoCredito').value);
     const moneda = document.getElementById('monedaCredito').value;
     const dias = parseInt(document.getElementById('diasCredito').value);
@@ -1384,7 +1396,7 @@ function guardarCredito() {
     let productosCredito = [];
     let totalBs = 0, totalDolares = 0;
     
-    // Si hay carrito, siempre lo incluimos automáticamente
+    // Si hay productos en el carrito, se procesa la venta y se descuenta inventario
     if (carrito && carrito.length > 0) {
         carrito.forEach(item => {
             const producto = productos[item.indexProducto];
@@ -1427,7 +1439,7 @@ function guardarCredito() {
         ventasDiarias.push(ventaRegistro);
         safeSetItem(STORAGE_KEYS.VENTAS, ventasDiarias);
         
-        // Limpiar carrito
+        // Limpiar carrito tras procesar la venta a crédito
         carrito = [];
         safeSetItem(STORAGE_KEYS.CARRITO, carrito);
         actualizarCarrito();
