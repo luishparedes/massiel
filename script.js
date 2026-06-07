@@ -304,41 +304,71 @@ function guardarNombreEstablecimiento() {
 
 function guardarClaveEdicion() {
     const nuevaClave = document.getElementById('claveEdicionInput').value.trim();
+    
+    // Validar que la clave no esté vacía
     if (!nuevaClave) { 
-        showToast('La clave no puede estar vacía', 'error'); 
+        showToast('❌ La clave no puede estar vacía', 'error'); 
         return; 
     }
     
-    // --- MEJORA DE SEGURIDAD: Verificar si ya existe una clave ---
+    // Verificar si YA EXISTE una clave guardada
     const claveExistente = localStorage.getItem(STORAGE_KEYS.CLAVE_EDICION);
     
-    if (claveExistente && claveExistente !== "") {
-        // Si YA hay una clave guardada, pedir la CLAVE MAESTRA para cambiarla
-        const claveMaestraIngresada = prompt("Ya existe una clave de edición. Para cambiarla o eliminarla, ingrese la CLAVE MAESTRA:");
-        
-        if (claveMaestraIngresada === "admin123") {
-            // Autorizado para cambiar
-            claveEdicion = nuevaClave;
-            localStorage.setItem(STORAGE_KEYS.CLAVE_EDICION, claveEdicion);
-            document.getElementById('claveEdicionInput').value = '';
-            const mensajeDiv = document.getElementById('mensajeClave');
-            if (mensajeDiv) mensajeDiv.innerHTML = '<span style="color: #4CAF50;">✓ Clave de edición ACTUALIZADA correctamente.</span>';
-            showToast('Clave de edición actualizada', 'success');
-        } else {
-            // No autorizado
-            showToast('ACCESO DENEGADO: Clave maestra incorrecta. No se pudo cambiar la clave.', 'error');
-            document.getElementById('claveEdicionInput').value = ''; // Limpiar el campo
-            return;
-        }
-    } else {
-        // No existe clave, permitir crear la primera
+    // =============================================
+    // CASO 1: NO existe ninguna clave (primera vez)
+    // =============================================
+    if (!claveExistente || claveExistente === "") {
+        // Guardar la nueva clave directamente
         claveEdicion = nuevaClave;
         localStorage.setItem(STORAGE_KEYS.CLAVE_EDICION, claveEdicion);
         document.getElementById('claveEdicionInput').value = '';
         const mensajeDiv = document.getElementById('mensajeClave');
         if (mensajeDiv) mensajeDiv.innerHTML = '<span style="color: #4CAF50;">✓ Clave de edición CREADA correctamente.</span>';
-        showToast('Clave de edición guardada', 'success');
+        showToast('🔐 Clave de edición creada exitosamente', 'success');
+        return;
     }
+    
+    // =============================================
+    // CASO 2: YA EXISTE una clave (bloquear creación directa)
+    // =============================================
+    
+    // Mostrar mensaje de bloqueo
+    showToast('⚠️ YA EXISTE una clave de edición. Debes usar la CLAVE MAESTRA para resetearla.', 'warning');
+    
+    // Preguntar si desea resetear la clave actual
+    const confirmarReset = confirm("⚠️ YA EXISTE una clave de edición.\n\n¿Deseas RESETEAR (borrar) la clave actual para poder crear una nueva?\n\nNecesitarás la CLAVE MAESTRA (admin123) para continuar.");
+    
+    if (!confirmarReset) {
+        showToast('Operación cancelada. La clave existente se mantiene.', 'info');
+        document.getElementById('claveEdicionInput').value = ''; // Limpiar el input
+        return;
+    }
+    
+    // Pedir la CLAVE MAESTRA para autorizar el reseteo
+    const claveMaestraIngresada = prompt("🔒 INGRESE LA CLAVE MAESTRA para RESETEAR la clave actual:");
+    
+    // Validar clave maestra
+    if (claveMaestraIngresada !== "admin123") {
+        showToast('❌ ACCESO DENEGADO: Clave maestra incorrecta. No se puede resetear la clave.', 'error');
+        document.getElementById('claveEdicionInput').value = ''; // Limpiar el input
+        return;
+    }
+    
+    // Si llegamos aquí, la clave maestra es correcta
+    // Primero: BORRAR la clave anterior
+    localStorage.removeItem(STORAGE_KEYS.CLAVE_EDICION);
+    claveEdicion = '';
+    
+    // Segundo: Guardar la NUEVA clave
+    claveEdicion = nuevaClave;
+    localStorage.setItem(STORAGE_KEYS.CLAVE_EDICION, claveEdicion);
+    
+    // Limpiar el input y actualizar mensaje
+    document.getElementById('claveEdicionInput').value = '';
+    const mensajeDiv = document.getElementById('mensajeClave');
+    if (mensajeDiv) mensajeDiv.innerHTML = '<span style="color: #4CAF50;">✓ Clave de edición RESETEADA y CREADA correctamente.</span>';
+    
+    showToast('✅ Clave anterior eliminada. Nueva clave de edición guardada exitosamente.', 'success');
 }
 function probarClaveEdicion() {
     const claveIngresada = prompt("Ingrese la clave de edición para probar:");
