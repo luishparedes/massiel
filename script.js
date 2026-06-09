@@ -228,7 +228,7 @@ function cargarDatosStorage() {
         if (inputTasa) inputTasa.value = tasaMonedaActual;
         
         const mensajeClave = document.getElementById('mensajeClave');
-        if (mensajeClave) mensajeClave.innerHTML = claveEdicion ? '<span style="color: #4CAF50;">✓ Clave personalizada establecida.</span>' : '<span style="color: #ff9800;">⚠️ No has establecido una clave. Puedes crear una o usar la clave maestra (mono123).</span>';
+        if (mensajeClave) mensajeClave.innerHTML = claveEdicion ? '<span style="color: #4CAF50;">✓ Clave personalizada establecida.</span>' : '<span style="color: #ff9800;">⚠️ No has establecido una clave. Puedes crear una o usar la clave maestra (admin123).</span>';
     } catch (error) { console.error(error); productos = []; carrito = []; creditos = []; }
 }
 
@@ -336,7 +336,7 @@ function guardarClaveEdicion() {
     showToast('⚠️ YA EXISTE una clave de edición. Debes usar la CLAVE MAESTRA para resetearla.', 'warning');
     
     // Preguntar si desea resetear la clave actual
-    const confirmarReset = confirm("⚠️ YA EXISTE una clave de edición.\n\n¿Deseas RESETEAR (borrar) la clave actual para poder crear una NUEVA?\n\nNecesitarás la CLAVE MAESTRA (admin123) para continuar.");
+    const confirmarReset = confirm("⚠️ YA EXISTE una clave de edición.\n\n¿Deseas RESETEAR (borrar) la clave actual para poder crear una NUEVA?\n\nNecesitarás la CLAVE MAESTRA (mono123) para continuar.");
     
     if (!confirmarReset) {
         showToast('Operación cancelada. La clave existente se mantiene.', 'info');
