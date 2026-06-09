@@ -228,7 +228,7 @@ function cargarDatosStorage() {
         if (inputTasa) inputTasa.value = tasaMonedaActual;
         
         const mensajeClave = document.getElementById('mensajeClave');
-        if (mensajeClave) mensajeClave.innerHTML = claveEdicion ? '<span style="color: #4CAF50;">✓ Clave personalizada establecida.</span>' : '<span style="color: #ff9800;">⚠️ No has establecido una clave. Puedes crear una o usar la clave maestra (admin123).</span>';
+        if (mensajeClave) mensajeClave.innerHTML = claveEdicion ? '<span style="color: #4CAF50;">✓ Clave personalizada establecida.</span>' : '<span style="color: #ff9800;">⚠️ No has establecido una clave. Puedes crear una o usar la clave maestra (mono123).</span>';
     } catch (error) { console.error(error); productos = []; carrito = []; creditos = []; }
 }
 
