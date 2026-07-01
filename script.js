@@ -756,6 +756,7 @@ function actualizarModalPagoMixto() {
     }
 }
 
+// ===== NUEVA LÓGICA: PAGO MIXTO → CRÉDITO (OPTIMIZADA) =====
 function agregarPagoMixto(metodo) {
     const restante = pagoMixtoActual.totalMoneda - pagoMixtoActual.totalPagadoMoneda;
     if (restante <= 0) {
@@ -763,6 +764,9 @@ function agregarPagoMixto(metodo) {
         return;
     }
     
+    // =========================================================
+    // CASO ESPECIAL: MÉTODO "CRÉDITO" - TRANSFERENCIA AUTOMÁTICA
+    // =========================================================
     if (metodo === 'credito') {
         // 1. Cerrar el modal de pago mixto
         cerrarModalPagoMixto();
@@ -770,38 +774,46 @@ function agregarPagoMixto(metodo) {
         // 2. Cambiar a la sección de créditos
         showSection('creditos');
         
-        // 3. --- MEJORA: Asignar el MONTO TOTAL de la venta automáticamente ---
-        // Tomamos el total en MONEDA LOCAL (Bs, Pesos, etc.) de la venta actual
+        // 3. --- NUEVA LÓGICA: Asignar el MONTO TOTAL de la venta ---
         const montoTotalVenta = pagoMixtoActual.totalMoneda;
         
-        // Asignamos este monto al campo del formulario de crédito
+        // 4. Verificar que el campo de monto exista antes de asignar
         const montoInput = document.getElementById('montoCredito');
         if (montoInput) {
             montoInput.value = montoTotalVenta.toFixed(2);
+        } else {
+            showToast('⚠️ Error: Campo de monto no encontrado', 'error');
         }
         
-        // Forzamos la moneda del crédito a la moneda local (NO en USD)
+        // 5. Establecer la moneda del crédito (siempre en moneda local)
         const monedaSelect = document.getElementById('monedaCredito');
         if (monedaSelect) {
-            // Detectamos si la moneda activa en el POS es Dólar o Local
-            if (monedaSeleccionada === 'USD') {
-                monedaSelect.value = 'USD';
-            } else {
-                monedaSelect.value = 'Bs'; // Asumimos Bs para moneda local
-            }
+            // Siempre usar 'Bs' para créditos (moneda local)
+            monedaSelect.value = 'Bs';
         }
         
-        // Setear un valor por defecto para los días de crédito si está vacío
+        // 6. Pre-cargar 30 días como valor por defecto (si está vacío)
         const diasInput = document.getElementById('diasCredito');
         if (diasInput && !diasInput.value) {
             diasInput.value = '30';
         }
         
-        // Mostrar mensaje de éxito
-        showToast(`Monto de ${montoTotalVenta.toFixed(2)} cargado automáticamente. Complete los datos del cliente.`, 'success');
+        // 7. Enfocar el campo del cliente para una experiencia fluida
+        const clienteInput = document.getElementById('clienteNombre');
+        if (clienteInput) {
+            setTimeout(() => clienteInput.focus(), 300);
+        }
+        
+        // 8. Mostrar mensaje de éxito claro
+        showToast(`✅ Monto de ${montoTotalVenta.toFixed(2)} ${monedaSeleccionada} transferido a Crédito. Complete los datos del cliente.`, 'success', 5000);
+        
+        // 9. Salir de la función (no continuar con otros métodos de pago)
         return;
     }
     
+    // =========================================================
+    // RESTANTES MÉTODOS DE PAGO (Efectivo, Punto, etc.)
+    // =========================================================
     const detalleDiv = document.getElementById('detallePagoMixto');
     detalleDiv.style.display = 'block';
     const simbolo = metodo === 'efectivo_dolares' ? 'USD' : monedaSeleccionada;
