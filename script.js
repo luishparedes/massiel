@@ -756,7 +756,7 @@ function actualizarModalPagoMixto() {
     }
 }
 
-// ===== NUEVA LÓGICA: PAGO MIXTO → CRÉDITO (OPTIMIZADA) =====
+// ===== NUEVA LÓGICA: PAGO MIXTO → CRÉDITO (TRANSFIERE TOTAL EN USD) =====
 function agregarPagoMixto(metodo) {
     const restante = pagoMixtoActual.totalMoneda - pagoMixtoActual.totalPagadoMoneda;
     if (restante <= 0) {
@@ -765,7 +765,7 @@ function agregarPagoMixto(metodo) {
     }
     
     // =========================================================
-    // CASO ESPECIAL: MÉTODO "CRÉDITO" - TRANSFERENCIA AUTOMÁTICA
+    // CASO ESPECIAL: MÉTODO "CRÉDITO" - TRANSFERENCIA AUTOMÁTICA EN USD
     // =========================================================
     if (metodo === 'credito') {
         // 1. Cerrar el modal de pago mixto
@@ -774,22 +774,21 @@ function agregarPagoMixto(metodo) {
         // 2. Cambiar a la sección de créditos
         showSection('creditos');
         
-        // 3. --- NUEVA LÓGICA: Asignar el MONTO TOTAL de la venta ---
-        const montoTotalVenta = pagoMixtoActual.totalMoneda;
+        // 3. --- NUEVA LÓGICA: Asignar el MONTO TOTAL EN USD ---
+        const montoTotalUSD = pagoMixtoActual.totalDolares;
         
         // 4. Verificar que el campo de monto exista antes de asignar
         const montoInput = document.getElementById('montoCredito');
         if (montoInput) {
-            montoInput.value = montoTotalVenta.toFixed(2);
+            montoInput.value = montoTotalUSD.toFixed(2);
         } else {
             showToast('⚠️ Error: Campo de monto no encontrado', 'error');
         }
         
-        // 5. Establecer la moneda del crédito (siempre en moneda local)
+        // 5. Establecer la moneda del crédito en USD
         const monedaSelect = document.getElementById('monedaCredito');
         if (monedaSelect) {
-            // Siempre usar 'Bs' para créditos (moneda local)
-            monedaSelect.value = 'Bs';
+            monedaSelect.value = 'USD';
         }
         
         // 6. Pre-cargar 30 días como valor por defecto (si está vacío)
@@ -805,7 +804,7 @@ function agregarPagoMixto(metodo) {
         }
         
         // 8. Mostrar mensaje de éxito claro
-        showToast(`✅ Monto de ${montoTotalVenta.toFixed(2)} ${monedaSeleccionada} transferido a Crédito. Complete los datos del cliente.`, 'success', 5000);
+        showToast(`✅ Monto de $${montoTotalUSD.toFixed(2)} USD transferido a Crédito. Complete los datos del cliente.`, 'success', 5000);
         
         // 9. Salir de la función (no continuar con otros métodos de pago)
         return;
