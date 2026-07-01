@@ -178,6 +178,86 @@ function safeSetItem(key, data) {
     catch (e) { if (e.name === 'QuotaExceededError') showToast('⚠️ Espacio de almacenamiento lleno. Haz un respaldo.', 'warning'); else console.error(e); }
 }
 
+// ============================================================
+// FUNCIÓN MEJORADA: ASIGNACIÓN ROBUSTA DEL MONTO EN CRÉDITO
+// ============================================================
+function asignarMontoCredito(montoUSD) {
+    // Estrategias múltiples para localizar el campo
+    const selectores = [
+        '#montoCredito',
+        '#creditoMonto',
+        '#monto_credito',
+        '#monto',
+        'input[name="monto"]',
+        'input[name="montoCredito"]',
+        'input[name="creditoMonto"]',
+        'input.credito-monto',
+        'input.monto-credito'
+    ];
+    
+    let campo = null;
+    let selectorUsado = '';
+    
+    // Buscar con cada selector
+    for (const selector of selectores) {
+        const encontrado = document.querySelector(selector);
+        if (encontrado) {
+            campo = encontrado;
+            selectorUsado = selector;
+            break;
+        }
+    }
+    
+    // Si no se encuentra, buscar por cualquier input que contenga "monto" en su ID o nombre
+    if (!campo) {
+        const todosLosInputs = document.querySelectorAll('input');
+        for (const input of todosLosInputs) {
+            const id = input.id || '';
+            const name = input.name || '';
+            const className = input.className || '';
+            const testStr = (id + name + className).toLowerCase();
+            if (testStr.includes('monto') || testStr.includes('amount') || testStr.includes('total')) {
+                campo = input;
+                selectorUsado = 'input con "monto" en atributo';
+                break;
+            }
+        }
+    }
+    
+    // Si se encontró el campo
+    if (campo) {
+        // Formatear el monto con 2 decimales
+        const valorFormateado = montoUSD.toFixed(2);
+        
+        // Asignar el valor
+        campo.value = valorFormateado;
+        
+        // Disparar eventos para activar reactividad
+        const eventos = ['input', 'change', 'blur'];
+        eventos.forEach(tipoEvento => {
+            const evento = new Event(tipoEvento, { 
+                bubbles: true, 
+                cancelable: true 
+            });
+            campo.dispatchEvent(evento);
+        });
+        
+        // Actualizar visualmente (cambiar borde para feedback)
+        campo.style.borderColor = '#4CAF50';
+        campo.style.borderWidth = '2px';
+        campo.style.backgroundColor = '#f0fff0';
+        
+        // Mostrar confirmación
+        console.log(`✅ Monto asignado: $${valorFormateado} (selector: ${selectorUsado})`);
+        
+        return true;
+    } else {
+        // No se encontró ningún campo
+        console.warn('⚠️ No se pudo encontrar el campo de monto del crédito');
+        return false;
+    }
+}
+
 // ===== INICIALIZACIÓN =====
 document.addEventListener('DOMContentLoaded', function() {
     cargarDatosStorage();
@@ -774,37 +854,45 @@ function agregarPagoMixto(metodo) {
         // 2. Cambiar a la sección de créditos
         showSection('creditos');
         
-        // 3. --- NUEVA LÓGICA: Asignar el MONTO TOTAL EN USD ---
+        // 3. --- NUEVA LÓGICA MEJORADA: Asignar el MONTO TOTAL EN USD ---
         const montoTotalUSD = pagoMixtoActual.totalDolares;
         
-        // 4. Verificar que el campo de monto exista antes de asignar
-        const montoInput = document.getElementById('montoCredito');
-        if (montoInput) {
-            montoInput.value = montoTotalUSD.toFixed(2);
-        } else {
-            showToast('⚠️ Error: Campo de monto no encontrado', 'error');
-        }
+        // 3a. Usar la función robusta de asignación
+        const asignado = asignarMontoCredito(montoTotalUSD);
         
-        // 5. Establecer la moneda del crédito en USD
+        // 3b. Establecer la moneda del crédito en USD
         const monedaSelect = document.getElementById('monedaCredito');
         if (monedaSelect) {
             monedaSelect.value = 'USD';
+            // Disparar eventos también en el selector
+            ['change', 'input'].forEach(tipo => {
+                monedaSelect.dispatchEvent(new Event(tipo, { bubbles: true }));
+            });
         }
         
-        // 6. Pre-cargar 30 días como valor por defecto (si está vacío)
+        // 3c. Pre-cargar 30 días como valor por defecto (si está vacío)
         const diasInput = document.getElementById('diasCredito');
         if (diasInput && !diasInput.value) {
             diasInput.value = '30';
+            ['input', 'change'].forEach(tipo => {
+                diasInput.dispatchEvent(new Event(tipo, { bubbles: true }));
+            });
         }
         
-        // 7. Enfocar el campo del cliente para una experiencia fluida
+        // 3d. Enfocar el campo del cliente para una experiencia fluida
         const clienteInput = document.getElementById('clienteNombre');
         if (clienteInput) {
             setTimeout(() => clienteInput.focus(), 300);
         }
         
-        // 8. Mostrar mensaje de éxito claro
-        showToast(`✅ Monto de $${montoTotalUSD.toFixed(2)} USD transferido a Crédito. Complete los datos del cliente.`, 'success', 5000);
+        // 3e. Mostrar mensaje de éxito claro
+        if (asignado) {
+            showToast(`✅ Monto de $${montoTotalUSD.toFixed(2)} USD transferido a Crédito. Complete los datos del cliente.`, 'success', 5000);
+        } else {
+            showToast(`⚠️ No se pudo asignar automáticamente el monto. Por favor, ingréselo manualmente: $${montoTotalUSD.toFixed(2)} USD`, 'warning', 7000);
+            // Como fallback, mostrar el monto en la descripción del toast
+            console.warn('El campo de monto no fue encontrado. Valor a ingresar:', montoTotalUSD.toFixed(2));
+        }
         
         // 9. Salir de la función (no continuar con otros métodos de pago)
         return;
