@@ -1048,141 +1048,97 @@ function cerrarModalPagoMixto() {
 }
 
 // ===== TICKET TÉRMICO OPTIMIZADO (POS) =====
-const ticketHTML = `
-    <div class="ticket-print-area">
-        <div class="ticket-header">
-            <strong>${datos.nombreNegocio || nombreEstablecimiento || 'MI NEGOCIO'}</strong><br>
-            <span class="ticket-subtext">
-                ${datos.fecha}<br>
-                VENTA #${Date.now().toString().slice(-8)}
-            </span>
-            <div class="ticket-divider">-----------------------------------------</div>
-        </div>
-        <div class="ticket-items">
-            <table class="ticket-table">
-                <thead>
-                    <tr>
-                        <th style="text-align:left; width:45%;">Producto</th>
-                        <th style="text-align:center; width:15%;">Cant</th>
-                        <th style="text-align:right; width:20%;">P/U</th>
-                        <th style="text-align:right; width:20%;">Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${datos.items.map(item => {
-                        let nombreCorto = item.nombre.substring(0, 20);
-                        return `<tr>
-                            <td style="text-align:left; font-weight:bold;">${nombreCorto}</td>
-                            <td style="text-align:center">${item.cantidad}${item.unidad==='gramo'?'g':''}</td>
-                            <td style="text-align:right">${item.precioUnitarioMoneda.toFixed(2)}</td>
-                            <td style="text-align:right; font-weight:bold;">${item.subtotal.toFixed(2)}</td>
-                         </tr>`;
-                    }).join('')}
-                </tbody>
-            </table>
-        </div>
-        <div class="ticket-footer">
-            <div class="ticket-divider">-----------------------------------------</div>
-            <div class="ticket-totals">
-                <strong>TOTAL: ${datos.totalMoneda.toFixed(2)} ${datos.moneda}</strong><br>
-                <span class="usd-total">(USD: $${datos.totalDolares.toFixed(2)})</span><br>
-                <small>Método: ${metodoStr}</small><br>
-                ${datos.vueltoMoneda > 0 ? `<strong>Vuelto: ${datos.vueltoMoneda.toFixed(2)} ${datos.moneda}</strong><br>` : ''}
-                ${detallesPago}
+function imprimirTicketTermico(datos, metodoStr, detallesPago) {
+    const ticketHTML = `
+        <div class="ticket-print-area">
+            <div class="ticket-header">
+                <strong>${nombreEstablecimiento.toUpperCase()}</strong><br>
+                <span class="ticket-subtext">
+                    ${datos.fecha}<br>
+                    VENTA #${Date.now().toString().slice(-8)}
+                </span>
+                <div class="ticket-divider">-----------------------------------------</div>
             </div>
-            <div class="ticket-divider">-----------------------------------------</div>
-            <p class="gracias-mensaje">¡GRACIAS POR SU COMPRA!</p>
+            <div class="ticket-items">
+                <table class="ticket-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align:left; width:45%;">Producto</th>
+                            <th style="text-align:center; width:15%;">Cant</th>
+                            <th style="text-align:right; width:20%;">P/U</th>
+                            <th style="text-align:right; width:20%;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${datos.items.map(item => {
+                            let nombreCorto = item.nombre.substring(0, 20);
+                            return `<tr>
+                                <td style="text-align:left; font-weight:bold;">${nombreCorto}</td>
+                                <td style="text-align:center">${item.cantidad}</td>
+                                <td style="text-align:right">${item.precioUnitarioMoneda.toFixed(2)}</td>
+                                <td style="text-align:right; font-weight:bold;">${item.subtotal.toFixed(2)}</td>
+                             </tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+            <div class="ticket-footer">
+                <div class="ticket-divider">-----------------------------------------</div>
+                <div class="ticket-totals">
+                    <strong>TOTAL: ${datos.totalMoneda.toFixed(2)}</strong><br>
+                    <span class="usd-total">(USD: $${datos.totalDolares.toFixed(2)})</span><br>
+                    <small>Método de Pago: ${metodoStr}</small><br>
+                    ${datos.vueltoMoneda > 0 ? `<strong>Vuelto: ${datos.vueltoMoneda.toFixed(2)}</strong><br>` : ''}
+                    ${detallesPago}
+                </div>
+                <div class="ticket-divider">-----------------------------------------</div>
+                <p class="gracias-mensaje">¡GRACIAS POR SU COMPRA!</p>
+            </div>
         </div>
-    </div>
-`;
+    `;
 
-const ventana = window.open('', '_blank');
-ventana.document.write(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Ticket de Venta</title>
-        <style>
-            /* Reset básico para pantalla e impresión */
-            * { 
-                margin: 0; 
-                padding: 0; 
-                box-sizing: border-box; 
-                font-family: 'Arial', 'Helvetica', sans-serif;
-            }
-            body { 
-                background: #f0f0f0; 
-                padding: 20px; 
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            /* Vista preliminar en pantalla (Simula el ticket real) */
-            .ticket-print-area { 
-                width: 80mm; /* Se adapta visualmente en pantalla */
-                max-width: 100%;
-                background: #fff; 
-                padding: 4mm; 
-                box-shadow: 0 0 10px rgba(0,0,0,0.1);
-                color: #000;
-            }
-            .ticket-header { text-align: center; font-size: 11pt; line-height: 1.3; }
-            .ticket-subtext { font-size: 9pt; color: #333; }
-            .ticket-divider { font-size: 10pt; text-align: center; margin: 5px 0; letter-spacing: -1px; font-weight: bold; }
-            .ticket-table { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin: 8px 0; }
-            .ticket-table th { border-bottom: 1px dashed #000; padding-bottom: 4px; font-size: 9pt; }
-            .ticket-table td { padding: 4px 0; vertical-align: top; line-height: 1.2; }
-            .ticket-footer { text-align: right; font-size: 10pt; line-height: 1.4; }
-            .ticket-totals { margin-top: 4px; font-size: 11pt; }
-            .usd-total { font-size: 10pt; }
-            .gracias-mensaje { text-align: center; font-weight: bold; font-size: 11pt; margin-top: 10px; }
-            .no-print { text-align: center; margin-top: 20px; }
-            .no-print button { 
-                padding: 10px 20px; 
-                font-size: 14px; 
-                font-weight: bold; 
-                cursor: pointer; 
-                background-color: #1a73e8; 
-                color: white; 
-                border: none; 
-                border-radius: 4px;
-            }
-
-            /* CONFIGURACIÓN CRÍTICA PARA IMPRESORAS TÉRMICAS */
-            @media print {
-                @page {
-                    size: auto; /* Permite longitud de rollo continua basada en contenido */
-                    margin: 0mm; /* Elimina márgenes físicos de hojas carta (evita el metro en blanco) */
+    const ventana = window.open('', '_blank');
+    ventana.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Ticket de Venta</title>
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Arial', sans-serif; }
+                body { background: #f0f0f0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+                .ticket-print-area { width: 80mm; max-width: 100%; background: #fff; padding: 4mm; box-shadow: 0 0 10px rgba(0,0,0,0.1); color: #000; }
+                .ticket-header { text-align: center; font-size: 11pt; line-height: 1.3; }
+                .ticket-subtext { font-size: 9pt; color: #333; }
+                .ticket-divider { font-size: 10pt; text-align: center; margin: 5px 0; font-weight: bold; }
+                .ticket-table { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin: 8px 0; }
+                .ticket-table th { border-bottom: 1px dashed #000; padding-bottom: 4px; font-size: 9pt; }
+                .ticket-table td { padding: 4px 0; vertical-align: top; line-height: 1.2; }
+                .ticket-footer { text-align: right; font-size: 10pt; line-height: 1.4; }
+                .ticket-totals { margin-top: 4px; font-size: 11pt; }
+                .usd-total { font-size: 10pt; }
+                .gracias-mensaje { text-align: center; font-weight: bold; font-size: 11pt; margin-top: 10px; }
+                .no-print { text-align: center; margin-top: 20px; }
+                .no-print button { padding: 10px 20px; font-size: 14px; font-weight: bold; cursor: pointer; background-color: #1a73e8; color: white; border: none; border-radius: 4px; }
+                @media print {
+                    @page { size: auto; margin: 0mm; }
+                    html, body { background: #fff; padding: 0; margin: 0; width: 100%; }
+                    .ticket-print-area { width: 100%; padding: 2mm 3mm; box-shadow: none; }
+                    .ticket-header strong { font-size: 13pt; }
+                    .ticket-table { font-size: 10pt; }
+                    .ticket-totals { font-size: 12pt; }
+                    .no-print { display: none !important; }
                 }
-                html, body {
-                    background: #fff;
-                    padding: 0;
-                    margin: 0;
-                    width: 100%;
-                }
-                .ticket-print-area { 
-                    width: 100%; /* Ocupa exactamente el ancho asignado por la impresora (58mm u 80mm) */
-                    padding: 2mm 3mm; /* Pequeño margen interno profesional */
-                    box-shadow: none;
-                }
-                .ticket-header strong { font-size: 13pt; } /* Nombre de negocio más legible al imprimir */
-                .ticket-table { font-size: 10pt; } /* Sube ligeramente para hardware térmico */
-                .ticket-table th { font-size: 9.5pt; }
-                .ticket-totals { font-size: 12pt; }
-                .no-print { display: none !important; } /* Oculta el botón de imprimir */
-            }
-        </style>
-    </head>
-    <body>
-        ${ticketHTML}
-        <div class="no-print">
-            <button onclick="window.print(); setTimeout(() => window.close(), 300);">Imprimir Ticket</button>
-        </div>
-    </body>
-    </html>
-`);
-ventana.document.close();
+            </style>
+        </head>
+        <body>
+            ${ticketHTML}
+            <div class="no-print">
+                <button onclick="window.print(); setTimeout(() => window.close(), 300);">Imprimir Ticket</button>
+            </div>
+        </body>
+        </html>
+    `);
+    ventana.document.close();
 }
 
 // ===== REPORTE DIARIO MEJORADO =====
