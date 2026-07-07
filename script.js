@@ -125,21 +125,45 @@ let temporizadorInactividad;
 let temporizadorAviso;
 let ultimaActividad = Date.now();
 let redireccionEnCurso = false;
-const TIEMPO_INACTIVIDAD = 2.5 * 60 * 1000; // 2 minutos y medio
-const TIEMPO_AVISO = 2 * 60 * 1000; // 2 minutos (aviso 30 segundos antes)
+const TIEMPO_INACTIVIDAD = 2.5 * 60 * 1000; // 2 minutos y medio exactos
+const TIEMPO_AVISO = 2 * 60 * 1000;         // Aviso a los 2 minutos (30 segundos antes de cerrar)
 const URL_REDIRECCION = "http://portal.calculadoramagica.lat/";
 
 function reiniciarTemporizador() {
+    // Si ya se inició el proceso de salida, no hacemos nada más
+    if (redireccionEnCurso) return;
+
     ultimaActividad = Date.now();
     if (temporizadorInactividad) clearTimeout(temporizadorInactividad);
     if (temporizadorAviso) clearTimeout(temporizadorAviso);
-    temporizadorAviso = setTimeout(() => alert("¡Atención! Te redirigiremos pronto por inactividad."), TIEMPO_AVISO);
-    temporizadorInactividad = setTimeout(() => { if (!redireccionEnCurso) { redireccionEnCurso = true; window.location.href = URL_REDIRECCION; } }, TIEMPO_INACTIVIDAD);
+
+    // Alerta previa en consola o toast sin bloquear el hilo del navegador
+    temporizadorAviso = setTimeout(() => {
+        if (typeof showToast === 'function') {
+            showToast("⚠️ Tu sesión expirará en 30 segundos por inactividad.", "warning", 5000);
+        }
+    }, TIEMPO_AVISO);
+
+    // Cierre forzado y definitivo
+    temporizadorInactividad = setTimeout(() => { 
+        if (!redireccionEnCurso) { 
+            redireccionEnCurso = true; 
+            
+            // Limpiamos la autenticación local por seguridad antes de irnos
+            sessionStorage.removeItem('sesion_autenticada_real');
+            
+            // Forzamos la redirección saltándonos las restricciones del navegador
+            window.location.replace(URL_REDIRECCION);
+        } 
+    }, TIEMPO_INACTIVIDAD);
 }
-window.addEventListener('mousemove', reiniciarTemporizador);
-window.addEventListener('keydown', reiniciarTemporizador);
-window.addEventListener('scroll', reiniciarTemporizador);
-window.addEventListener('click', reiniciarTemporizador);
+
+// Escuchadores de eventos para reiniciar el conteo con cualquier movimiento
+['mousemove', 'keydown', 'scroll', 'click', 'touchstart'].forEach(evento => {
+    window.addEventListener(evento, reiniciarTemporizador);
+});
+
+// Arrancamos el contador de inmediato
 reiniciarTemporizador();
 
 // ----- STORAGE KEYS -----
